@@ -1,0 +1,8 @@
+{"timestamp":"00:00:57.926","source":"Server","level":"LOG","message":"○ Compiling middleware ..."}
+{"timestamp":"00:00:59.690","source":"Server","level":"WARN","message":"⚠ The \"middleware\" file convention is deprecated. Please use \"proxy\" instead.\n\n  To migrate automatically, run:\n  npx @next/codemod@canary middleware-to-proxy .\n\n  Learn more: https://nextjs.org/docs/messages/middleware-to-proxy"}
+{"timestamp":"00:01:03.954","source":"Server","level":"LOG","message":"- Cache Components enabled"}
+{"timestamp":"00:01:03.954","source":"Server","level":"LOG","message":"- Partial Prefetching enabled"}
+{"timestamp":"00:01:03.954","source":"Server","level":"LOG","message":""}
+{"timestamp":"00:01:08.724","source":"Server","level":"LOG","message":"○ Compiling / ..."}
+{"timestamp":"00:01:53.081","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}
+{"timestamp":"00:01:58.870","source":"Browser","level":"INFO","message":"Download the React DevTools for a better development experience: https://react.dev/link/react-devtools"}

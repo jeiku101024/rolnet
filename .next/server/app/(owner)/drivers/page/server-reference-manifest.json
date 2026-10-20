@@ -1,0 +1,15 @@
+{
+  "node": {
+    "40eafdb5beb0bac4b07e4f7d50f15504b4905d5902": {
+      "workers": {
+        "app/(owner)/drivers/page": {
+          "moduleId": 92267,
+          "async": false
+        }
+      },
+      "exportedName": "createDriver",
+      "filename": "app/actions/drivers.ts"
+    }
+  },
+  "edge": {}
+}

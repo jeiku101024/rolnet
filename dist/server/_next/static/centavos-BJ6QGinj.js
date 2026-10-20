@@ -1,0 +1,1 @@
+function e(e){return new Intl.NumberFormat(`en-PH`,{style:`currency`,currency:`PHP`}).format(Number(e)/100)}export{e as t};

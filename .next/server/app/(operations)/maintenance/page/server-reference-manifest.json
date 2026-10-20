@@ -1,0 +1,25 @@
+{
+  "node": {
+    "400a715f4da4e5dd93a316d6043ec615abac9636ef": {
+      "workers": {
+        "app/(operations)/maintenance/page": {
+          "moduleId": 82614,
+          "async": false
+        }
+      },
+      "exportedName": "logPartReplacement",
+      "filename": "app/actions/parts.ts"
+    },
+    "4068a5a1d999322b276a4d81e082e4fdb2e004b947": {
+      "workers": {
+        "app/(operations)/maintenance/page": {
+          "moduleId": 82614,
+          "async": false
+        }
+      },
+      "exportedName": "installTire",
+      "filename": "app/actions/tires.ts"
+    }
+  },
+  "edge": {}
+}

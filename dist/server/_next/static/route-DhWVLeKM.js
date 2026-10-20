@@ -1,0 +1,1 @@
+import{r as e}from"./server-CP4mXFa7.js";import{t}from"./server-DfNjOVKI.js";async function n(n){let r=new URL(n.url),i=r.searchParams.get(`code`),a=r.searchParams.get(`next`),o=a?.startsWith(`/`)&&!a.startsWith(`//`)?a:`/`;return i&&await(await t()).auth.exchangeCodeForSession(i),e.redirect(new URL(o,r.origin))}export{n as GET};

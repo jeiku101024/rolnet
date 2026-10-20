@@ -1,0 +1,3 @@
+{
+  "/(owner)/drivers/[id]/page": "app/(owner)/drivers/[id]/page.js"
+}

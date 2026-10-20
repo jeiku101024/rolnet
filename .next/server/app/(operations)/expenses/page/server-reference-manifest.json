@@ -1,0 +1,35 @@
+{
+  "node": {
+    "4049910d009187f3dfd1ede35d83891d280d38b29d": {
+      "workers": {
+        "app/(operations)/expenses/page": {
+          "moduleId": 62431,
+          "async": false
+        }
+      },
+      "exportedName": "createExpense",
+      "filename": "app/actions/expenses.ts"
+    },
+    "40d217beafaf68216906d28b8db97700339805cc08": {
+      "workers": {
+        "app/(operations)/expenses/page": {
+          "moduleId": 62431,
+          "async": false
+        }
+      },
+      "exportedName": "finalizeReceiptUpload",
+      "filename": "app/actions/expenses.ts"
+    },
+    "70f42a75dba5dd2071bc71e4b9e400eee41f003a98": {
+      "workers": {
+        "app/(operations)/expenses/page": {
+          "moduleId": 62431,
+          "async": false
+        }
+      },
+      "exportedName": "prepareReceiptUpload",
+      "filename": "app/actions/expenses.ts"
+    }
+  },
+  "edge": {}
+}

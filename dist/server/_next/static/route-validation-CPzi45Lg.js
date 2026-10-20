@@ -1,0 +1,1 @@
+function e(e){return e===`/`?`/`:e.split(`/`).map(e=>{if(!e.startsWith(`:`))return e;let t=e.slice(1);return t.endsWith(`+`)?`[...${t.slice(0,-1)}]`:t.endsWith(`*`)?`[[...${t.slice(0,-1)}]]`:`[${t}]`}).join(`/`)}export{e as t};
