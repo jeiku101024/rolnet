@@ -46,8 +46,8 @@ The yellow brand accent never carries white text. Status colors are deliberately
 
 ## Typography
 
-- IBM Plex Sans is the UI family: labels, headings, navigation, helper copy, and controls.
-- IBM Plex Mono is the data family: body numbers, plate numbers, dates, and peso amounts.
+- Geist Sans is the UI family: labels, headings, navigation, helper copy, and controls. It follows the supplied reference’s compact documentation-style grotesk.
+- Geist Mono is the data family: body numbers, plate numbers, dates, and peso amounts.
 - Data uses tabular figures for vertical scanning and reconciliation.
 - The scale is `0.75rem`, `0.875rem`, `1rem`, `1.125rem`, `1.75rem`, and `2.25rem`.
 

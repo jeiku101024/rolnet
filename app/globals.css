@@ -19,17 +19,15 @@
   --token-danger: #a33f3b;
   --token-danger-soft: #fbe9e8;
 
-  --font-ui: var(--font-ibm-plex-sans);
-  --font-data: var(--font-ibm-plex-mono);
-  --text-display: 2.25rem;
-  --text-page-title: 1.75rem;
-  --text-section-title: 1.125rem;
-  --text-body: 1rem;
-  --text-body-sm: 0.875rem;
-  --text-label: 0.75rem;
-  --text-data: 0.875rem;
-  --leading-display: 1.05;
-  --leading-body: 1.5;
+  --token-text-display: 2rem;
+  --token-text-page-title: 1.5rem;
+  --token-text-section-title: 1rem;
+  --token-text-body: 0.875rem;
+  --token-text-body-sm: 0.8125rem;
+  --token-text-label: 0.75rem;
+  --token-text-data: 0.8125rem;
+  --token-leading-display: 1.05;
+  --token-leading-body: 1.45;
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -45,8 +43,8 @@
   --space-touch: 2.75rem;
   --space-table-min: 42rem;
 
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
+  --token-radius-sm: 0.25rem;
+  --token-radius-md: 0.375rem;
   --shadow-none: none;
   --shadow-focus: 0 0 0 3px color-mix(in srgb, var(--token-focus) 28%, transparent);
 }
@@ -68,15 +66,15 @@
   --color-warn-soft: var(--token-warn-soft);
   --color-danger: var(--token-danger);
   --color-danger-soft: var(--token-danger-soft);
-  --font-sans: var(--font-ui);
-  --font-mono: var(--font-data);
-  --text-display: var(--text-display);
-  --text-page-title: var(--text-page-title);
-  --text-section-title: var(--text-section-title);
-  --text-body: var(--text-body);
-  --text-body-sm: var(--text-body-sm);
-  --text-label: var(--text-label);
-  --text-data: var(--text-data);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --text-display: var(--token-text-display);
+  --text-page-title: var(--token-text-page-title);
+  --text-section-title: var(--token-text-section-title);
+  --text-body: var(--token-text-body);
+  --text-body-sm: var(--token-text-body-sm);
+  --text-label: var(--token-text-label);
+  --text-data: var(--token-text-data);
   --spacing-1: var(--space-1);
   --spacing-2: var(--space-2);
   --spacing-3: var(--space-3);
@@ -87,10 +85,10 @@
   --spacing-10: var(--space-10);
   --spacing-11: var(--space-touch);
   --spacing-12: var(--space-12);
-  --leading-display: var(--leading-display);
-  --leading-body: var(--leading-body);
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
+  --leading-display: var(--token-leading-display);
+  --leading-body: var(--token-leading-body);
+  --radius-sm: var(--token-radius-sm);
+  --radius-md: var(--token-radius-md);
 }
 
 @layer base {
@@ -99,9 +97,9 @@
   body {
     background: var(--token-canvas);
     color: var(--token-ink);
-    font-family: var(--font-ui);
-    font-size: var(--text-body);
-    line-height: var(--leading-body);
+    font-family: var(--font-geist-sans);
+    font-size: var(--token-text-body);
+    line-height: var(--token-leading-body);
   }
 
   button, input, select, textarea { font: inherit; }
@@ -114,7 +112,7 @@
 }
 
 @layer utilities {
-  .font-data { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+  .font-data { font-family: var(--font-geist-mono); font-variant-numeric: tabular-nums; }
   .layout-shell { width: 100%; max-width: 90rem; margin-inline: auto; padding-inline: var(--space-page-x); }
   .section-rule { border-top: 1px solid var(--token-rule); padding-block: var(--space-section-y); }
   .table-rule { border-bottom: 1px solid var(--token-rule); }
@@ -124,7 +122,7 @@
   .logo-full-auth { width: 11rem; height: auto; }
   .touch-target { min-height: var(--space-touch); }
   .ledger-row { border-bottom: 1px solid var(--token-rule); padding-block: var(--space-3); }
-  .status-badge { display: inline-flex; align-items: center; gap: var(--space-1); border-radius: var(--radius-sm); padding: var(--space-1) var(--space-2); font-size: var(--text-label); font-weight: 600; line-height: 1.2; }
+  .status-badge { display: inline-flex; align-items: center; gap: var(--space-1); border-radius: var(--token-radius-sm); padding: var(--space-1) var(--space-2); font-size: var(--token-text-label); font-weight: 600; line-height: 1.2; }
 }
 
 @media (min-width: 48rem) {

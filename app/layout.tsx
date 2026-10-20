@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/navigation/app-shell";
 import "./globals.css";
 
-const plexSans = IBM_Plex_Sans({
-  variable: "--font-ibm-plex-sans",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-ibm-plex-mono",
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   weight: "400",
   subsets: ["latin"],
 });
@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${plexSans.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col"><AppShell>{children}</AppShell></body>
     </html>
