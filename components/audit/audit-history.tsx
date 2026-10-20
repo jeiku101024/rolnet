@@ -1,0 +1,1 @@
+type Event={id:number;occurred_at:string;action:string;entity_type:string}; export function AuditHistory({events}:{events:Event[]}){return <ul className="space-y-2">{events.map((e)=><li className="rounded border bg-white p-3 text-sm" key={e.id}>{e.occurred_at} · {e.action} · {e.entity_type}</li>)}</ul>}

@@ -1,0 +1,1 @@
+-- Phase 1 seed placeholder. Business tables and owner/staff fixtures are added by migrations.

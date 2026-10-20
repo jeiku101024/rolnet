@@ -1,4 +1,34 @@
 .agents/
 .specify/
 .venv/
-specs/
+
+# dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js / builds
+.next/
+.vinext/
+.wrangler/
+out/
+build/
+dist/
+
+# test output
+coverage/
+playwright-report/
+test-results/
+
+# environment and logs
+.env*
+*.log
+
+# generated TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# local/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

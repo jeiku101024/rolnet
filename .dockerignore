@@ -1,0 +1,14 @@
+node_modules
+.next
+dist
+.vinext
+.wrangler
+coverage
+playwright-report
+test-results
+.git
+.env*
+.venv
+.specify
+.agents
+*.log

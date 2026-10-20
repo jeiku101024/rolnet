@@ -1,0 +1,20 @@
+services:
+  app:
+    build:
+      context: .
+      target: development
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker
+    environment:
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - .:/app
+      - rolnet_node_modules:/app/node_modules
+      - rolnet_next:/app/.next
+    command: sh -c "corepack pnpm install --frozen-lockfile && corepack pnpm dev"
+
+volumes:
+  rolnet_node_modules:
+  rolnet_next:

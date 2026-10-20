@@ -1,0 +1,1 @@
+export function TirePositions({ tires }: { tires: { id: string; position: string; brand: string }[] }) { return <ul className="grid gap-2 sm:grid-cols-3">{tires.map((tire)=><li className="rounded border bg-white p-3 text-sm capitalize" key={tire.id}>{tire.position}: {tire.brand}</li>)}</ul>; }

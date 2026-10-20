@@ -1,0 +1,1 @@
+begin; select plan(2); select policies_are('public','part_replacements',array['parts_staff_read','parts_operational_insert','parts_operational_update'],'parts policies exist'); select policies_are('public','tire_installations',array['tires_staff_read','tires_operational_insert','tires_operational_update'],'tire policies exist'); select finish(); rollback;

@@ -1,0 +1,13 @@
+begin;
+select plan(9);
+select has_table('public', 'expense_categories', 'expense categories table exists');
+select has_table('public', 'expenses', 'expenses table exists');
+select has_index('public', 'expenses', 'expenses_unit_date_idx', 'expenses are indexed by unit and date');
+select has_index('public', 'expenses', 'expenses_category_idx', 'expenses are indexed by category');
+select col_is_pk('public', 'expenses', array['id'], 'expenses have a primary key');
+select col_not_null('public', 'expenses', 'amount_centavos', 'expense amount is required');
+select col_not_null('public', 'expenses', 'idempotency_key', 'expense idempotency key is required');
+select has_check('public', 'expenses', 'amount_centavos > 0', 'expense amount must be positive');
+select has_table('storage', 'objects', 'storage objects table exists');
+select finish();
+rollback;

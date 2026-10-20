@@ -1,0 +1,1 @@
+begin; select plan(4); select has_function('public','dashboard_monthly_unit_summary',array['date'],'dashboard summary exists'); select has_function('public','due_maintenance',array['date'],'maintenance query exists'); select has_function('public','driver_outstanding_balances',array['date'],'balance query exists'); select finish(); rollback;

@@ -1,0 +1,7 @@
+create type public.tire_position as enum ('front', 'rear_left', 'rear_right');
+create table public.tire_installations (
+  id uuid primary key default gen_random_uuid(), unit_id uuid not null references public.units(id), position public.tire_position not null, brand text not null check (length(trim(brand)) between 1 and 80), installed_on date not null, installed_mileage integer check (installed_mileage is null or installed_mileage >= 0), cost_centavos bigint not null check (cost_centavos >= 0), next_due_date date, next_due_mileage integer check (next_due_mileage is null or next_due_mileage >= 0), replaced_by_id uuid references public.tire_installations(id), created_at timestamptz not null default now(), created_by uuid references auth.users(id), updated_at timestamptz not null default now(), updated_by uuid references auth.users(id), deleted_at timestamptz, deleted_by uuid references auth.users(id), constraint tire_due_check check (next_due_date is not null or next_due_mileage is not null)
+);
+create unique index current_tire_position_unique on public.tire_installations (unit_id, position) where replaced_by_id is null and deleted_at is null;
+create trigger tires_audit_fields before insert or update on public.tire_installations for each row execute function public.set_audit_fields();
+create trigger tires_no_hard_delete before delete on public.tire_installations for each row execute function public.reject_hard_delete();

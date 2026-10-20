@@ -1,0 +1,10 @@
+begin;
+select plan(6);
+select policies_are('public', 'units', array['units_staff_read_policy', 'units_owner_insert_policy', 'units_owner_update_policy'], 'unit RLS policies exist');
+select policies_are('public', 'drivers', array['drivers_staff_read_policy', 'drivers_owner_insert_policy', 'drivers_owner_update_policy'], 'driver RLS policies exist');
+select policies_are('public', 'driver_assignments', array['assignments_staff_read_policy', 'assignments_owner_insert_policy', 'assignments_owner_update_policy'], 'assignment RLS policies exist');
+select policies_are('public', 'driver_days_off', array['driver_days_off_staff_read_policy', 'driver_days_off_owner_insert_policy', 'driver_days_off_owner_update_policy'], 'days-off RLS policies exist');
+select policies_are('public', 'mileage_readings', array['mileage_readings_staff_read_policy', 'mileage_readings_operational_insert_policy', 'mileage_readings_operational_update_policy'], 'mileage RLS policies exist');
+select has_function('public', 'validate_driver_assignment', array[]::text[], 'assignment validation function exists');
+select finish();
+rollback;

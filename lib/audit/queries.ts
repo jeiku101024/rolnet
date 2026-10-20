@@ -1,0 +1,2 @@
+import { requirePermission } from "@/lib/auth/guards"; import { createSupabaseServerClient } from "@/lib/supabase/server";
+export async function getAuditEvents(entityId?:string){await requirePermission("view_audit");const s=await createSupabaseServerClient();let q=s.from("audit_events").select("*").order("occurred_at",{ascending:false}).limit(100);if(entityId)q=q.eq("entity_id",entityId);return (await q).data??[];}

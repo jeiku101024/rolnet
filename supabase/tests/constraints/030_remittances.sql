@@ -1,0 +1,14 @@
+begin;
+select plan(10);
+select has_table('public', 'remittances', 'remittances table exists');
+select has_table('public', 'remittance_payments', 'payments table exists');
+select has_index('public', 'remittances', 'remittances_unit_date_unique', 'one remittance per unit date');
+select has_index('public', 'remittances', 'remittances_driver_date_unique', 'one remittance per driver date');
+select has_index('public', 'remittances', 'remittances_assignment_idx', 'remittances indexed by assignment');
+select has_check('public', 'remittance_payments', 'amount_centavos > 0', 'payments are positive');
+select col_not_null('public', 'remittances', 'idempotency_key', 'remittance idempotency key required');
+select has_function('public', 'validate_remittance', array[]::text[], 'remittance validation function exists');
+select has_function('public', 'reverse_remittance', array['uuid', 'text'], 'owner reversal function exists');
+select has_function('public', 'validate_remittance_payment', array[]::text[], 'payment validation function exists');
+select finish();
+rollback;

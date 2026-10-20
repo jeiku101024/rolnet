@@ -1,0 +1,1 @@
+begin; select plan(3); select policies_are('public','documents',array['documents_owner_select','documents_owner_insert','documents_owner_update'],'document policies exist'); select policies_are('public','notification_outbox',array['outbox_owner_read'],'outbox policies exist'); select has_table('storage','objects','document storage exists'); select finish(); rollback;

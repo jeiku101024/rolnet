@@ -1,0 +1,1 @@
+export function PartsList({ parts }: { parts: { id: string; part_name: string; next_due_date: string | null; next_due_mileage: number | null }[] }) { return <ul className="space-y-2">{parts.map((part)=><li className="rounded border bg-white p-3 text-sm" key={part.id}>{part.part_name} · due {part.next_due_date ?? `${part.next_due_mileage} km`}</li>)}</ul>; }

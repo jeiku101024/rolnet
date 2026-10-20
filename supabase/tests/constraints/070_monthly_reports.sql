@@ -1,0 +1,1 @@
+begin; select plan(2); select has_function('public','monthly_report',array['date','uuid'],'monthly report exists'); select has_function('public','dashboard_monthly_unit_summary',array['date'],'report shares dashboard query'); select finish(); rollback;

@@ -1,0 +1,1 @@
+grant execute on function public.dashboard_monthly_unit_summary(date) to authenticated; grant execute on function public.due_maintenance(date) to authenticated; grant execute on function public.driver_outstanding_balances(date) to authenticated;

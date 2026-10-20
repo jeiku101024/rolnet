@@ -1,0 +1,1 @@
+export function Feedback({message,type="status"}:{message:string;type?:"status"|"error"}){return <p role={type} className={type==='error'?"rounded bg-red-50 p-3 text-sm text-red-800":"rounded bg-slate-100 p-3 text-sm text-slate-700"}>{message}</p>}

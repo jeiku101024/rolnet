@@ -1,0 +1,14 @@
+begin;
+select plan(10);
+select has_table('public', 'units', 'units table exists');
+select has_table('public', 'drivers', 'drivers table exists');
+select has_table('public', 'driver_assignments', 'assignments table exists');
+select has_table('public', 'driver_days_off', 'days off table exists');
+select has_table('public', 'mileage_readings', 'mileage table exists');
+select has_index('public', 'units', 'units_body_number_unique', 'body numbers are unique');
+select has_index('public', 'units', 'units_plate_number_unique', 'plate numbers are unique');
+select has_index('public', 'drivers', 'drivers_license_unique', 'licenses are unique');
+select has_index('public', 'driver_assignments', 'primary_unit_date_exclusion', 'primary unit ranges cannot overlap');
+select has_index('public', 'driver_assignments', 'primary_driver_date_exclusion', 'primary driver ranges cannot overlap');
+select finish();
+rollback;
