@@ -3,15 +3,15 @@
 import { useState } from "react";
 import { createUnit } from "@/app/actions/units";
 import { Button } from "@/components/ui/button";
+import { FormField, Input, Select, ValidationSummary } from "@/components/ui/form-field";
 
 export function UnitForm() {
   const [message, setMessage] = useState("");
-  return <form className="space-y-4 rounded-lg border bg-white p-4" onSubmit={async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); try { await createUnit({ bodyNumber: form.get("bodyNumber"), plateNumber: form.get("plateNumber"), makeModel: form.get("makeModel"), status: form.get("status") }); setMessage("Unit saved."); event.currentTarget.reset(); } catch { setMessage("Could not save the unit. Check duplicate numbers and try again."); } }}>
+  return <form className="data-region space-y-5" onSubmit={async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); try { await createUnit({ bodyNumber: form.get("bodyNumber"), plateNumber: form.get("plateNumber"), makeModel: form.get("makeModel"), status: form.get("status") }); setMessage("Unit saved."); event.currentTarget.reset(); } catch { setMessage("Could not save the unit. Check duplicate numbers and try again."); } }}>
     <h2 className="text-lg font-semibold">Add tricycle unit</h2>
-    <label className="block text-sm font-medium">Body number<input required name="bodyNumber" className="mt-1 min-h-11 w-full rounded-md border p-3" /></label>
-    <label className="block text-sm font-medium">Plate number<input required name="plateNumber" className="mt-1 min-h-11 w-full rounded-md border p-3 uppercase" /></label>
-    <label className="block text-sm font-medium">Make and model<input required name="makeModel" className="mt-1 min-h-11 w-full rounded-md border p-3" /></label>
-    <label className="block text-sm font-medium">Status<select name="status" defaultValue="active" className="mt-1 min-h-11 w-full rounded-md border p-3"><option value="active">Active</option><option value="in_repair">In repair</option><option value="retired">Retired</option></select></label>
-    <Button type="submit">Save unit</Button>{message ? <p role="status" className="text-sm text-slate-600">{message}</p> : null}
+    <div className="grid gap-4 sm:grid-cols-2"><FormField label="Body number" required><Input required name="bodyNumber" /></FormField><FormField label="Plate number" required><Input required name="plateNumber" className="uppercase" /></FormField></div>
+    <FormField label="Make and model" required><Input required name="makeModel" /></FormField>
+    <FormField label="Status"><Select name="status" defaultValue="active"><option value="active">Active</option><option value="in_repair">In repair</option><option value="retired">Retired</option></Select></FormField>
+    <div className="flex flex-wrap items-center gap-3"><Button type="submit">Save unit</Button><ValidationSummary message={message.startsWith("Could") ? message : undefined} />{message && !message.startsWith("Could") ? <p role="status" className="text-body-sm text-ok">{message}</p> : null}</div>
   </form>;
 }

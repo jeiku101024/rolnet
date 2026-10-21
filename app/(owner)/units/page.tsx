@@ -3,10 +3,13 @@ import { requireApprovedSession } from "@/lib/auth/guards";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { UnitForm } from "@/components/forms/unit-form";
 import { demoMode, demoUnits } from "@/lib/demo/mode";
+import { DataTable } from "@/components/ui/data-table";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/feedback";
 
 export default async function UnitsPage() {
   await requireApprovedSession();
   const supabase = demoMode ? null : await createSupabaseServerClient();
   const { data: units } = supabase ? await supabase.from("units").select("id, body_number, plate_number, make_model, status, current_mileage").is("deleted_at", null).order("body_number") : { data: demoUnits };
-  return <section className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6"><div><p className="text-sm font-medium text-blue-700">Fleet register</p><h1 className="mt-1 text-2xl font-semibold">Units</h1></div><UnitForm /><ul className="space-y-3">{(units ?? []).map((unit) => <li key={unit.id} className="rounded-lg border bg-white p-4"><Link href={`/units/${unit.id}`} className="block"><div className="flex items-center justify-between gap-4"><span className="font-semibold">Body {unit.body_number}</span><span className="rounded-full bg-slate-100 px-2 py-1 text-xs capitalize">{unit.status.replace("_", " ")}</span></div><p className="mt-1 text-sm text-slate-600">{unit.plate_number} · {unit.make_model} · {unit.current_mileage.toLocaleString()} km</p></Link></li>)}</ul></section>;
+  return <section className="workspace"><PageHeader eyebrow="Fleet register" title="Units" description="Keep every tricycle’s identity, status, and mileage easy to scan." /><div className="mt-8 workspace-grid"><div><DataTable headers={["Unit", "Plate", "Model", "Mileage", "Status"]} empty={<p className="p-6 text-muted">No units recorded yet.</p>}>{(units ?? []).map((unit) => <tr key={unit.id}><td><Link className="muted-link" href={`/units/${unit.id}`}>Body {unit.body_number}</Link></td><td className="font-data">{unit.plate_number}</td><td>{unit.make_model}</td><td className="font-data">{unit.current_mileage.toLocaleString()} km</td><td><StatusBadge label={unit.status.replace("_", " ")} tone={unit.status === "active" ? "success" : unit.status === "in_repair" ? "warning" : "danger"} /></td></tr>)}</DataTable></div><aside className="border-t border-rule pt-5"><h2 className="text-section-title font-bold">Add a unit</h2><p className="mt-1 mb-4 text-body-sm text-muted">Record a new vehicle without leaving the fleet register.</p><UnitForm /></aside></div></section>;
 }

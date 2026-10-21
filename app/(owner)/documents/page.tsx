@@ -1,2 +1,14 @@
-import { requirePermission } from "@/lib/auth/guards"; import { createSupabaseServerClient } from "@/lib/supabase/server"; import { DocumentForm } from "@/components/forms/document-form"; import { ExpiryStatus } from "@/components/documents/expiry-status"; import { demoDocuments, demoMode } from "@/lib/demo/mode";
-export default async function DocumentsPage(){await requirePermission("manage_documents");const s=demoMode?null:await createSupabaseServerClient();const {data:docs}=s?await s.from("documents").select("id,document_type,expires_on,object_path,lifecycle_status").is("deleted_at",null).order("expires_on"):{data:demoDocuments};return <section className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6"><h1 className="text-2xl font-semibold">Documents</h1><DocumentForm/><ul className="space-y-2">{(docs??[]).map((d)=><li className="rounded border bg-white p-3" key={d.id}><div className="flex justify-between"><span className="capitalize">{d.document_type.replace("_"," ")}</span><ExpiryStatus expiresOn={d.expires_on}/></div><p className="text-sm text-slate-600">Expires {d.expires_on}</p></li>)}</ul></section>}
+import { requirePermission } from "@/lib/auth/guards";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { DocumentForm } from "@/components/forms/document-form";
+import { ExpiryStatus } from "@/components/documents/expiry-status";
+import { demoDocuments, demoMode } from "@/lib/demo/mode";
+import { DataTable } from "@/components/ui/data-table";
+import { PageHeader } from "@/components/ui/page-header";
+
+export default async function DocumentsPage() {
+  await requirePermission("manage_documents");
+  const s = demoMode ? null : await createSupabaseServerClient();
+  const { data: docs } = s ? await s.from("documents").select("id,document_type,expires_on,object_path,lifecycle_status").is("deleted_at", null).order("expires_on") : { data: demoDocuments };
+  return <section className="workspace"><PageHeader eyebrow="Compliance register" title="Documents" description="Keep OR/CR, licenses, franchise, and insurance records current." /><div className="mt-8 workspace-grid"><div><DataTable headers={["Document", "Expires", "Status", "File"]} empty={<p className="p-6 text-muted">No compliance documents recorded yet.</p>}>{(docs ?? []).map((d) => <tr key={d.id}><td className="font-semibold capitalize">{d.document_type.replace("_", " ")}</td><td className="font-data">{d.expires_on}</td><td><ExpiryStatus expiresOn={d.expires_on} /></td><td className="text-body-sm text-muted">{d.object_path ? "Uploaded" : "Missing"}</td></tr>)}</DataTable></div><aside className="border-t border-rule pt-5"><h2 className="text-section-title font-bold">Upload document</h2><p className="mt-1 mb-4 text-body-sm text-muted">Attach the current file and keep its expiry date queryable.</p><DocumentForm /></aside></div></section>;
+}

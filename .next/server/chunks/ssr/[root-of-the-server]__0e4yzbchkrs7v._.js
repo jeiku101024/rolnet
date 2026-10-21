@@ -1,3 +1,0 @@
-module.exports=[[84771,a=>{var b=a.i(16400);a.n(b)},71569,(a,b,c)=>{b.exports=a.r(18622)},61876,(a,b,c)=>{b.exports=a.r(71569).vendored["react-rsc"].ReactServerDOMTurbopackServer}],18622,(a,b,c)=>{b.exports=a.x("next/dist/compiled/next-server/app-page-turbo.runtime.prod.js",()=>require("next/dist/compiled/next-server/app-page-turbo.runtime.prod.js"))},16400,(a,b,c)=>{let{createClientModuleProxy:d}=a.r(61876);a.n(d("[project]/node_modules/.pnpm/next@16.4.0_@babel+core@7.2_6944613f737f7842812f8953ca9c8f62/node_modules/next/dist/client/components/builtin/global-error.js"))},79225,function(a){a.n(a.i(84771))}];
-
-//# sourceMappingURL=%5Broot-of-the-server%5D__0e4yzbchkrs7v._.js.map

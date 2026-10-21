@@ -1,2 +1,5 @@
-import { requirePermission } from "@/lib/auth/guards"; import { ReportExportForm } from "@/components/forms/report-export-form";
-export default async function ReportsPage(){await requirePermission("export_reports");return <section className="mx-auto w-full max-w-2xl space-y-6 px-4 py-6"><h1 className="text-2xl font-semibold">Reports</h1><p className="text-sm text-slate-600">Download a monthly CSV summary for bookkeeping.</p><ReportExportForm/></section>}
+import { requirePermission } from "@/lib/auth/guards";
+import { ReportExportForm } from "@/components/forms/report-export-form";
+import { PageHeader } from "@/components/ui/page-header";
+
+export default async function ReportsPage() { await requirePermission("export_reports"); return <section className="workspace"><PageHeader eyebrow="Monthly reporting" title="Reports" description="Download a reconciled monthly CSV summary for bookkeeping." /><div className="mt-8 max-w-xl border-t border-rule pt-5"><ReportExportForm /></div></section>; }
