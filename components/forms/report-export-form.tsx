@@ -1,2 +1,13 @@
 "use client";
-export function ReportExportForm(){return <form className="space-y-3 rounded border bg-white p-4" action="/api/reports/monthly" method="get"><label className="block text-sm font-medium">Month<input required name="month" type="month" className="mt-1 min-h-11 w-full rounded border p-3"/></label><label className="block text-sm font-medium">Scope<select name="scope" defaultValue="fleet" className="mt-1 min-h-11 w-full rounded border p-3"><option value="fleet">Whole fleet</option><option value="unit">One unit</option></select></label><button className="min-h-11 rounded bg-slate-900 px-4 font-medium text-white" type="submit">Download CSV</button></form>}
+
+import { FormPanel } from "@/components/ui/form-panel";
+import { Button } from "@/components/ui/button";
+import { FormField, Input, Select } from "@/components/ui/form-field";
+
+export function ReportExportForm() {
+  return <FormPanel className=" space-y-5" action="/api/reports/monthly" method="get">
+    <FormField label="Month" required><Input required name="month" type="month" /></FormField>
+    <FormField label="Scope"><Select name="scope" defaultValue="fleet"><option value="fleet">Whole fleet</option><option value="unit">One unit</option></Select></FormField>
+    <Button type="submit">Download CSV</Button>
+  </FormPanel>;
+}

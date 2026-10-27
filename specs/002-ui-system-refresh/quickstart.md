@@ -1,5 +1,9 @@
 # Quickstart Validation: Fleet UI System Refresh
 
+## Implementation validation note
+
+The local Corepack pnpm cache is unavailable in the current environment, so equivalent repository-local binaries were used for TypeScript, Vitest, and Playwright checks. The browser review confirmed the dashboard glimpse regions, documents search, and client-side expiry state; the complete route-by-route desktop and 360-pixel review remains a release checklist item.
+
 ## Prerequisites
 
 - Install dependencies with the repository’s existing package manager.

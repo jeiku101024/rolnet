@@ -1,6 +1,17 @@
 node_modules/
 .[!.]*/
 .next/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+*.log
+.env*
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
 venv/
 .venv/
 .env.docker

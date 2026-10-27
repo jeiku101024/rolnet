@@ -46,10 +46,23 @@ export async function registerStaff(formData: FormData): Promise<ActionResult<nu
   }
 }
 
-export async function signOut() {
-  if (demoMode) { redirect("/login"); }
-  const supabase = await createSupabaseServerClient();
-  await supabase.auth.signOut();
+export async function signOut(_previousState: ActionResult<null> | null = null): Promise<ActionResult<null>> {
+  try {
+    await assertSameOrigin();
+    if (!demoMode) {
+      const supabase = await createSupabaseServerClient();
+      const { error } = await supabase.auth.signOut();
+      const expiredSession = error && (
+        error.code === "session_not_found" ||
+        /session (missing|not found)/i.test(error.message)
+      );
+      if (error && !expiredSession) {
+        return failure("SIGN_OUT_FAILED", "We could not log you out. Your session may still be active. Try again.");
+      }
+    }
+  } catch {
+    return failure("SIGN_OUT_FAILED", "We could not log you out. Your session may still be active. Try again.");
+  }
   redirect("/login");
 }
 

@@ -35,17 +35,17 @@ $$;
 
 create or replace function public.current_app_role()
 returns public.app_role
-language sql
+language plpgsql
 stable
 security definer
 set search_path = public
 as $$
-  select role
-  from public.profiles
-  where user_id = auth.uid()
-    and account_status = 'approved'
-    and deleted_at is null
-  limit 1;
+declare selected_role public.app_role;
+begin
+  execute 'select role from public.profiles where user_id = $1 and account_status = ''approved'' and deleted_at is null limit 1'
+    into selected_role using auth.uid();
+  return selected_role;
+end;
 $$;
 
 create or replace function public.is_owner()
@@ -90,7 +90,7 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.audit_events (actor_user_id, entity_type, entity_id, action, changed_fields)
-  values (auth.uid(), p_entity_type, p_entity_id, p_action, coalesce(p_changed_fields, '{}'::jsonb));
+  execute 'insert into public.audit_events (actor_user_id, entity_type, entity_id, action, changed_fields) values ($1, $2, $3, $4, $5)'
+    using auth.uid(), p_entity_type, p_entity_id, p_action, coalesce(p_changed_fields, '{}'::jsonb);
 end;
 $$;

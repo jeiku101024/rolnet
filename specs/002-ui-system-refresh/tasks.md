@@ -70,8 +70,8 @@
 - [X] T023 [P] [US2] Convert the maintenance list and unit maintenance detail to the shared data-view pattern with due-state labels and bounded mobile overflow in `app/(operations)/maintenance/page.tsx`, `app/(operations)/maintenance/[unitId]/page.tsx`, `components/maintenance/parts-list.tsx`, and `components/maintenance/tire-positions.tsx`
 - [X] T024 [P] [US2] Convert the documents list and document detail to the shared data-view pattern with expiry status, file context, and owner-only actions in `app/(owner)/documents/page.tsx` and `app/(owner)/documents/[id]/page.tsx`
 - [X] T025 [P] [US2] Convert reports and audit records to the shared data-view pattern with period/result context and audit-safe record links in `app/(owner)/reports/page.tsx`, `app/(owner)/audit/page.tsx`, and `components/audit/audit-history.tsx`
-- [ ] T026 [US2] Add or refine list-page filter/search/date-period and result-state presentation using `components/ui/data-toolbar.tsx` and the applicable route pages, ensuring active constraints are visible and removable without inventing unsupported domain filters
-- [ ] T027 [US2] Verify all converted tables preserve row/detail navigation context and use bounded overflow or a compact alternative at 360 pixels in `components/ui/data-table.tsx` and the affected list pages
+- [X] T026 [US2] Add or refine list-page filter/search/date-period and result-state presentation using `components/ui/data-toolbar.tsx` and the applicable route pages, ensuring active constraints are visible and removable without inventing unsupported domain filters
+- [X] T027 [US2] Verify all converted tables preserve row/detail navigation context and use bounded overflow or a compact alternative at 360 pixels in `components/ui/data-table.tsx` and the affected list pages
 
 **Checkpoint**: Every major fleet list is table/ledger-first, responsive, status-readable, and independently navigable without changing its domain query or permission rules.
 
@@ -86,11 +86,11 @@
 ### Implementation for User Story 3
 
 - [X] T028 [P] [US3] Establish shared form field grouping, label, helper-text, required-state, validation-summary, and action-group patterns in `components/ui/form-field.tsx`, `components/ui/validation-summary.tsx`, and `components/ui/action-group.tsx`
-- [ ] T029 [P] [US3] Refactor unit, driver, remittance, expense, document, part, tire, and report forms to use the shared field/action patterns without changing validation schemas or server actions in `components/forms/unit-form.tsx`, `components/forms/driver-form.tsx`, `components/forms/remittance-form.tsx`, `components/forms/expense-form.tsx`, `components/forms/document-form.tsx`, `components/forms/part-replacement-form.tsx`, `components/forms/tire-installation-form.tsx`, and `components/forms/report-export-form.tsx`
+- [X] T029 [P] [US3] Refactor unit, driver, remittance, expense, document, part, tire, and report forms to use the shared field/action patterns without changing validation schemas or server actions in `components/forms/unit-form.tsx`, `components/forms/driver-form.tsx`, `components/forms/remittance-form.tsx`, `components/forms/expense-form.tsx`, `components/forms/document-form.tsx`, `components/forms/part-replacement-form.tsx`, `components/forms/tire-installation-form.tsx`, and `components/forms/report-export-form.tsx`
 - [X] T030 [P] [US3] Refactor unit and driver detail pages to show identity, current status, key values, assignments, related records, history, and authorized actions in `app/(owner)/units/[id]/page.tsx` and `app/(owner)/drivers/[id]/page.tsx`
 - [X] T031 [P] [US3] Refactor remittance detail pages to show service context, due/paid/balance values, payment history, notes, and role-appropriate actions in `app/(operations)/remittances/[id]/page.tsx`
 - [X] T032 [P] [US3] Refactor document and maintenance detail pages to show status, expiry/due context, related unit/driver, history, and authorized actions in `app/(owner)/documents/[id]/page.tsx` and `app/(operations)/maintenance/[unitId]/page.tsx`
-- [ ] T033 [US3] Ensure validation, upload, missing-receipt, expired-document, unpaid-balance, and permission-restricted states use plain-language feedback and preserve valid form input in `components/ui/feedback.tsx`, `components/ui/validation-summary.tsx`, and the affected form/detail pages
+- [X] T033 [US3] Ensure validation, upload, missing-receipt, expired-document, unpaid-balance, and permission-restricted states use plain-language feedback and preserve valid form input in `components/ui/feedback.tsx`, `components/ui/validation-summary.tsx`, and the affected form/detail pages
 
 **Checkpoint**: Representative forms and detail pages expose relationships, statuses, actions, and recovery guidance at desktop and phone widths without domain-rule changes.
 
@@ -105,10 +105,10 @@
 ### Implementation for User Story 4
 
 - [X] T034 [US4] Apply the selected stronger font family, explicit weights, and font loading/fallback behavior across the root document in `app/layout.tsx`, ensuring the project remains free to run and avoids the previous thin generic treatment
-- [ ] T035 [P] [US4] Replace hard-coded typography, arbitrary spacing, and ad hoc color classes with shared tokens/utilities in `app/globals.css`, `components/`, and all affected `app/` route pages
+- [X] T035 [P] [US4] Replace hard-coded typography, arbitrary spacing, and ad hoc color classes with shared tokens/utilities in `app/globals.css`, `components/`, and all affected `app/` route pages
 - [X] T036 [P] [US4] Apply consistent tabular numeric styling to peso amounts, dates, plate numbers, mileage, counts, and report values in `app/globals.css`, `lib/money/centavos.ts`, and affected data-view components
 - [X] T037 [P] [US4] Review and adjust status icon/label pairings, focus rings, disabled states, and contrast-preserving brand/status usage in `components/ui/feedback.tsx`, `components/ui/button.tsx`, and affected route components
-- [ ] T038 [US4] Remove remaining centered card-only compositions, decorative shadows, gradients, decorative all-caps labels, and color-only status communication from `app/`, `components/`, and `app/globals.css` while preserving intentional containers where they improve grouping
+- [X] T038 [US4] Remove remaining centered card-only compositions, decorative shadows, gradients, decorative all-caps labels, and color-only status communication from `app/`, `components/`, and `app/globals.css` while preserving intentional containers where they improve grouping
 
 **Checkpoint**: The complete application reads as one deliberate ROLNET interface with stronger typography, preserved palette, visible hierarchy, and no generic card-stack drift.
 
@@ -118,13 +118,13 @@
 
 **Purpose**: Validate the complete refresh against the spec, preserve domain behavior, and resolve responsive/accessibility regressions.
 
-- [ ] T039 [P] Add route-level mobile and keyboard acceptance coverage for workspace headers, primary actions, bounded tables, focus visibility, and status labels in `tests/e2e/ui-system-refresh.spec.ts`
-- [ ] T040 [P] Add dashboard acceptance coverage for all six recent-data glimpse categories, full-view links, permission visibility, local empty states, and isolated error states in `tests/e2e/ui-system-refresh.spec.ts`
-- [ ] T041 [P] Add focused unit coverage for dashboard glimpse mapping and state normalization in `tests/unit/dashboard-recent-data.test.ts`
+- [X] T039 [P] Add route-level mobile and keyboard acceptance coverage for workspace headers, primary actions, bounded tables, focus visibility, and status labels in `tests/e2e/ui-system-refresh.spec.ts`
+- [X] T040 [P] Add dashboard acceptance coverage for all six recent-data glimpse categories, full-view links, permission visibility, local empty states, and isolated error states in `tests/e2e/ui-system-refresh.spec.ts`
+- [X] T041 [P] Add focused unit coverage for dashboard glimpse mapping and state normalization in `tests/unit/dashboard-recent-data.test.ts`
 - [ ] T042 Run the existing business and security regression suites for permissions, dashboard queries, document expiry, remittances, expenses, maintenance, and audit behavior in `supabase/tests/`, `tests/e2e/`, and `tests/unit/`
 - [ ] T043 Run `corepack pnpm typecheck`, `corepack pnpm lint`, `corepack pnpm test`, and `corepack pnpm test:e2e`; resolve any regressions in the affected source files
 - [ ] T044 Perform the complete desktop and 360×800 manual route review defined in `specs/002-ui-system-refresh/quickstart.md`, recording results and screenshots/traces for failures
-- [ ] T045 Confirm the implementation does not add paid dependencies, schema migrations, new persistence, permission bypasses, or changes to monetary/document/audit business rules in `specs/002-ui-system-refresh/quickstart.md`
+- [X] T045 Confirm the implementation does not add paid dependencies, schema migrations, new persistence, permission bypasses, or changes to monetary/document/audit business rules in `specs/002-ui-system-refresh/quickstart.md`
 
 ---
 

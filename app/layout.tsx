@@ -1,20 +1,9 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Poppins } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/navigation/app-shell";
+import { getSessionProfile } from "@/lib/auth/guards";
 import "./globals.css";
-
-const poppins = Poppins({
-  variable: "--font-poppins",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  weight: "400",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "ROLNET Fleet Ledger",
@@ -25,13 +14,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const profile = await getSessionProfile();
   return (
     <html
       lang="en"
-      className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${GeistSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col"><AppShell>{children}</AppShell></body>
+      <body className="min-h-full flex flex-col"><AppShell profile={profile}>{children}</AppShell></body>
     </html>
   );
 }

@@ -1,6 +1,31 @@
 @import "tailwindcss/index.css";
 
 :root {
+  --radius: 0.875rem;
+  --background: var(--token-canvas);
+  --foreground: var(--token-ink);
+  --card: var(--token-surface);
+  --card-foreground: var(--token-ink);
+  --primary: var(--token-brand-dark);
+  --primary-foreground: var(--token-surface);
+  --secondary: var(--token-brand-soft);
+  --secondary-foreground: var(--token-brand-dark);
+  --muted: #f3f4f6;
+  --muted-foreground: var(--token-muted);
+  --accent: var(--token-brand-soft);
+  --accent-foreground: var(--token-ink);
+  --border: var(--token-rule);
+  --input: var(--token-rule);
+  --ring: var(--token-focus);
+  --destructive: var(--token-danger);
+  --sidebar: var(--token-surface);
+  --sidebar-foreground: var(--token-ink);
+  --sidebar-primary: var(--token-brand-dark);
+  --sidebar-primary-foreground: var(--token-surface);
+  --sidebar-accent: var(--token-brand-soft);
+  --sidebar-accent-foreground: var(--token-ink);
+  --sidebar-border: var(--token-rule);
+  --sidebar-ring: var(--token-focus);
   /* Exact brand colors are extracted from /public/brand/*.svg. */
   --token-brand: #ffc72c;
   --token-brand-dark: #1b2a41;
@@ -50,13 +75,39 @@
 }
 
 @theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
   --color-brand: var(--token-brand);
   --color-brand-dark: var(--token-brand-dark);
   --color-ink: var(--token-ink);
   --color-canvas: var(--token-canvas);
   --color-surface: var(--token-surface);
   --color-rule: var(--token-rule);
-  --color-muted: var(--token-muted);
+  --color-muted: var(--muted);
   --color-subtle: var(--token-subtle);
   --color-brand-soft: var(--token-brand-soft);
   --color-focus: var(--token-focus);
@@ -66,8 +117,8 @@
   --color-warn-soft: var(--token-warn-soft);
   --color-danger: var(--token-danger);
   --color-danger-soft: var(--token-danger-soft);
-  --font-sans: var(--font-poppins);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --text-display: var(--token-text-display);
   --text-page-title: var(--token-text-page-title);
   --text-section-title: var(--token-text-section-title);
@@ -97,7 +148,7 @@
   body {
     background: var(--token-canvas);
     color: var(--token-ink);
-    font-family: var(--font-poppins), sans-serif;
+    font-family: var(--font-geist-sans), sans-serif;
     font-size: var(--token-text-body);
     line-height: var(--token-leading-body);
   }
@@ -112,14 +163,18 @@
 }
 
 @layer utilities {
-  .font-data { font-family: var(--font-geist-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .text-muted { color: var(--token-muted); }
+  .cn-font-heading { font-family: var(--font-geist-sans), sans-serif; }
+  .font-data { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
   .layout-shell { width: 100%; max-width: 96rem; margin-inline: auto; padding-inline: var(--space-page-x); }
-  .workspace { width: 100%; max-width: 96rem; margin-inline: auto; padding: var(--space-8) var(--space-page-x) var(--space-12); }
+  .workspace { width: 100%; min-width: 0; max-width: 96rem; margin-inline: auto; padding: var(--space-8) var(--space-page-x) var(--space-12); }
   .workspace-narrow { max-width: 42rem; }
   .workspace-header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--space-4); border-bottom: 1px solid var(--token-rule); padding-bottom: var(--space-5); }
-  .workspace-grid { display: grid; gap: var(--space-8); }
-  .workspace-grid-wide { display: grid; gap: var(--space-8); }
-  .data-region { overflow: hidden; border-block: 1px solid var(--token-rule); background: var(--token-surface); }
+  .workspace-grid { display: grid; min-width: 0; gap: var(--space-8); }
+  .workspace-grid > * { min-width: 0; }
+  .workspace-grid-wide { display: grid; min-width: 0; gap: var(--space-8); }
+  .data-region { min-width: 0; overflow: hidden; border-block: 1px solid var(--token-rule); background: var(--token-surface); }
+  form.data-region { border: 1px solid var(--border); border-radius: var(--radius-xl); padding: var(--space-6); box-shadow: 0 1px 2px rgb(0 0 0 / 0.04); }
   .data-scroll { overflow-x: auto; }
   .data-table { width: 100%; min-width: var(--space-table-min); border-collapse: collapse; text-align: left; font-size: var(--token-text-body-sm); }
   .data-table th { padding: var(--space-3) var(--space-4); color: var(--token-muted); font-size: var(--token-text-label); font-weight: 700; letter-spacing: 0.03em; }

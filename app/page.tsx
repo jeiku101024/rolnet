@@ -1,4 +1,7 @@
 import { CircleCheck, CircleX, LoaderCircle, Plus, TriangleAlert } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const rows = [
   { body: "TR-014", driver: "Marlon Dela Cruz", amount: "₱1,800.00", expiry: "18 Jun 2026", state: "ok" },
@@ -18,8 +21,8 @@ function StatusBadge({ state }: { state: "ok" | "warning" | "danger" }) {
 
 export default function Home() {
   return (
-    <div className="layout-shell">
-      <section className="section-rule grid gap-8 py-10 md:grid-cols-2 md:items-end">
+    <div className="layout-shell space-y-6 py-6">
+      <Card className="grid gap-8 px-6 md:grid-cols-2 md:items-end">
         <div className="max-w-2xl">
           <p className="text-label font-semibold text-brand-dark">Design specimen / operations ledger</p>
           <h1 className="mt-3 text-display font-semibold leading-display text-ink">A clear record of the fleet, from first trip to final peso.</h1>
@@ -29,9 +32,9 @@ export default function Home() {
           <p className="font-data text-data text-brand-dark">03 / 24 / 2026</p>
           <p className="mt-1">Three records need attention before today’s dispatch.</p>
         </div>
-      </section>
+      </Card>
 
-      <section className="section-rule">
+      <Card className="px-6">
         <div className="grid gap-8 lg:grid-cols-2">
           <div>
             <h2 className="text-section-title font-semibold text-ink">Type scale</h2>
@@ -56,45 +59,45 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </Card>
 
-      <section className="section-rule">
+      <Card className="px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div><h2 className="text-section-title font-semibold text-ink">Controls and statuses</h2><p className="mt-1 text-body-sm text-muted">The accent carries action; statuses carry meaning.</p></div>
           <div className="flex flex-wrap items-center gap-2"><StatusBadge state="ok" /><StatusBadge state="warning" /><StatusBadge state="danger" /></div>
         </div>
         <div className="mt-6 grid gap-6 md:grid-cols-2">
           <div className="flex flex-wrap items-center gap-3">
-            <button className="touch-target inline-flex items-center gap-2 rounded-md bg-brand px-4 font-semibold text-ink" type="button"><Plus aria-hidden="true" size={16} />Add expense</button>
-            <button className="touch-target rounded-md border border-rule bg-surface px-4 font-semibold text-brand-dark" type="button">Secondary</button>
-            <button className="touch-target rounded-md bg-danger px-4 font-semibold text-surface" type="button">Delete record</button>
-            <button className="touch-target rounded-md bg-rule px-4 font-semibold text-subtle" type="button" disabled>Disabled</button>
+            <Button type="button"><Plus aria-hidden="true" size={16} />Add expense</Button>
+            <Button variant="outline" type="button">Secondary</Button>
+            <Button variant="destructive" type="button">Delete record</Button>
+            <Button type="button" disabled>Disabled</Button>
           </div>
           <div className="flex items-center gap-3">
-            <button className="touch-target rounded-md border border-brand-dark bg-surface px-4 font-semibold text-brand-dark" type="button" aria-label="Focused button example">Focus example</button>
+            <Button variant="outline" type="button" aria-label="Focused button example">Focus example</Button>
             <span className="text-body-sm text-muted">Use Tab to inspect focus.</span>
           </div>
         </div>
         <form className="mt-8 grid gap-4 border-t border-rule pt-6 md:grid-cols-2">
-          <label className="text-body-sm font-semibold text-ink">Unit<input className="touch-target mt-2 block w-full rounded-md border border-rule bg-surface px-3 text-body" name="unit" defaultValue="TR-014" /></label>
+          <label className="text-body-sm font-semibold text-ink">Unit<Input className="mt-2 min-h-11" name="unit" defaultValue="TR-014" /></label>
           <label className="text-body-sm font-semibold text-ink">Category<select className="touch-target mt-2 block w-full rounded-md border border-rule bg-surface px-3 text-body" name="category" defaultValue="fuel"><option value="fuel">Fuel</option><option value="repair">Repair</option><option value="permit">Permit</option></select></label>
-          <label className="text-body-sm font-semibold text-ink">Amount<input className="font-data touch-target mt-2 block w-full rounded-md border border-rule bg-surface px-3 text-body" name="amount" inputMode="decimal" defaultValue="1800.00" /></label>
-          <label className="text-body-sm font-semibold text-ink">Date<input className="font-data touch-target mt-2 block w-full rounded-md border border-rule bg-surface px-3 text-body" name="date" type="date" defaultValue="2026-03-24" /></label>
-          <label className="text-body-sm font-semibold text-ink md:col-span-2">Note<input className="touch-target mt-2 block w-full rounded-md border border-rule bg-surface px-3 text-body" name="note" placeholder="e.g. morning fuel run" /></label>
+          <label className="text-body-sm font-semibold text-ink">Amount<Input className="font-data mt-2 min-h-11" name="amount" inputMode="decimal" defaultValue="1800.00" /></label>
+          <label className="text-body-sm font-semibold text-ink">Date<Input className="font-data mt-2 min-h-11" name="date" type="date" defaultValue="2026-03-24" /></label>
+          <label className="text-body-sm font-semibold text-ink md:col-span-2">Note<Input className="mt-2 min-h-11" name="note" placeholder="e.g. morning fuel run" /></label>
         </form>
-      </section>
+      </Card>
 
-      <section className="section-rule">
+      <Card className="px-6">
         <div className="flex flex-wrap items-end justify-between gap-4"><div><h2 className="text-section-title font-semibold text-ink">Fleet register</h2><p className="mt-1 text-body-sm text-muted">A ledger row stays useful at phone width.</p></div><span className="font-data text-label text-muted">3 active units</span></div>
         <div className="mt-5 overflow-x-auto border-y border-rule">
           <table className="table-min w-full text-left text-body-sm"><thead className="text-label text-muted"><tr className="table-rule"><th className="px-3 py-3 font-semibold">Body</th><th className="px-3 py-3 font-semibold">Driver</th><th className="px-3 py-3 font-semibold">Remittance</th><th className="px-3 py-3 font-semibold">Permit expiry</th><th className="px-3 py-3 font-semibold">Status</th></tr></thead><tbody>{rows.map((row) => <tr className="table-rule" key={row.body}><td className="font-data px-3 py-3 text-data font-semibold text-brand-dark">{row.body}</td><td className="px-3 py-3">{row.driver}</td><td className="font-data px-3 py-3 text-data">{row.amount}</td><td className="font-data px-3 py-3 text-data">{row.expiry}</td><td className="px-3 py-3"><StatusBadge state={row.state as "ok" | "warning" | "danger"} /></td></tr>)}</tbody></table>
         </div>
-      </section>
+      </Card>
 
-      <section className="section-rule grid gap-8 pb-12 md:grid-cols-2">
+      <Card className="grid gap-8 px-6 md:grid-cols-2">
         <div><h2 className="text-section-title font-semibold text-ink">Empty state</h2><div className="mt-4 border-y border-rule py-8 text-center"><p className="text-body font-semibold text-ink">No expenses recorded for March.</p><p className="mx-auto mt-2 max-w-sm text-body-sm text-muted">Add the first fuel, repair, or permit cost to start this month’s ledger.</p><button className="touch-target mt-5 rounded-md bg-brand px-4 font-semibold text-ink" type="button">Add first expense</button></div></div>
         <div><h2 className="text-section-title font-semibold text-ink">Loading state</h2><div className="mt-4 flex items-center gap-3 border-y border-rule py-8 text-body-sm text-muted"><LoaderCircle className="animate-spin text-brand-dark" aria-hidden="true" size={18} />Loading today’s fleet records…</div></div>
-      </section>
+      </Card>
     </div>
   );
 }

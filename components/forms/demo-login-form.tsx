@@ -1,4 +1,22 @@
 "use client";
+
 import { useState } from "react";
 import { demoMasterEmail, demoMasterPassword } from "@/lib/demo/mode";
-export function DemoLoginForm(){const [error,setError]=useState("");return <form className="space-y-4" onSubmit={(e)=>{e.preventDefault();const f=new FormData(e.currentTarget);if(f.get("email")===demoMasterEmail&&f.get("password")===demoMasterPassword){window.location.assign("/");}else setError("Use the demo credentials shown above.");}}><label className="block text-sm font-medium">Email<input required name="email" type="email" className="mt-1 min-h-11 w-full rounded-md border p-3" /></label><label className="block text-sm font-medium">Password<input required name="password" type="password" className="mt-1 min-h-11 w-full rounded-md border p-3" /></label><button className="min-h-11 w-full rounded-md bg-slate-900 px-4 py-2 font-medium text-white" type="submit">Sign in</button>{error&&<p role="alert" className="text-sm text-red-700">{error}</p>}</form>}
+import { Button } from "@/components/ui/button";
+import { FormField, Input, ValidationSummary } from "@/components/ui/form-field";
+import { FormPanel } from "@/components/ui/form-panel";
+
+export function DemoLoginForm() {
+  const [error, setError] = useState("");
+  return <FormPanel className="space-y-4" onSubmit={(event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    if (form.get("email") === demoMasterEmail && form.get("password") === demoMasterPassword) window.location.assign("/");
+    else setError("Use the demo credentials shown above.");
+  }}>
+    <FormField label="Email" required><Input required name="email" type="email" /></FormField>
+    <FormField label="Password" required><Input required name="password" type="password" /></FormField>
+    <Button className="w-full" type="submit">Sign in</Button>
+    <ValidationSummary message={error} />
+  </FormPanel>;
+}

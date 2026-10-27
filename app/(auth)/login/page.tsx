@@ -5,6 +5,8 @@ import { signIn } from "@/app/actions/auth";
 import { demoMode, demoMasterEmail, demoMasterPassword } from "@/lib/demo/mode";
 import { DemoLoginForm } from "@/components/forms/demo-login-form";
 import { FormField, Input } from "@/components/ui/form-field";
+import { FormPanel } from "@/components/ui/form-panel";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   return <LoginContent />;
@@ -23,11 +25,11 @@ function LoginContent() {
       <Image className="logo-full-auth" src="/brand/rolnet-logo.svg" alt="ROLNET" width={300} height={225} priority />
       <div><h1 className="mt-2 text-page-title font-semibold">Sign in</h1><p className="mt-2 text-body-sm text-muted">Use your approved account to continue.</p></div>
       {demoMode ? <p className="rounded-md bg-brand-soft p-3 text-body-sm text-brand-dark">Demo mode: <strong>{demoMasterEmail}</strong> / <strong>{demoMasterPassword}</strong></p> : null}
-      {demoMode ? <DemoLoginForm /> : <form action={submitLogin} className="data-region space-y-4">
+      {demoMode ? <DemoLoginForm /> : <FormPanel action={submitLogin} className="space-y-4">
         <FormField label="Email" required><Input required name="email" type="email" autoComplete="email" /></FormField>
         <FormField label="Password" required><Input required name="password" type="password" autoComplete="current-password" /></FormField>
-        <button className="touch-target w-full rounded-md bg-brand px-4 font-semibold text-ink" type="submit">Sign in</button>
-      </form>}
+        <Button className="w-full" type="submit">Sign in</Button>
+      </FormPanel>}
       <p className="text-body-sm text-muted">New staff member? <Link className="font-semibold text-brand-dark underline" href="/register">Register for approval</Link></p>
     </section>
   );

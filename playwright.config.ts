@@ -7,7 +7,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000",
     trace: "on-first-retry",
   },
   projects: [
@@ -16,8 +16,8 @@ export default defineConfig({
       use: { ...devices["iPhone 13"], viewport: { width: 360, height: 800 } },
     },
   ],
-  webServer: {
-    command: "corepack pnpm dev",
+  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
+    command: "node_modules/.bin/next.cmd dev -p 3000",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },

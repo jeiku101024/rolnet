@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isApproved, type Permission } from "@/lib/permissions/roles";
@@ -11,7 +12,7 @@ export interface SessionProfile {
   accountStatus: ProfileStatus;
 }
 
-export async function getSessionProfile(): Promise<SessionProfile | null> {
+const readSessionProfile = async (): Promise<SessionProfile | null> => {
   if (demoMode) return { userId: "demo-owner", displayName: "Demo Owner", role: "owner", accountStatus: "approved" };
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -28,7 +29,9 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
     role: profile.role,
     accountStatus: profile.account_status,
   };
-}
+};
+
+export const getSessionProfile = cache(readSessionProfile);
 
 export async function requireApprovedSession() {
   const profile = await getSessionProfile();
