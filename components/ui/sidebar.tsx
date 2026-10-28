@@ -19,6 +19,9 @@ type SidebarContextValue = {
 
 const SidebarContext = React.createContext<SidebarContextValue | null>(null);
 
+// `hydrated` is false during the server render and hydration, then true on the client.
+const subscribeNoop = () => () => {};
+
 export function useSidebar() {
   const value = React.useContext(SidebarContext);
   if (!value) throw new Error("useSidebar must be used within SidebarProvider.");
@@ -31,7 +34,7 @@ export function SidebarProvider({
   defaultOpen = true,
 }: React.ComponentProps<"div"> & { defaultOpen?: boolean }) {
   const isMobile = useIsMobile();
-  const [hydrated, setHydrated] = React.useState(false);
+  const hydrated = React.useSyncExternalStore(subscribeNoop, () => true, () => false);
   const [open, setOpen] = React.useState(defaultOpen);
   const [openMobile, setOpenMobile] = React.useState(false);
   const toggleSidebar = React.useCallback(() => {
@@ -39,8 +42,6 @@ export function SidebarProvider({
     if (isMobile || mobileViewport) setOpenMobile((current) => !current);
     else setOpen((current) => !current);
   }, [isMobile]);
-
-  React.useEffect(() => setHydrated(true), []);
 
   const value = React.useMemo(
     () => ({ hydrated, isMobile, open, openMobile, setOpen, setOpenMobile, toggleSidebar }),
