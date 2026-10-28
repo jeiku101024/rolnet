@@ -6,9 +6,16 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { assertSameOrigin } from "@/lib/auth/same-origin";
 import { failure, success, type ActionResult } from "@/lib/actions/result";
 import { demoMode, demoMasterEmail, demoMasterPassword } from "@/lib/demo/mode";
+import type { ProfileStatus } from "@/types/database";
 
 const credentialsSchema = z.object({ email: z.string().email(), password: z.string().min(6) });
 const registrationSchema = credentialsSchema.extend({ displayName: z.string().trim().min(1).max(120) });
+
+const unapprovedMessages: Record<Exclude<ProfileStatus, "approved">, string> = {
+  pending: "Your account is waiting for owner approval.",
+  rejected: "Your registration was not approved. Contact the fleet owner.",
+  deactivated: "Your account has been deactivated. Contact the fleet owner.",
+};
 
 export async function signIn(formData: FormData): Promise<ActionResult<null>> {
   try {
@@ -16,8 +23,14 @@ export async function signIn(formData: FormData): Promise<ActionResult<null>> {
     const input = credentialsSchema.parse({ email: formData.get("email"), password: formData.get("password") });
     if (demoMode) return input.email === demoMasterEmail && input.password === demoMasterPassword ? success(null) : failure("AUTH_FAILED", "Use the local demo owner credentials.");
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.auth.signInWithPassword(input);
+    const { data, error } = await supabase.auth.signInWithPassword(input);
     if (error) return failure("AUTH_FAILED", "Email or password is incorrect.");
+    const { data: profile } = await supabase.from("profiles").select("account_status").eq("user_id", data.user.id).maybeSingle();
+    const status: ProfileStatus = profile?.account_status ?? "pending";
+    if (status !== "approved") {
+      await supabase.auth.signOut();
+      return failure(status, unapprovedMessages[status]);
+    }
     return success(null);
   } catch {
     return failure("INVALID_INPUT", "Enter a valid email and password.");

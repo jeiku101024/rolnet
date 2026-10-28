@@ -52,7 +52,7 @@
 - [X] T023 Build the role-aware, mobile-first application shell, bottom navigation, loading/error states, and 360 px responsive styles in `app/layout.tsx`, `components/navigation/mobile-nav.tsx`, and `components/navigation/app-shell.tsx`
 - [X] T024 [P] Write required pgTAP coverage for anonymous denial, pending-staff denial, owner approval/rejection/deactivation, owner/staff profile/settings permissions, immutable actor/deletion fields, and append-only audit events in `supabase/tests/rls/001_foundation_rls.sql`
 - [X] T025 [P] Write the required 360 px self-registration, pending-block, owner-approval, approved-staff, and forbidden-navigation journey in `tests/e2e/foundation-auth.spec.ts`
-- [ ] T026 Complete the foundation checkpoint by running a clean database reset plus self-registration, approval/RLS, and mobile-shell checks and recording results in `specs/001-fleet-management/validation/foundation.md`
+- [X] T026 Complete the foundation checkpoint by running a clean database reset plus self-registration, approval/RLS, and mobile-shell checks and recording results in `specs/001-fleet-management/validation/foundation.md`
 
 ---
 
