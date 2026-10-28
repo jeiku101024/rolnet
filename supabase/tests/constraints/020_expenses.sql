@@ -7,7 +7,7 @@ select has_index('public', 'expenses', 'expenses_category_idx', 'expenses are in
 select col_is_pk('public', 'expenses', array['id'], 'expenses have a primary key');
 select col_not_null('public', 'expenses', 'amount_centavos', 'expense amount is required');
 select col_not_null('public', 'expenses', 'idempotency_key', 'expense idempotency key is required');
-select has_check('public', 'expenses', 'amount_centavos > 0', 'expense amount must be positive');
+select col_has_check('public', 'expenses', 'amount_centavos', 'expense amount must be positive');
 select has_table('storage', 'objects', 'storage objects table exists');
 select finish();
 rollback;
