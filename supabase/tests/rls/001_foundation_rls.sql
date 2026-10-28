@@ -1,6 +1,6 @@
 begin;
 
-select plan(10);
+select plan(9);
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'fleet_settings', 'fleet settings table exists');
 select has_table('public', 'audit_events', 'audit events table exists');
