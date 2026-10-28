@@ -18,6 +18,9 @@ parts, tires, mileage, compliance documents, dashboard, audit, reports.
 - Business rows carry `created_at`, `updated_at`, actor IDs, and `deleted_at`; never hard-delete in app flows.
 - Schema, RLS, Storage policies, and SQL functions change only through new files in
   `supabase/migrations/`, each with pgTAP coverage in `supabase/tests/`. Never edit a pushed migration.
+- New functions in `public` start with no EXECUTE for `anon` or `authenticated`. Grant
+  `authenticated` explicitly in the same migration only if the app calls it or an RLS policy uses it,
+  and make `security definer` functions check the caller (`require_owner()` or an `is_owner()` filter).
 - `types/database.ts` is generated: `corepack pnpm exec supabase gen types typescript --local > types/database.ts`.
 - UI uses shadcn `base-nova` components in `components/ui/` and tokens from `app/globals.css`;
   no new component or animation libraries, no hex colors or arbitrary sizes in components.
