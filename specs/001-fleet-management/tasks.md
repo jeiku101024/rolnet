@@ -208,7 +208,7 @@
 - [X] T109 [P] Add plain-language loading, empty, success, validation, stale-write, and recovery copy across shared components in `components/ui/feedback.tsx`
 - [X] T110 [P] Add keyboard, focus, label, contrast, touch-target, and reduced-motion checks for shared navigation/forms in `tests/e2e/accessibility-mobile.spec.ts`
 - [X] T111 Implement owner global and per-record audit queries/views, then run the soft-delete and direct staff mutation-denial journey in `lib/audit/queries.ts`, `app/(owner)/audit/page.tsx`, `components/audit/audit-history.tsx`, and `tests/e2e/soft-delete-audit.spec.ts`
-- [ ] T112 Verify every schema object rebuilds from committed migrations with no manual edits and record `supabase db reset`, pgTAP, and dry-run push results in `specs/001-fleet-management/validation/migrations.md`
+- [X] T112 Verify every schema object rebuilds from committed migrations with no manual edits and record `supabase db reset`, pgTAP, and dry-run push results in `specs/001-fleet-management/validation/migrations.md`
 - [X] T113 Verify Supabase database/storage usage checks, 300 KB receipt target, hard upload limits, data export/recovery, and the 80% warning procedure in `docs/free-tier-operations.md`
 - [X] T114 Run lint, typecheck, required unit/database/end-to-end checks, `vinext check`, and the Workers production build; record compatibility and bundle/CPU findings in `specs/001-fleet-management/validation/release.md`
 - [ ] T115 Execute every acceptance journey in `specs/001-fleet-management/quickstart.md`, including 10 non-technical participants at 360 px, timed expense/remittance entry, the 100-unit/24-month fixture, and three-second preview timing, then record final sign-off in `specs/001-fleet-management/validation/final-acceptance.md`
