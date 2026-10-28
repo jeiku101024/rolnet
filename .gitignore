@@ -1,17 +1,42 @@
+# Dependencies
 node_modules/
-.[!.]*/
+
+# Build output and framework caches
 .next/
+.vinext/
+.wrangler/
+.vercel/
+.open-next/
 dist/
 build/
+out/
 coverage/
+*.tsbuildinfo
+
+# Test output
 playwright-report/
 test-results/
-*.log
+blob-report/
+
+# Supabase local state (supabase/.gitignore covers the rest)
+supabase/.temp/
+supabase/.branches/
+
+# Environment files (keep the committed examples)
 .env*
-.DS_Store
-Thumbs.db
+!.env.example
+!.env.docker.example
+
+# Database backups (store off-repo, e.g. Google Drive)
+backups/
+
+# Logs, OS and editor files
+*.log
 *.tmp
 *.swp
+.DS_Store
+Thumbs.db
+
+# Python virtual environments
 venv/
 .venv/
-.env.docker

@@ -1,0 +1,8 @@
+# Keep LF everywhere (the repository already stores LF). Spec Kit's manifest
+# hashes assume LF, and this avoids CRLF churn between Windows machines.
+* text=auto eol=lf
+
+*.png binary
+*.ico binary
+*.jpg binary
+*.woff2 binary

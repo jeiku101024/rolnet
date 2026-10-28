@@ -1,1 +1,0 @@
-import{createBrowserClient as e}from"@supabase/ssr";function t(){let t=process.env.NEXT_PUBLIC_SUPABASE_URL,n=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;if(!t||!n)throw Error(`Supabase browser environment variables are missing`);return e(t,n)}export{t};

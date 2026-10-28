@@ -1,1 +1,0 @@
-function e(e){let t=e.indexOf(`=`);if(t<=0)return null;let n=e.indexOf(`;`),r=n===-1?t:Math.min(t,n);return e.slice(0,r)}export{e as t};

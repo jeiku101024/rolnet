@@ -1,8 +1,0 @@
-[
-  "@supabase/ssr",
-  "zod",
-  "class-variance-authority",
-  "clsx",
-  "tailwind-merge",
-  "browser-image-compression"
-]

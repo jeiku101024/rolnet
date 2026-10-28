@@ -1,1 +1,0 @@
-import{t as e}from"./rolldown-runtime-XKyaHtl9.js";import{n as t}from"../../index.js";var n=e((e=>{var n=t();e.version=n.version,e.prerender=n.prerender,e.resumeAndPrerender=n.resumeAndPrerender}));export default n();export{};
