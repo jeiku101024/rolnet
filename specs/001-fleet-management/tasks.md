@@ -322,3 +322,62 @@ This MVP establishes trustworthy master data and assignment history. It intentio
 - All normal deletes are soft deletes, all business rows are timestamped/attributed, and no task authorizes manual remote database editing.
 - Receipt and document bytes upload directly to private Supabase Storage after authorization; they do not transit the Worker.
 - If vinext compatibility fails, stop the release and perform the documented OpenNext fallback assessment; do not convert the application to a static Pages export.
+
+---
+
+## Phase 11: Convergence
+
+**Purpose**: Close the gaps found by the 2026-10-28 validation checkpoints (`validation/defects-summary.md` and the per-story records). Groups run in order: security and data integrity, database logic, shared UI bugs, missing UI, behavioural pgTAP coverage, then checkpoint re-runs. Every schema change is a new migration (existing migrations are never edited) with a behavioural pgTAP test that fails before the fix.
+
+**Group 1: Security and data integrity**
+
+- [ ] T116 CRITICAL Lock saved remittance financial facts with a new migration: a BEFORE UPDATE trigger on `remittances` rejects changes to `service_date`, `disposition`, `amount_due_centavos`, `unit_id`, `driver_id` and `assignment_id` (notes stay editable; owners correct through `reverse_remittance` and a replacement entry), plus pgTAP proving staff and owner direct updates fail per FR-013a, Constitution III (contradicts)
+- [ ] T117 Enforce document type and holder pairing in a new migration (driver license → driver; OR/CR, MTOP franchise and insurance → unit), with pgTAP for each wrong pairing per FR-023 and data-model holder rule (contradicts)
+- [ ] T118 Enforce that a current driver-license document's `expires_on` equals the driver profile's `license_expiry_date` with a database trigger, remove `expires_on` from document `updateFields` in `lib/domain/resource-config.ts`, and add pgTAP for REST and `/api/v1` paths per FR-023 clarification (partial)
+- [ ] T119 Require `expenses.receipt_object_path` to be under `receipts/<expense id>/` with a database check and in `receiptUploadSchema` / `finalizeReceiptUpload` (`lib/validation/expenses.ts`, `app/actions/expenses.ts`), plus pgTAP per FR-017, Constitution III (contradicts)
+
+**Group 2: Database logic**
+
+- [ ] T120 CRITICAL Replace `driver_assignments.backup_shape_check` in a new migration so primary assignments may have an `ends_on` (backups keep `ends_on = starts_on`), then add pgTAP for ending a primary and reassigning the unit per FR-011, US1/AC3 (contradicts)
+- [ ] T121 Make soft deletion work and owner-only on every table whose only SELECT policy is `deleted_at is null` (fleet_settings, units, drivers, driver_assignments, driver_days_off, mileage_readings, expense_categories, expenses, remittances, remittance_payments, part_replacements, tire_installations): a new migration gives owners a soft-delete path that passes RLS and rejects `deleted_at`/`deleted_by` changes by non-owners; soft-delete actions in `app/actions/*.ts` and `softDeleteRow` in `lib/domain/crud.ts` surface failures; pgTAP covers owner success and staff denial per table per FR-005, FR-030, Constitution III (contradicts)
+- [ ] T122 Fix `replace_tire_installation()` and `renew_compliance_document()` in a new migration to retire the current row before inserting the replacement within the function's transaction, make `installTire()` in `app/actions/tires.ts` call `replace_tire_installation()` instead of two separate statements, and add pgTAP that a replacement succeeds and keeps history per FR-021, FR-023, Constitution III (contradicts)
+- [ ] T123 Rebuild `dashboard_monthly_unit_summary()` and `monthly_report()` in a new migration: outstanding and credit from due versus paid, net income = paid − expenses, expenses per category, paid counted by `remittance_payments.paid_at` within the month, plate number included, and a fleet total row (a zero row for empty months), with pgTAP reconciliation against fixtures per FR-026, FR-029, SC-004, T102 (partial)
+- [ ] T124 Rewrite `driver_outstanding_balances()` in a new migration to aggregate payments per remittance before summing (no join fan-out) and to return the unit and service period of each unpaid remittance, with pgTAP for multi-payment days per FR-016, US3/AC4 (contradicts)
+- [ ] T125 Update `validate_driver_assignment()` in a new migration to reject a backup assignment on a date already covered by that driver's primary or other assignment range, with pgTAP per FR-012 (partial)
+- [ ] T126 Update `validate_mileage_reading()` in a new migration to also reject a reading higher than a later reading for the same unit, with pgTAP per FR-008 (partial)
+- [ ] T127 Use the Asia/Manila fleet date everywhere: `lib/dates/fleet-date.ts` in `lib/dashboard/queries.ts`; SQL defaults in `expiring_documents`, `due_maintenance` and `driver_outstanding_balances` use `(now() at time zone 'Asia/Manila')::date` (new migration); and `components/documents/expiry-status.tsx` derives status from the fleet date rather than the device clock per FR-022, FR-025 (contradicts)
+
+**Group 3: Shared UI bugs**
+
+- [ ] T128 CRITICAL Replace raw Zod/Postgres error output with plain-language recovery messages: map validation and constraint errors in server actions, reject a zero amount before submit, and give each form a specific message (for example the tire form) in `app/actions/*.ts`, `lib/money/centavos.ts` and `components/forms/*` per FR-031, Constitution IV (contradicts)
+- [ ] T129 Fix the post-save `event.currentTarget.reset()`-after-`await` bug in every client form under `components/forms/` (capture the form element before awaiting) so successful saves show success per FR-031 (contradicts)
+- [ ] T130 Read PostgREST many-to-one embeds as objects in `app/(owner)/units/[id]/page.tsx`, `app/(owner)/drivers/[id]/page.tsx`, `app/(operations)/expenses/page.tsx`, `app/(operations)/remittances/page.tsx`, `app/(operations)/remittances/[id]/page.tsx` and `components/forms/remittance-form.tsx` per FR-016, FR-024 (contradicts)
+- [ ] T131 Fix `lib/reports/monthly-csv.ts`: map `body_number` and `plate_number` correctly, add the columns from T123, and neutralise leading `=`, `+`, `-`, `@` in cells per FR-029, SC-009 (contradicts)
+- [ ] T132 Make `app/api/reports/monthly/route.ts` return 401 when signed out, 400 for a malformed `unitId`, and 404 for an unknown unit; require `unitId` when `scope=unit`; stop swallowing `redirect()` in the catch per `contracts/http.md` (contradicts)
+- [ ] T133 Add duplicate-submit protection to create forms: keep one idempotency key per form instance until success and disable the submit button while pending (remittance, expense, part, tire, document) per FR-013, SC-002 (partial)
+- [ ] T134 Validate file type and size before creating a record, remove orphaned Storage objects when a save fails, and store compressed receipts with a `.webp` name in `components/forms/expense-form.tsx`, `components/forms/document-form.tsx` and `lib/uploads/*` per FR-017, FR-023 (partial)
+- [ ] T135 Render owner-only forms and controls only for owners (for example `UnitForm` on `app/(owner)/units/page.tsx` and the driver form) per US1/AC4, FR-003 (contradicts)
+
+**Group 4: Missing UI**
+
+- [ ] T136 CRITICAL Build assignment management: primary assignment with end and reassign, day off, and backup coverage forms wired to `app/actions/assignments.ts`; show the current driver and the date's backup on unit detail, and days off and backup coverage on driver detail per FR-011, US1/AC2, US1/AC3, US1/AC5, US1/AC6 (missing)
+- [ ] T137 CRITICAL Make document upload work and complete document screens: unit/driver holder field, real SHA-256 via `lib/uploads/hash-file.ts`, renew control, superseded history, file view/download via `getDocumentUrl`, the list grouped and linked by holder, and documents on unit and driver detail pages per FR-023, FR-024 (missing)
+- [ ] T138 Add expense edit, owner archive, and opening an attached receipt through a short-lived signed URL in `app/(operations)/expenses/page.tsx`, `app/actions/expenses.ts` and `lib/uploads/receipts.ts` per FR-017, FR-005, T052 (missing)
+- [ ] T139 Add remittance list-to-detail links, later payments, note edits, owner reversal and payment correction controls, and an overpayment credit display in `app/(operations)/remittances/**` per FR-013a, FR-015, FR-016 (missing)
+- [ ] T140 Complete maintenance screens: unit picker on `/maintenance`, mileage entry (fixing the `upsert` conflict target in `app/actions/mileage.ts`), peso cost entry through `parseCentavos` with ₱ display, part replacement and tire installed mileage fields, tire history, part date and cost, and readable position labels per FR-008, FR-019, FR-020, FR-021 (missing)
+- [ ] T141 Show the item name, unit body number, due basis and a link in `components/dashboard/due-maintenance-panel.tsx`, and the unit and period in `components/dashboard/unpaid-balances-panel.tsx` (uses T124) per FR-027, FR-016 (partial)
+- [ ] T142 Add a unit picker and empty-state/error feedback to `components/forms/report-export-form.tsx` per FR-028, T107 (missing)
+- [ ] T143 Show `?error=` messages on `/login`, redirect signed-in users to their role's start page, and replace the static design-specimen page at `/` (fake data) per FR-031 (unrequested)
+
+**Group 5: Behavioural pgTAP coverage**
+
+- [ ] T144 Replace existence-only assertions in `supabase/tests/constraints/020_expenses.sql` through `070_monthly_reports.sql` and the matching `supabase/tests/rls/` files with behavioural tests using fixtures (inserts, updates, function calls, role switches), keeping every fix from T116–T127 covered per the constitution's Development Workflow and Quality Gates (partial)
+
+**Group 6: Re-run checkpoints**
+
+- [ ] T145 Re-run the US1 journey and update `validation/us1-units-drivers.md`; tick T043 when every check passes
+- [ ] T146 Re-run the US2 journey and update `validation/us2-expenses.md`; tick T054 when every check passes
+- [ ] T147 Re-run the US3 journey and update `validation/us3-remittances.md`; tick T065 when every check passes
+- [ ] T148 Re-run the US4 journey and update `validation/us4-parts-tires.md`; tick T077 when every check passes
+- [ ] T149 Re-run the US5 journey and update `validation/us5-documents.md`; tick T090 when every check passes
+- [ ] T150 Re-run the US7 journey and update `validation/us7-reports.md`; tick T108 when every check passes
