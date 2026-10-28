@@ -331,10 +331,10 @@ This MVP establishes trustworthy master data and assignment history. It intentio
 
 **Group 1: Security and data integrity**
 
-- [ ] T116 CRITICAL Lock saved remittance financial facts with a new migration: a BEFORE UPDATE trigger on `remittances` rejects changes to `service_date`, `disposition`, `amount_due_centavos`, `unit_id`, `driver_id` and `assignment_id` (notes stay editable; owners correct through `reverse_remittance` and a replacement entry), plus pgTAP proving staff and owner direct updates fail per FR-013a, Constitution III (contradicts)
-- [ ] T117 Enforce document type and holder pairing in a new migration (driver license → driver; OR/CR, MTOP franchise and insurance → unit), with pgTAP for each wrong pairing per FR-023 and data-model holder rule (contradicts)
-- [ ] T118 Enforce that a current driver-license document's `expires_on` equals the driver profile's `license_expiry_date` with a database trigger, remove `expires_on` from document `updateFields` in `lib/domain/resource-config.ts`, and add pgTAP for REST and `/api/v1` paths per FR-023 clarification (partial)
-- [ ] T119 Require `expenses.receipt_object_path` to be under `receipts/<expense id>/` with a database check and in `receiptUploadSchema` / `finalizeReceiptUpload` (`lib/validation/expenses.ts`, `app/actions/expenses.ts`), plus pgTAP per FR-017, Constitution III (contradicts)
+- [X] T116 CRITICAL Lock saved remittance financial facts with a new migration: a BEFORE UPDATE trigger on `remittances` rejects changes to `service_date`, `disposition`, `amount_due_centavos`, `unit_id`, `driver_id` and `assignment_id` (notes stay editable; owners correct through `reverse_remittance` and a replacement entry), plus pgTAP proving staff and owner direct updates fail per FR-013a, Constitution III (contradicts)
+- [X] T117 Enforce document type and holder pairing in a new migration (driver license → driver; OR/CR, MTOP franchise and insurance → unit), with pgTAP for each wrong pairing per FR-023 and data-model holder rule (contradicts)
+- [X] T118 Enforce that a current driver-license document's `expires_on` equals the driver profile's `license_expiry_date` with a database trigger, remove `expires_on` from document `updateFields` in `lib/domain/resource-config.ts`, and add pgTAP for REST and `/api/v1` paths per FR-023 clarification (partial)
+- [X] T119 Require `expenses.receipt_object_path` to be under `receipts/<expense id>/` with a database check and in `receiptUploadSchema` / `finalizeReceiptUpload` (`lib/validation/expenses.ts`, `app/actions/expenses.ts`), plus pgTAP per FR-017, Constitution III (contradicts)
 
 **Group 2: Database logic**
 
