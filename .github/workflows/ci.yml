@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: Lint, typecheck, unit tests, Workers build
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_DEMO_MODE: "true"
+      DEMO_MASTER_EMAIL: owner@demo.local
+      DEMO_MASTER_PASSWORD: demo1234
+      NEXT_PUBLIC_FLEET_TIMEZONE: Asia/Manila
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm lint
+      - run: corepack pnpm typecheck
+      - run: corepack pnpm test
+      - run: corepack pnpm check
+      - run: corepack pnpm build:vinext
+
+  database:
+    name: Migrations and pgTAP (constraints + RLS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - run: corepack pnpm install --frozen-lockfile
+      - run: corepack pnpm exec supabase start
+      - run: corepack pnpm exec supabase db reset
+      - run: corepack pnpm exec supabase test db
+      - run: corepack pnpm exec supabase stop --no-backup
+        if: always()

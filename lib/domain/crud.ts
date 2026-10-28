@@ -97,7 +97,7 @@ export async function updateRow(name: string, id: string, request: Request) {
   const expected = requireIfMatch(request);
   const values = input(await readJsonObject(request), config.updateFields);
   const idColumn = config.idColumn ?? "id";
-  let query = supabase.from(config.table).update(values).eq(idColumn, config.singleton ? true : id).eq("updated_at", expected).is("deleted_at", null);
+  const query = supabase.from(config.table).update(values).eq(idColumn, config.singleton ? true : id).eq("updated_at", expected).is("deleted_at", null);
   const { data, error } = await query.select().maybeSingle();
   if (error) throw error;
   if (!data) {

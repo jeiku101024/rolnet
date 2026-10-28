@@ -1,1 +1,0 @@
-import{n as e,r as t}from"./navigation-xvkkNLvh.js";new URL(`http://vinext.invalid/`),[...e,...t];function n(e,t){return null}function r(e,t){return null}export{n as resolveHybridClientRewriteHref,r as resolveHybridClientRouteOwner};

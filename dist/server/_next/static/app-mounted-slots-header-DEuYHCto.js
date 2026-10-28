@@ -1,1 +1,0 @@
-import{n as e}from"./app-elements-wire-key-CBtr3erE.js";var t=4096,n=256,r=16;function i(t){return t.length===0||t.length>n?!1:e(t)}function a(e){if(!e||e.length>t)return null;let n=e.split(/\s+/).filter(e=>e&&i(e));return n.length===0?null:Array.from(new Set(n)).sort().slice(0,r).join(` `)||null}export{a as t};

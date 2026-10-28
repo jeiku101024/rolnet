@@ -1,1 +1,0 @@
-function e(e){let t=String(e).replace(/[₱,\s]/g,``).trim();if(!/^\d+(\.\d{1,2})?$/.test(t))throw Error(`Enter a valid non-negative peso amount`);let[n,r=``]=t.split(`.`);return Number.parseInt(n,10)*100+Number.parseInt(r.padEnd(2,`0`)||`0`,10)}export{e as t};
