@@ -61,6 +61,11 @@ below come from the current code (`app/actions/units.ts`, `app/actions/drivers.t
     documents remain allowed for locked records (FR-009, Principle V).
   - A direct edit to an arbitrary date has no matching document, so it is still refused.
   - The existing `drivers_license_expiry_matches_document` trigger is kept and runs as before.
+  - `renew_compliance_document` today supersedes the old document, then updates the driver, then
+    inserts the renewal, so no current license document exists when the driver is updated. The
+    new migration recreates it with the order **supersede → insert renewal → update driver**. The
+    lock and the expiry-match trigger then both see the new current document. The partial unique
+    index on current driver documents still holds, because the old one is superseded first.
 - **Alternatives considered**: Exempting the expiry entirely was rejected, because it would let
   a locked driver's expiry be edited directly.
 
@@ -83,7 +88,8 @@ below come from the current code (`app/actions/units.ts`, `app/actions/drivers.t
 ## R6. Units going into repair keep their assignments
 
 - **Decision**: There is no assignment guard for units. In repair and Retired lock only the
-  unit's details.
+  unit's details, and both keep the unit's current and upcoming assignments (confirmed after
+  analysis on 2026-10-29).
 - **Rationale**:
   - The spec's edge cases say so: repair is usually short.
   - The existing assignment trigger already refuses new assignments to Retired units.
@@ -92,7 +98,10 @@ below come from the current code (`app/actions/units.ts`, `app/actions/drivers.t
 
 - **Decision**: Read status changes from `public.audit_events`.
   - The rows to read have `entity_type in ('units','drivers')` and a different `status` or
-    `is_active` in `changed_fields->'before'` and `changed_fields->'after'`.
+    `is_active` in `changed_fields->'before'` and `changed_fields->'after'`, excluding
+    `action = 'insert'` rows (their "before" is empty).
+  - `actor_user_id` references `auth.users`, so display names come from a second query on
+    `profiles.user_id`.
   - They are shown on the detail page as a short "Status history" list (latest 10).
 - **Rationale**:
   - `audit_business_change()` already records actor, time, and before/after snapshots for both
@@ -103,18 +112,25 @@ below come from the current code (`app/actions/units.ts`, `app/actions/drivers.t
 
 ## R8. Retries and stale views
 
-- **Decision**: `setUnitStatus` and `setDriverStatus` take `{ id, status, expectedUpdatedAt }` and
-  update with `.eq("updated_at", expectedUpdatedAt)`.
+- **Decision**: `setUnitStatus` and `setDriverStatus` take `{ id, status, expectedStatus }`, where
+  `expectedStatus` is the status the screen last showed. They update with
+  `.eq("status", expectedStatus)` (for drivers, `.eq("is_active", …)`).
   - **No row matched:** re-read the record. If it already has the requested status (a retried
     request that had succeeded), return success. Otherwise return `STALE_RECORD` with the current
     status.
   - **The requested status equals the current one:** return success without writing, so no audit
     row is added.
+  - The detail edit forms (`updateUnit`, `updateDriver`) keep an `updated_at` check
+    (`expectedUpdatedAt`), because they overwrite several fields.
 - **Rationale**:
   - FR-012 and the "same status picked again" edge case.
-  - It uses the same `updated_at` versioning that `/api/v1` uses through `If-Match`.
-- **Alternatives considered**: Idempotency keys were rejected. A status is a target state, so
-  repeating the same request is naturally safe.
+  - Mileage readings and license renewals also change `updated_at`. An `updated_at` check would
+    wrongly refuse a status change made after one of them; comparing the status refuses only real
+    status conflicts.
+- **Alternatives considered**:
+  - Idempotency keys were rejected. A status is a target state, so repeating the same request is
+    naturally safe.
+  - `updated_at` for status changes was rejected for the reason above.
 
 ## R9. UI control
 

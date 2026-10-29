@@ -8,16 +8,16 @@ standard `ActionResult` from `lib/actions/errors.ts`.
 ### `setUnitStatus(input)` in `app/actions/units.ts`
 
 ```ts
-input: { id: string /* uuid */; status: "active" | "in_repair" | "retired"; expectedUpdatedAt: string /* ISO timestamp */ }
+input: { id: string /* uuid */; status: "active" | "in_repair" | "retired"; expectedStatus: "active" | "in_repair" | "retired" /* status the screen last showed */ }
 ok:    { ok: true; data: { id: string; status: UnitStatus; updatedAt: string } }
 ```
 
 | Case | Result |
 |---|---|
-| The status differs and `updated_at` matches | Row updated; `/units` and `/units/{id}` revalidated |
+| The status differs and the current status equals `expectedStatus` | Row updated; `/units` and `/units/{id}` revalidated |
 | The status equals the current one | `ok: true` with the current row; nothing written |
-| `updated_at` differs and the current status equals the requested one (a retry) | `ok: true` |
-| `updated_at` differs otherwise | `ok: false`, `STALE_RECORD`: "This unit was changed by someone else. It is now {Label}." |
+| The current status differs from `expectedStatus` but equals the requested one (a retry) | `ok: true` |
+| The current status differs from both | `ok: false`, `STALE_RECORD`: "This unit was changed by someone else. It is now {Label}." |
 | Unit not found or archived | `ok: false`, `NOT_FOUND` |
 | Invalid input | `ok: false`, `INVALID_INPUT` |
 | Staff or pending user | Redirect to `/forbidden` (existing guard) |
@@ -25,7 +25,7 @@ ok:    { ok: true; data: { id: string; status: UnitStatus; updatedAt: string } }
 ### `setDriverStatus(input)` in `app/actions/drivers.ts`
 
 ```ts
-input: { id: string; status: "active" | "inactive"; expectedUpdatedAt: string }
+input: { id: string; status: "active" | "inactive"; expectedStatus: "active" | "inactive" }
 ok:    { ok: true; data: { id: string; status: "active" | "inactive"; updatedAt: string } }
 ```
 
@@ -62,7 +62,7 @@ limit of the generic 409 mapping, and this feature does not change it.
 
 ### `StatusSelect` (`components/forms/status-select.tsx`, client)
 
-- **Props:** `kind: "unit" | "driver"`, `id`, `value`, `updatedAt`, and an optional `label` (the
+- **Props:** `kind: "unit" | "driver"`, `id`, `value` (the saved status, sent as `expectedStatus`), and an optional `label` (the
   accessible name, for example "Status for Body 12").
 - **Rendering:** a native `<select>` (`Select` from `components/ui/form-field.tsx`), touch-sized,
   with the options from `lib/status/record-status.ts`.
@@ -71,6 +71,7 @@ limit of the generic 409 mapping, and this feature does not change it.
   2. Call the action.
   3. On `ok: false`, revert to the saved value and show the message in an inline `role="alert"`
      text under the control.
+- **After a save:** the page refreshes and passes a new `value`; the component resets its local state whenever `value` changes, so it never shows a stale status.
 - **Search and filters:** unaffected. The control does not navigate, and the list's search state
   is client-side.
 - **Visibility:** rendered only when the viewer is the owner. Otherwise the existing

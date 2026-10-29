@@ -17,6 +17,8 @@
   daily operations keep working.
 - Q: What does "Returnee" mean, and should Left, Kicked and Returnee be locked? → A: Drop Left,
   Kicked and Returnee. Drivers have only two statuses: Active and Inactive.
+- Analysis follow-up (2026-10-29): a unit set to Retired keeps its current and upcoming
+  assignments, as for In repair.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -69,8 +71,8 @@ unit, and see both saved. Set both records back to Active and edit their details
    fields are shown read-only with a notice naming the status, and the edit and save controls are
    not available.
 2. **Given** a unit with status In repair or Retired, **When** the owner opens the unit page,
-   **Then** the unit's details are read-only with a notice, and only the status control can be
-   used.
+   **Then** the unit's details are read-only with a notice, and only the status control can change
+   the unit's own details; daily-operation sections on the page stay usable.
 3. **Given** a locked driver or unit, **When** anyone tries to change its details by any route
    (including a direct data request), **Then** the change is refused with a plain message and
    nothing is saved.
@@ -122,8 +124,11 @@ see it kept.
   rules for expired licenses still apply.
 - A unit is set to In repair while it has current or upcoming assignments: assignments are kept
   (repair is usually short), and the unit page shows them with the locked notice.
-- A unit is set to Retired: the existing rule that retired units take no new assignments still
-  applies, in addition to the lock.
+- A unit is set to Retired: its current and upcoming assignments are kept, as for In repair, and
+  the existing rule that retired units take no new assignments still applies, in addition to the
+  lock.
+- A license renewal for an Inactive driver: the renewal is accepted and updates the driver's
+  license expiry, because documents are a daily operation.
 - A mileage reading is recorded for a locked unit: it is accepted and updates the unit's current
   mileage, because mileage is a daily operation, not an edit of the unit's details.
 - An archived (soft-deleted) driver or unit is not shown in the lists and its status cannot be
