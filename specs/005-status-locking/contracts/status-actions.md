@@ -79,7 +79,7 @@ limit of the generic 409 mapping, and this feature does not change it.
 ### Lists: `/units` and `/drivers`
 
 - **`/units`:** the Status column renders `StatusSelect` for each row.
-- **`/drivers`:** gains a Status column if it has none, rendering `StatusSelect`.
+- **`/drivers`:** the existing Status column renders `StatusSelect`.
 - At 360 px the select fits inside the cell (`w-full`, no fixed width), and the table keeps its
   existing scroll-free layout.
 
