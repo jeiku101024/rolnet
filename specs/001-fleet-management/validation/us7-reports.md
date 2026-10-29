@@ -1,6 +1,7 @@
 # US7 Reports Validation
 
-Original implementation: 2026-10-20. Checkpoint T108 run: 2026-10-28. **Result: not passed (open defects).**
+Original implementation: 2026-10-20. Checkpoint T108 run: 2026-10-28 (not passed). Re-run T150:
+2026-10-29. **Result: not passed (87 / 88, one open defect, D12).**
 
 ## Implementation (2026-10-20)
 
@@ -9,6 +10,140 @@ Original implementation: 2026-10-20. Checkpoint T108 run: 2026-10-28. **Result: 
 - `lib/reports/monthly-csv.ts` writes fixed columns with RFC 4180 quoting, a UTF-8 BOM and CRLF.
 - `GET /api/reports/monthly` and the `/reports` month/scope form are implemented.
 - Live reconciliation was blocked (no local Supabase runtime).
+
+## Re-run 2026-10-29 (after Phase 11)
+
+- Run id `JLEH`; report month 2026-06; empty month 2026-01.
+- Commit tested: `423c3f2` (main after PR #14), branch `test/001-checkpoint-reruns`.
+- Environment: `rolnet-dev` with every migration through `20261029001500`, `next dev` in backend
+  mode, Chromium at 360 × 800 (mobile, touch), E2E owner, approved-staff and pending-staff accounts.
+- Same fixtures as the T108 run, created through REST with the owner's JWT (unit A body
+  `=1+1,"QJLEH"`, unit B `Ñiño JLEH`). The 99,999 fuel expense on unit B is now soft-deleted
+  through `soft_delete_record()`, so it is left out. Expected values (centavos):
+
+  | Unit | Due | Paid in month | Outstanding | Credit | Fuel | Repairs | Registration | Insurance | Total expense | Net |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | A | 66,000 | 33,000 | 33,000 | 0 | 25,050 | 120,000 | 50,000 | 0 | 195,050 | −162,050 |
+  | B | 66,000 | 50,000 | 0 | 2,000 | 10,000 | 0 | 0 | 75,025 | 85,025 | −35,025 |
+
+- The same 88 checks. Files are downloaded through the `/reports` form, including one-unit scope with
+  the new unit picker. The shared project has 91 active units in June; every CSV unit row was
+  compared with the owner's `monthly_report()` result (all 11 money columns plus body and plate).
+- Escaping checks expect the leading `=` to be written as `'=` (formula neutralised) inside the
+  RFC 4180 quotes.
+
+**87 of 88 checks passed** (49 / 88 before).
+
+### Fixtures and database function (owner)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Fixtures created | Pass | |
+| Due set to 18,000 / 30,000 | Pass | |
+| Owner soft-deletes an expense | Pass | `soft_delete_record()` 200 |
+| `monthly_report()` due, A and B | Pass | 66,000 / 66,000 |
+| Paid, A | Pass | 33,000 |
+| Paid, B (received in June) | Pass | 50,000 (68,000 by service date) |
+| Outstanding, A and B | Pass | 33,000 / 0 |
+| Total expenses, A and B (soft-deleted excluded) | Pass | 195,050 / 85,025 |
+| Net income, A and B | Pass | −162,050 / −35,025 |
+| Credit and per-category columns | Pass | returned (14 columns) |
+| `monthly_report(month, unit)` returns only that unit | Pass | 1 row, no total row |
+| `monthly_report()` equals `dashboard_monthly_unit_summary()` for the unit | Pass | |
+
+### Download and file format (owner, 360 px)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Fleet CSV downloads from `/reports` | Pass | |
+| `content-type: text/csv; charset=utf-8` | Pass | |
+| Filename `rolnet-2026-06-fleet.csv` | Pass | |
+| UTF-8 BOM and CRLF line endings | **Fail (D12)** | CRLF throughout, but the file saved from the form starts with `month,…` (no BOM). The API response itself starts with `EF BB BF` |
+| Every row has the header's column count | Pass | 92 rows |
+| `month` column holds the selected month | Pass | |
+| Headers match the contract's 14 columns | Pass | |
+| Body and plate present | Pass | `'=1+1,"QJLEH"`, `TJLEHA` … |
+| Unit-scope GET with `unitId`: one row equal to `monthly_report(month, unit)` | Pass | |
+| Invalid month | Pass | 400 |
+| `scope=unit` without `unitId` | Pass | 400 |
+| Unknown `unitId` | Pass | 404 |
+| Malformed `unitId` | Pass | 400 `INVALID_QUERY` |
+
+### Reconciliation and total row
+
+| Check | Result | Evidence |
+|---|---|---|
+| CSV unit rows equal `monthly_report()` (91 rows, every value, body, plate) | Pass | |
+| All 11 money columns for units A and B vs the fixtures (22 values) | Pass | |
+| Fleet file ends with a `FLEET TOTAL` row | Pass | `2026-06,FLEET TOTAL,,396000,249000,99000,6000,305148,360000,150000,225075,0,1040223,-791223` |
+| `FLEET TOTAL` equals the sum of unit rows and the function's total row | Pass | all 11 columns |
+
+### Escaping
+
+| Check | Result | Evidence |
+|---|---|---|
+| Comma and quotes quoted with doubled quotes | Pass | `"'=1+1,""QJLEH"""` |
+| Leading `=` neutralised | Pass | written as `'=1+1,…`; no other cell starts with `= + - @` (negative numbers aside) |
+| `Ñiño` survives export | Pass | |
+
+### Empty month (2026-01)
+
+| Check | Result | Evidence |
+|---|---|---|
+| `monthly_report()` all zeros | Pass | |
+| CSV downloads with the header row | Pass | `rolnet-2026-01-fleet.csv` |
+| Every money value is 0 | Pass | |
+| Zero `FLEET TOTAL` row | Pass | `2026-01,FLEET TOTAL,,0,0,0,0,0,0,0,0,0,0,0` |
+
+### Owner UI at 360 px
+
+| Check | Result | Evidence |
+|---|---|---|
+| `/reports` opens for the owner | Pass | |
+| No page-level horizontal overflow | Pass | |
+| Download button on screen, ≥ 44 px | Pass | 131 × 44 |
+| "One unit" offers a unit selector | Pass | lists unit A |
+| "One unit" download contains one unit | Pass | 1 row, `rolnet-2026-06-unit--1-1-QJLEH-.csv`, "Report downloaded: …" |
+| Empty-state and error feedback | Pass | no unit chosen: "Choose the unit to report on." and no download; empty month: "No remittances or expenses were recorded for 2026-01. The file was downloaded with zero values." |
+
+### Authorization
+
+| Check | Result | Evidence |
+|---|---|---|
+| Control: injected owner session cookie opens `/reports` | Pass | |
+| Approved staff: no Reports link | Pass | |
+| Approved staff: `/reports` | Pass | `/forbidden` |
+| Approved staff: API | Pass | 403 "Only the owner can download reports.", no CSV |
+| Pending staff: UI sign-in | Pass | `/login?error=pending` |
+| Pending staff (session cookie): `/reports` and API | Pass | `/login`; 401, no CSV |
+| Anonymous: `/reports` | Pass | `/login` |
+| Anonymous: API returns no CSV, and 401 | Pass | 401 "Sign in to download reports." |
+| Staff, pending, anon: `monthly_report()` and `dashboard_monthly_unit_summary()` via REST | Pass | 0 rows / 0 rows / 401 `42501` |
+
+### Defect status
+
+| Old ID | Status | Notes |
+|---|---|---|
+| D1 | Fixed | Outstanding and net income computed |
+| D2 | Fixed | Credit and per-category columns; 14-column CSV |
+| D3 | Fixed | Body and plate written |
+| D4 | Fixed | Paid counts payments received in the month |
+| D5 | Fixed | `FLEET TOTAL` row, zero for an empty month, none for one-unit reports |
+| D6 | Fixed | Leading `= + - @` neutralised with `'` |
+| D7 | Fixed | Unit picker; `scope=unit` without `unitId` is 400 |
+| D8 | Fixed | Unknown unit 404 |
+| D9 | Fixed | Anonymous 401, malformed unit 400, staff 403 |
+| D10 | Fixed | Feedback for missing unit, empty month and successful download |
+| D11 | Fixed | Owner soft delete works; soft-deleted expense left out of the report |
+
+### New defects
+
+| ID | Area | Defect | Steps | Expected | Actual | Cause |
+|---|---|---|---|---|---|---|
+| D12 | UI | The CSV saved from the `/reports` form has no UTF-8 BOM (contract: "with UTF-8 BOM for spreadsheet compatibility"; T105) | Owner opens `/reports`, month 2026-06, fleet, Download CSV; inspect the first bytes of the file | `EF BB BF` then `month,…` | `month,…`. `GET /api/reports/monthly` itself returns `EF BB BF` | `components/forms/report-export-form.tsx` reads the response with `response.text()`, whose UTF-8 decoding drops a leading BOM, and saves that string as a Blob. Using `response.blob()` (or prepending `﻿`) would keep it. Excel may then open `Ñiño` with the wrong encoding |
+
+Not tested, as before: opening the files in a spreadsheet application (SC-009); comparing with the
+dashboard screen (T101).
 
 ## T108 run (2026-10-28)
 
