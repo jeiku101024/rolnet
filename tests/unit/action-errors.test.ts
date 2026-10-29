@@ -23,6 +23,9 @@ describe("databaseFailure", () => {
     expect(databaseFailure({ code: "23P01", message: "Driver already operates another unit on this date" }, "fallback").message).toBe("Driver already operates another unit on this date.");
     // From 20261029001400 (PR #10): unit delete blocked by assignments.
     expect(databaseFailure({ code: "23503", message: "This unit still has current or upcoming driver assignments. End or remove them before deleting the unit" }, "fallback").message).toMatch(/^This unit still has current/);
+    // From 20261029001500: the profile license expiry must match the current license document.
+    const license = databaseFailure({ code: "23514", message: "The license expiry date must match the driver's current license document. Renew the license to change it" }, "fallback");
+    expect(license).toMatchObject({ code: "RULE_VIOLATION", message: "The license expiry date must match the driver's current license document. Renew the license to change it." });
   });
 
   it("never shows PostgreSQL-generated text", () => {
