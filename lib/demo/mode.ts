@@ -16,7 +16,7 @@ export const demoCategories = [
   { id: "00000000-0000-4000-8000-000000000023", name: "Registration" },
   { id: "00000000-0000-4000-8000-000000000024", name: "Insurance" },
 ];
-export const demoAssignments = [{ id: "00000000-0000-4000-8000-000000000031", starts_on: "2026-01-01", ends_on: null, units: [{ body_number: "T-001" }], drivers: [{ full_name: "Juan Dela Cruz" }] }];
+export const demoAssignments = [{ id: "00000000-0000-4000-8000-000000000031", assignment_type: "primary", starts_on: "2026-01-01", ends_on: null, units: [{ body_number: "T-001" }], drivers: [{ full_name: "Juan Dela Cruz" }] }];
 export const demoExpenses = [{ id: "00000000-0000-4000-8000-000000000041", expense_date: "2026-10-05", amount_centavos: 185000, notes: "Monthly tune-up", receipt_object_path: null, units: [{ body_number: "T-001" }], expense_categories: [{ name: "Repairs" }] }];
 export const demoRemittances = [{ id: "00000000-0000-4000-8000-000000000051", service_date: "2026-10-19", disposition: "returned", amount_due_centavos: 18000, notes: "", updated_at: "2026-10-19T08:00:00Z", units: [{ body_number: "T-001" }], drivers: [{ full_name: "Juan Dela Cruz" }], remittance_payments: [{ amount_centavos: 18000 }] }];
 export const demoDocuments = [{ id: "00000000-0000-4000-8000-000000000061", document_type: "insurance", expires_on: "2026-11-10", object_path: "demo", lifecycle_status: "current" }];

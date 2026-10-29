@@ -22,3 +22,7 @@ export const receiptUploadSchema = z
     message: "The receipt must be uploaded for this expense.",
     path: ["objectPath"],
   });
+
+export const expenseUpdateSchema = expenseSchema.omit({ idempotencyKey: true }).extend({
+  expectedUpdatedAt: z.string().min(1),
+});

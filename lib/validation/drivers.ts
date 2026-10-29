@@ -14,7 +14,9 @@ export const primaryAssignmentSchema = z.object({
   driverId: z.string().uuid(),
   startsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-});
+  // Reassignment: end the unit's open primary assignment the day before the new one starts.
+  endCurrent: z.boolean().optional(),
+}).refine((value) => !value.endsOn || value.endsOn >= value.startsOn, { message: "The end date must be on or after the start date", path: ["endsOn"] });
 
 export const dayOffSchema = z.object({
   primaryAssignmentId: z.string().uuid(),
@@ -25,4 +27,9 @@ export const dayOffSchema = z.object({
 export const backupAssignmentSchema = z.object({
   dayOffId: z.string().uuid(),
   backupDriverId: z.string().uuid(),
+});
+
+export const endAssignmentSchema = z.object({
+  assignmentId: z.string().uuid(),
+  endsOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });

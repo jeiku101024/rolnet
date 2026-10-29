@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
 import { createDriver } from "@/app/actions/drivers";
 import { FormPanel } from "@/components/ui/form-panel";
-import { Button } from "@/components/ui/button";
-import { FormField, Input, Select, ValidationSummary } from "@/components/ui/form-field";
+import { FormField, Input, Select } from "@/components/ui/form-field";
+import { FormFooter } from "@/components/forms/form-status";
+import { useActionForm } from "@/components/forms/use-action-form";
+import { text } from "@/components/forms/form-values";
 
 export function DriverForm() {
-  const [message, setMessage] = useState("");
-  return <FormPanel className=" space-y-5" onSubmit={async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); try { await createDriver({ fullName: form.get("fullName"), driverKind: form.get("driverKind"), licenseNumber: form.get("licenseNumber"), licenseExpiryDate: form.get("licenseExpiryDate"), phone: form.get("phone"), address: form.get("address") }); setMessage("Driver saved."); event.currentTarget.reset(); } catch { setMessage("Could not save the driver. Check the license and required details."); } }}>
+  const { pending, status, submit } = useActionForm();
+  return <FormPanel className="space-y-5" onSubmit={submit(async ({ data }) => {
+    const result = await createDriver({ fullName: text(data, "fullName"), driverKind: data.get("driverKind"), licenseNumber: text(data, "licenseNumber"), licenseExpiryDate: text(data, "licenseExpiryDate"), phone: text(data, "phone"), address: text(data, "address") });
+    return result.ok ? { ok: true, message: "Driver saved." } : result;
+  })}>
     <h2 className="text-lg font-semibold">Add driver</h2>
-    <div className="grid gap-4 sm:grid-cols-2"><FormField label="Full name" required><Input required name="fullName" /></FormField><FormField label="Driver type"><Select name="driverKind" defaultValue="primary"><option value="primary">Primary</option><option value="backup">Backup / extrador</option></Select></FormField><FormField label="License number" required><Input required name="licenseNumber" /></FormField><FormField label="License expiry" required><Input required name="licenseExpiryDate" type="date" /></FormField><FormField label="Phone" required><Input required name="phone" type="tel" /></FormField><FormField label="Address"><Input name="address" /></FormField></div>
-    <div className="flex flex-wrap items-center gap-3"><Button type="submit">Save driver</Button><ValidationSummary message={message.startsWith("Could") ? message : undefined} />{message && !message.startsWith("Could") ? <p role="status" className="text-body-sm text-ok">{message}</p> : null}</div>
+    <div className="grid gap-4 sm:grid-cols-2"><FormField label="Full name" required><Input required name="fullName" maxLength={160} /></FormField><FormField label="Driver type"><Select name="driverKind" defaultValue="primary"><option value="primary">Primary</option><option value="backup">Backup / extrador</option></Select></FormField><FormField label="License number" required><Input required name="licenseNumber" maxLength={80} /></FormField><FormField label="License expiry" required><Input required name="licenseExpiryDate" type="date" /></FormField><FormField label="Phone" required><Input required name="phone" type="tel" minLength={3} maxLength={40} /></FormField><FormField label="Address"><Input name="address" maxLength={500} /></FormField></div>
+    <FormFooter pending={pending} status={status} label="Save driver" />
   </FormPanel>;
 }

@@ -172,7 +172,8 @@
   .workspace-header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--space-4); border-bottom: 1px solid var(--token-rule); padding-bottom: var(--space-5); }
   .workspace-grid { display: grid; min-width: 0; gap: var(--space-8); }
   .workspace-grid > * { min-width: 0; }
-  .workspace-grid-wide { display: grid; min-width: 0; gap: var(--space-8); }
+  .workspace-grid-wide { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: var(--space-8); }
+  .workspace-grid-wide > * { min-width: 0; }
   .data-region { min-width: 0; overflow: hidden; border-block: 1px solid var(--token-rule); background: var(--token-surface); }
   form.data-region { border: 1px solid var(--border); border-radius: var(--radius-xl); padding: var(--space-6); box-shadow: 0 1px 2px rgb(0 0 0 / 0.04); }
   .data-scroll { overflow-x: auto; }
