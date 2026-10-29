@@ -17,7 +17,7 @@ export default defineConfig({
     },
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
-    command: "node_modules/.bin/next.cmd dev -p 3000",
+    command: "corepack pnpm exec next dev -p 3000",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
   },
