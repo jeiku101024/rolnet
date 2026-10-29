@@ -1,18 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import { createUnit } from "@/app/actions/units";
 import { FormPanel } from "@/components/ui/form-panel";
-import { Button } from "@/components/ui/button";
-import { FormField, Input, Select, ValidationSummary } from "@/components/ui/form-field";
+import { FormField, Input, Select } from "@/components/ui/form-field";
+import { FormFooter } from "@/components/forms/form-status";
+import { useActionForm } from "@/components/forms/use-action-form";
+import { text } from "@/components/forms/form-values";
 
 export function UnitForm() {
-  const [message, setMessage] = useState("");
-  return <FormPanel className=" space-y-5" onSubmit={async (event) => { event.preventDefault(); const form = new FormData(event.currentTarget); try { await createUnit({ bodyNumber: form.get("bodyNumber"), plateNumber: form.get("plateNumber"), makeModel: form.get("makeModel"), status: form.get("status") }); setMessage("Unit saved."); event.currentTarget.reset(); } catch { setMessage("Could not save the unit. Check duplicate numbers and try again."); } }}>
+  const { pending, status, submit } = useActionForm();
+  return <FormPanel className="space-y-5" onSubmit={submit(async ({ data }) => {
+    const result = await createUnit({ bodyNumber: text(data, "bodyNumber"), plateNumber: text(data, "plateNumber")?.toUpperCase(), makeModel: text(data, "makeModel"), status: data.get("status") });
+    return result.ok ? { ok: true, message: "Unit saved." } : result;
+  })}>
     <h2 className="text-lg font-semibold">Add tricycle unit</h2>
-    <div className="grid gap-4 sm:grid-cols-2"><FormField label="Body number" required><Input required name="bodyNumber" /></FormField><FormField label="Plate number" required><Input required name="plateNumber" className="uppercase" /></FormField></div>
-    <FormField label="Make and model" required><Input required name="makeModel" /></FormField>
+    <div className="grid gap-4 sm:grid-cols-2"><FormField label="Body number" required><Input required name="bodyNumber" maxLength={40} /></FormField><FormField label="Plate number" required><Input required name="plateNumber" className="uppercase" maxLength={20} /></FormField></div>
+    <FormField label="Make and model" required><Input required name="makeModel" maxLength={120} /></FormField>
     <FormField label="Status"><Select name="status" defaultValue="active"><option value="active">Active</option><option value="in_repair">In repair</option><option value="retired">Retired</option></Select></FormField>
-    <div className="flex flex-wrap items-center gap-3"><Button type="submit">Save unit</Button><ValidationSummary message={message.startsWith("Could") ? message : undefined} />{message && !message.startsWith("Could") ? <p role="status" className="text-body-sm text-ok">{message}</p> : null}</div>
+    <FormFooter pending={pending} status={status} label="Save unit" />
   </FormPanel>;
 }
