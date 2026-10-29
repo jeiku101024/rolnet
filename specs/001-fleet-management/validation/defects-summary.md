@@ -12,11 +12,11 @@ PR #14, every migration through `20261029001500`), with the same checks as the f
 |---|---|---|---|---|
 | T026 | Foundation | all | not re-run | Pass, after #6 and the `signIn` fix (#7) |
 | T043 | Units and drivers | 24 / 40 | 40 / 40 (`FCVM`) | Pass |
-| T054 | Expenses | 68 / 83 | 82 / 83 (`EDZX`) | Not passed: US2-D10 |
+| T054 | Expenses | 68 / 83 | 82 / 83 (`EDZX`); after T154: 82 / 83 (`RZFN`) | Not passed: US2-D10 (T154 did not fix it) |
 | T065 | Remittances | 47 / 64 | 64 / 64 (`AURM`) | Pass |
 | T077 | Parts and tires | 56 / 70 | 70 / 70 (`MPKJ`) | Pass |
 | T090 | Documents | 60 / 81 | 81 / 81 (`RECB`) | Pass |
-| T108 | Monthly reports | 49 / 88 | 87 / 88 (`JLEH`) | Not passed: US7-D12 |
+| T108 | Monthly reports | 49 / 88 | 87 / 88 (`JLEH`); after T153: 88 / 88 (`VMPH`) | Pass (US7-D12 fixed by T153) |
 | T112 | Migrations rebuild | all | not re-run | Pass (with #6) |
 | T101 | Dashboard at 100 units × 24 months, 3 s | not run | out of scope | Needs a fixture and a preview deployment |
 | T115 | Final acceptance (10 participants) | not run | out of scope | Needs real participants |
@@ -28,10 +28,12 @@ publicly readable; uploads are compressed and size-limited; pages have no horizo
 
 ## Open after the re-run
 
+Updated after the T153–T154 re-run (2026-10-29, runs `RZFN` and `VMPH`): US7-D12 is fixed (the
+saved CSVs start with `EF BB BF`); US2-D10 is still open.
+
 | ID | Defect | Cause (short) |
 |---|---|---|
-| US2-D10 | A receipt stays downloadable through the direct authenticated Storage URL for several minutes after its expense is archived (signed URLs are refused at once) | Supabase CDN caches the authenticated object response; soft delete leaves the object, so nothing invalidates it. RLS policy is correct |
-| US7-D12 | The CSV saved from the `/reports` form has no UTF-8 BOM (the API response has it) | `report-export-form.tsx` uses `response.text()`, which drops the BOM, then saves the string as a Blob |
+| US2-D10 | A receipt stays downloadable through the direct authenticated Storage URL for at least ten minutes after its expense is archived (signed URLs are refused at once) | Supabase CDN caches the authenticated object response; soft delete leaves the object, so nothing invalidates it. RLS policy is correct. T154 (`cacheControl: "0"`) is in effect (objects carry `max-age=0`, responses send `private, max-age=0, must-revalidate`) but the CDN still answers `HIT`: 200 at +607 s after the archive in `probe-receipt5.mjs`. Needs the object to change on archive (move or remove it) |
 
 Observations, not counted as failures: the remittance "Notes saved." message disappears after about
 one second (the form is remounted on refresh); reversing an already reversed remittance through REST
@@ -94,7 +96,7 @@ stored as `.webp`.
 | ID | Defect | Records |
 |---|---|---|
 | NEW-1 | Archived expense's receipt still served from the CDN cache to a token that downloaded it before | US2-D10 |
-| NEW-2 | Report download from the form loses the UTF-8 BOM | US7-D12 |
+| NEW-2 | Report download from the form loses the UTF-8 BOM (fixed by T153, run `VMPH`) | US7-D12 |
 
 ### 6. Test coverage
 

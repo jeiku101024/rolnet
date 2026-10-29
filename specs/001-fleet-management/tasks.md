@@ -197,7 +197,7 @@
 - [X] T105 [P] [US7] Implement RFC 4180 escaping, fixed columns, UTF-8 BOM, and streaming serialization without recalculating totals in `lib/reports/monthly-csv.ts`
 - [X] T106 [US7] Implement validated owner-only unit/fleet downloads and staff 403 responses in `app/api/reports/monthly/route.ts`
 - [X] T107 [US7] Build the mobile report month/scope/unit selector with download, empty-state, and error feedback in `app/(owner)/reports/page.tsx` and `components/forms/report-export-form.tsx`
-- [ ] T108 [US7] Complete the reports checkpoint by running the independent test and recording reconciliation, total row, empty file, escaping, authorization, download, and 360 px results in `specs/001-fleet-management/validation/us7-reports.md`
+- [x] T108 [US7] Complete the reports checkpoint by running the independent test and recording reconciliation, total row, empty file, escaping, authorization, download, and 360 px results in `specs/001-fleet-management/validation/us7-reports.md`
 
 ---
 
@@ -385,3 +385,8 @@ This MVP establishes trustworthy master data and assignment history. It intentio
 
 - [x] T151 Stop the `Date.now()` prerender error and the uncached-data navigation warnings on every route: read the session in the root layout inside `<Suspense>`, call `connection()` before creating the Supabase server client (Supabase auth reads the clock to check token expiry), and add a `loading.tsx` boundary next to every page in `app/layout.tsx`, `lib/supabase/server.ts`, `lib/auth/guards.ts`, `app/**/loading.tsx` and `components/ui/page-loading.tsx` per plan: Next.js 16 Cache Components (contradicts)
 - [x] T152 Add `next build` to the CI app job so prerender errors fail CI (the vinext build does not prerender with Cache Components) in `.github/workflows/ci.yml` per Constitution quality gates (missing)
+
+**Group 8: Checkpoint re-run defects**
+
+- [x] T153 Save the monthly CSV from the response bytes so the downloaded file keeps its UTF-8 BOM in `components/forms/report-export-form.tsx` per US7-D12, contracts/http.md (contradicts)
+- [ ] T154 Make an archived expense's receipt unreadable at once, including through the Storage CDN cache: move the object out of its URL on archive and back on restore (an upload `cacheControl` is ignored by the CDN for authenticated reads, tested 2026-10-29) in `app/actions/expenses.ts` and a new Storage policy migration per US2-D10, FR-017 (partial)

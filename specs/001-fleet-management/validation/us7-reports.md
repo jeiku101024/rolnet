@@ -1,7 +1,25 @@
 # US7 Reports Validation
 
 Original implementation: 2026-10-20. Checkpoint T108 run: 2026-10-28 (not passed). Re-run T150:
-2026-10-29. **Result: not passed (87 / 88, one open defect, D12).**
+2026-10-29. Re-run after T153–T154: 2026-10-29. **Result: passed (88 / 88; D12 fixed).**
+
+## Re-run 2026-10-29 (after T153–T154)
+
+- Run id `VMPH`; report month 2026-06; empty month 2026-01. Same script, fixtures and 88 checks as
+  run `JLEH`, Chromium at 360 × 800 (mobile, touch).
+- Code tested: `4aa3c54` on branch `fix/001-receipt-cache-and-csv-bom` plus the uncommitted T153
+  change (`components/forms/report-export-form.tsx` saves `await response.blob()`), served by
+  `next dev` against `rolnet-dev`.
+- **88 of 88 checks passed** (87 / 88 before).
+- **D12: fixed.** The three files saved from the `/reports` form (`rolnet-2026-06-fleet.csv`,
+  the one-unit 2026-06 file and the empty `rolnet-2026-01-fleet.csv`) all start with the bytes
+  `EF BB BF 6D 6F 6E` (BOM, then `mon…`), with CRLF line endings. `GET /api/reports/monthly`
+  also starts with `EF BB BF` (`probe-bom.mjs`).
+- An earlier attempt the same afternoon (run `TTJV`, 87 / 88) ran at the same time as the US2
+  journey: the `monthly_report()` call made just before the download returned 93 unit rows and the
+  fleet CSV had 94, because the US2 journey created its unit in between (the report lists every
+  active unit). The BOM check passed in that run too. Run
+  `VMPH` was run alone.
 
 ## Implementation (2026-10-20)
 
