@@ -1,16 +1,17 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/guards";
 import { dashboardMonthSchema } from "@/lib/validation/dashboard";
+import { fleetToday } from "@/lib/dates/fleet-date";
 import { demoDocuments, demoDrivers, demoExpenses, demoMode, demoRemittances, demoUnits } from "@/lib/demo/mode";
 
 export async function getDashboard(month: string) {
   await requirePermission("view_dashboard");
   const m = dashboardMonthSchema.parse(month);
   if (demoMode) {
-    return { summary: demoUnits.map((u) => ({ unit_id: u.id, body_number: u.body_number, remittance_paid_centavos: 18000, total_expense_centavos: 185000 })), expiry: demoDocuments.map((d) => ({ ...d, bucket: "due_30" })), maintenance: [], balances: [], recent: { remittances: demoRemittances, units: demoUnits, expenses: demoExpenses, maintenance: [], documents: demoDocuments, drivers: demoDrivers } };
+    return { summary: demoUnits.map((u) => ({ unit_id: u.id, body_number: u.body_number, remittance_paid_centavos: 18000, total_expense_centavos: 185000, net_income_centavos: 18000 - 185000 })), expiry: demoDocuments.map((d) => ({ ...d, bucket: "due_30" })), maintenance: [], balances: [], recent: { remittances: demoRemittances, units: demoUnits, expenses: demoExpenses, maintenance: [], documents: demoDocuments, drivers: demoDrivers } };
   }
   const s = await createSupabaseServerClient();
-  const asOf = new Date().toISOString().slice(0, 10);
+  const asOf = fleetToday();
   const [{ data: summary }, { data: expiry }, { data: maintenance }, { data: balances }, { data: remittances }, { data: units }, { data: expenses }, { data: documents }, { data: drivers }] = await Promise.all([
     s.rpc("dashboard_monthly_unit_summary", { month_start: `${m}-01` }),
     s.rpc("expiring_documents", { as_of: asOf }),

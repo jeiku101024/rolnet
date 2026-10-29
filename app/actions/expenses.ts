@@ -32,8 +32,8 @@ export async function updateExpense(id: string, input: unknown) {
 export async function softDeleteExpense(id: string) {
   await requirePermission("manage_master_data");
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("expenses").update({ deleted_at: new Date().toISOString() }).eq("id", id);
-  if (error) throw new Error("Could not archive expense");
+  const { data, error } = await supabase.rpc("soft_delete_record", { p_table: "expenses", p_id: id });
+  if (error || !data) throw new Error("Could not archive expense. Reload the page and try again.");
   revalidatePath("/expenses");
 }
 

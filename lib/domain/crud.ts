@@ -112,7 +112,12 @@ export async function softDeleteRow(name: string, id: string, request: Request) 
   const { supabase, role, userId } = await contextForWrite(config);
   if (role !== "owner" || !config.softDelete) throw new ApiError(403, "FORBIDDEN", "Owner deletion is not supported for this resource.");
   const expected = requireIfMatch(request);
-  const { data, error } = await supabase.from(config.table).update({ deleted_at: new Date().toISOString(), deleted_by: userId }).eq(config.idColumn ?? "id", id).eq("updated_at", expected).is("deleted_at", null).select().maybeSingle();
+  // Documents have an owner-only SELECT policy, so the owner updates them directly. Every other
+  // table hides deleted rows from SELECT, so deletion goes through the owner-checked
+  // soft_delete_record() function (supabase/migrations/20261029000900_owner_soft_delete_path.sql).
+  const { data, error } = config.table === "documents"
+    ? await supabase.from(config.table).update({ deleted_at: new Date().toISOString(), deleted_by: userId }).eq(config.idColumn ?? "id", id).eq("updated_at", expected).is("deleted_at", null).select().maybeSingle()
+    : await supabase.rpc("soft_delete_record", { p_table: config.table, p_id: id, p_expected_updated_at: expected });
   if (error) throw error;
   if (!data) throw new ApiError(409, "STALE_RECORD", "This record changed or was already removed.");
   return dto(data as Row, config);
@@ -123,7 +128,9 @@ export async function restoreRow(name: string, id: string, request: Request) {
   const { supabase, role } = await contextForWrite(config);
   if (role !== "owner" || !config.softDelete) throw new ApiError(403, "FORBIDDEN", "Owner restoration is not supported for this resource.");
   const expected = requireIfMatch(request);
-  const { data, error } = await supabase.from(config.table).update({ deleted_at: null, deleted_by: null }).eq(config.idColumn ?? "id", id).eq("updated_at", expected).not("deleted_at", "is", null).select().maybeSingle();
+  const { data, error } = config.table === "documents"
+    ? await supabase.from(config.table).update({ deleted_at: null, deleted_by: null }).eq(config.idColumn ?? "id", id).eq("updated_at", expected).not("deleted_at", "is", null).select().maybeSingle()
+    : await supabase.rpc("restore_record", { p_table: config.table, p_id: id, p_expected_updated_at: expected });
   if (error) throw error;
   if (!data) throw new ApiError(409, "RESTORE_CONFLICT", "This record changed or cannot be restored.");
   return { data: dto(data as Row, config), updatedAt: (data as Row).updated_at as string };
