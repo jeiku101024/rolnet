@@ -9,6 +9,14 @@ export const driverSchema = z.object({
   address: z.string().max(500).optional(),
 });
 
+/** Edit-details form: the driver fields plus the version the form was loaded with. */
+export const driverDetailsSchema = driverSchema.extend({ expectedUpdatedAt: z.iso.datetime({ offset: true }) });
+
+const driverStatus = z.enum(["active", "inactive"]);
+
+/** Status change from a list or the driver page; expectedStatus is the status the screen showed. */
+export const driverStatusSchema = z.object({ id: z.uuid(), status: driverStatus, expectedStatus: driverStatus });
+
 export const primaryAssignmentSchema = z.object({
   unitId: z.string().uuid(),
   driverId: z.string().uuid(),

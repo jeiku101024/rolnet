@@ -2,6 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 
+/** A row's searchable text. A select contributes only its chosen option, not every option label. */
+function rowText(row: Element) {
+  let text = row.textContent ?? "";
+  row.querySelectorAll("select").forEach((select) => {
+    const options = Array.from(select.options).map((option) => option.textContent ?? "").join("");
+    text = text.replace(options, select.selectedOptions[0]?.textContent ?? "");
+  });
+  return text.toLowerCase();
+}
+
 export function TableSearch({ tableId, placeholder = "Search records" }: { tableId?: string; placeholder?: string }) {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -11,7 +21,7 @@ export function TableSearch({ tableId, placeholder = "Search records" }: { table
     if (!table) return;
     const needle = value.trim().toLowerCase();
     table.querySelectorAll("tbody tr").forEach((row) => {
-      const matches = !needle || row.textContent?.toLowerCase().includes(needle);
+      const matches = !needle || rowText(row).includes(needle);
       row.toggleAttribute("hidden", !matches);
     });
   }, [tableId, value]);
