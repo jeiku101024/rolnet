@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({ profile: null as unknown, unit: null as unknow
 
 vi.mock("@/lib/auth/guards", () => ({ getSessionProfile: vi.fn(async () => mocks.profile) }));
 vi.mock("@/lib/demo/mode", () => ({ demoMode: false, demoUnits: [] }));
+// connection() needs a Next.js request scope, which unit tests do not have.
+vi.mock("next/server", async (importOriginal) => ({ ...(await importOriginal<typeof import("next/server")>()), connection: vi.fn(async () => undefined) }));
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseServerClient: vi.fn(async () => ({
     from: () => ({ select: () => ({ eq: () => ({ is: () => ({ maybeSingle: async () => ({ data: mocks.unit, error: null }) }) }) }) }),

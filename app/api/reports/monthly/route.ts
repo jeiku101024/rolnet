@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { connection, NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/auth/guards";
 import { hasPermission, isApproved } from "@/lib/permissions/roles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -16,6 +16,9 @@ function jsonError(status: number, code: string, message: string) {
 }
 
 export async function GET(request: Request) {
+  // Outside the try: during `next build` this rejects to end the prerender, which must not be
+  // caught and logged as a failed report.
+  await connection();
   try {
     const profile = await getSessionProfile();
     if (!profile) return jsonError(401, "UNAUTHENTICATED", "Sign in to download reports.");
