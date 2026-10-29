@@ -78,7 +78,7 @@
 - [X] T040 [US1] Implement transactional primary assignment, day-off, backup coverage, and mileage actions with plain-language conflict errors in `app/actions/assignments.ts` and `app/actions/mileage.ts`
 - [X] T041 [P] [US1] Build mobile unit list/detail/forms with current driver, mileage, status, and assignment history in `app/(owner)/units/page.tsx`, `app/(owner)/units/[id]/page.tsx`, and `components/forms/unit-form.tsx`
 - [X] T042 [P] [US1] Build mobile driver list/detail/forms with kind, license expiry state, days off, backup coverage, and assignment history in `app/(owner)/drivers/page.tsx`, `app/(owner)/drivers/[id]/page.tsx`, and `components/forms/driver-form.tsx`
-- [ ] T043 [US1] Complete the units/drivers checkpoint by running the independent test and recording owner/staff, conflict, expiry, history, and 360 px results in `specs/001-fleet-management/validation/us1-units-drivers.md`
+- [X] T043 [US1] Complete the units/drivers checkpoint by running the independent test and recording owner/staff, conflict, expiry, history, and 360 px results in `specs/001-fleet-management/validation/us1-units-drivers.md`
 
 ---
 
@@ -118,7 +118,7 @@
 - [X] T062 [US3] Implement owner-only reversal and soft-delete actions that preserve history and emit audit events in `app/actions/remittance-corrections.ts`
 - [X] T063 [P] [US3] Build the phone-first daily remittance form with assignment lookup, returned/overnight choice, computed due, payment entry, and duplicate-submit protection in `components/forms/remittance-form.tsx`
 - [X] T064 [US3] Build remittance history and driver balance views with partial, unpaid, paid, and credit states, note editing, locked financial fields, and owner reversal affordances in `app/(operations)/remittances/page.tsx` and `app/(operations)/remittances/[id]/page.tsx`
-- [ ] T065 [US3] Complete the remittance checkpoint by running the independent test and recording exact rates, assignment resolution, idempotency, payment history, balances, roles, and 360 px results in `specs/001-fleet-management/validation/us3-remittances.md`
+- [X] T065 [US3] Complete the remittance checkpoint by running the independent test and recording exact rates, assignment resolution, idempotency, payment history, balances, roles, and 360 px results in `specs/001-fleet-management/validation/us3-remittances.md`
 
 ---
 
@@ -139,7 +139,7 @@
 - [X] T074 [P] [US4] Build the mobile part replacement form and history list with due-basis labels in `components/forms/part-replacement-form.tsx` and `components/maintenance/parts-list.tsx`
 - [X] T075 [P] [US4] Build the mobile tire form and per-position current/history display in `components/forms/tire-installation-form.tsx` and `components/maintenance/tire-positions.tsx`
 - [X] T076 [US4] Assemble unit-scoped mileage, parts, and tire workflows in `app/(operations)/maintenance/page.tsx` and `app/(operations)/maintenance/[unitId]/page.tsx`
-- [ ] T077 [US4] Complete the parts/tires checkpoint by running the independent test and recording positions, replacement history, date/mileage boundaries, roles, centavos, and 360 px results in `specs/001-fleet-management/validation/us4-parts-tires.md`
+- [X] T077 [US4] Complete the parts/tires checkpoint by running the independent test and recording positions, replacement history, date/mileage boundaries, roles, centavos, and 360 px results in `specs/001-fleet-management/validation/us4-parts-tires.md`
 
 ---
 
@@ -161,7 +161,7 @@
 - [X] T087 [P] [US5] Build the mobile document upload form with holder-aware fields, expiry input, image/PDF validation, compression where applicable, and recoverable upload errors in `components/forms/document-form.tsx`
 - [X] T088 [US5] Build owner document list/detail screens grouped by unit/driver and type with current/superseded history in `app/(owner)/documents/page.tsx` and `app/(owner)/documents/[id]/page.tsx`
 - [X] T089 [US5] Add 30-day, urgent 7-day, and expired status badges based only on derived query output in `components/documents/expiry-status.tsx`
-- [ ] T090 [US5] Complete the documents checkpoint by running the independent test and recording holder rules, renewal history, expiry boundaries, private upload/download, role denial, and 360 px results in `specs/001-fleet-management/validation/us5-documents.md`
+- [X] T090 [US5] Complete the documents checkpoint by running the independent test and recording holder rules, renewal history, expiry boundaries, private upload/download, role denial, and 360 px results in `specs/001-fleet-management/validation/us5-documents.md`
 
 ---
 
@@ -375,12 +375,12 @@ This MVP establishes trustworthy master data and assignment history. It intentio
 
 **Group 6: Re-run checkpoints**
 
-- [ ] T145 Re-run the US1 journey and update `validation/us1-units-drivers.md`; tick T043 when every check passes
-- [ ] T146 Re-run the US2 journey and update `validation/us2-expenses.md`; tick T054 when every check passes
-- [ ] T147 Re-run the US3 journey and update `validation/us3-remittances.md`; tick T065 when every check passes
-- [ ] T148 Re-run the US4 journey and update `validation/us4-parts-tires.md`; tick T077 when every check passes
-- [ ] T149 Re-run the US5 journey and update `validation/us5-documents.md`; tick T090 when every check passes
-- [ ] T150 Re-run the US7 journey and update `validation/us7-reports.md`; tick T108 when every check passes
+- [X] T145 Re-run the US1 journey and update `validation/us1-units-drivers.md`; tick T043 when every check passes
+- [X] T146 Re-run the US2 journey and update `validation/us2-expenses.md`; tick T054 when every check passes
+- [X] T147 Re-run the US3 journey and update `validation/us3-remittances.md`; tick T065 when every check passes
+- [X] T148 Re-run the US4 journey and update `validation/us4-parts-tires.md`; tick T077 when every check passes
+- [X] T149 Re-run the US5 journey and update `validation/us5-documents.md`; tick T090 when every check passes
+- [X] T150 Re-run the US7 journey and update `validation/us7-reports.md`; tick T108 when every check passes
 **Group 7: Cache Components rendering**
 
 - [x] T151 Stop the `Date.now()` prerender error and the uncached-data navigation warnings on every route: read the session in the root layout inside `<Suspense>`, call `connection()` before creating the Supabase server client (Supabase auth reads the clock to check token expiry), and add a `loading.tsx` boundary next to every page in `app/layout.tsx`, `lib/supabase/server.ts`, `lib/auth/guards.ts`, `app/**/loading.tsx` and `components/ui/page-loading.tsx` per plan: Next.js 16 Cache Components (contradicts)
