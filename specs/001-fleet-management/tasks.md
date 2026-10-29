@@ -371,7 +371,7 @@ This MVP establishes trustworthy master data and assignment history. It intentio
 
 **Group 5: Behavioural pgTAP coverage**
 
-- [ ] T144 Replace existence-only assertions in `supabase/tests/constraints/020_expenses.sql` through `070_monthly_reports.sql` and the matching `supabase/tests/rls/` files with behavioural tests using fixtures (inserts, updates, function calls, role switches), keeping every fix from T116–T127 covered per the constitution's Development Workflow and Quality Gates (partial)
+- [x] T144 Replace existence-only assertions in `supabase/tests/constraints/020_expenses.sql` through `070_monthly_reports.sql` and the matching `supabase/tests/rls/` files with behavioural tests using fixtures (inserts, updates, function calls, role switches), keeping every fix from T116–T127 covered per the constitution's Development Workflow and Quality Gates (partial)
 
 **Group 6: Re-run checkpoints**
 
@@ -381,3 +381,7 @@ This MVP establishes trustworthy master data and assignment history. It intentio
 - [ ] T148 Re-run the US4 journey and update `validation/us4-parts-tires.md`; tick T077 when every check passes
 - [ ] T149 Re-run the US5 journey and update `validation/us5-documents.md`; tick T090 when every check passes
 - [ ] T150 Re-run the US7 journey and update `validation/us7-reports.md`; tick T108 when every check passes
+**Group 7: Cache Components rendering**
+
+- [x] T151 Stop the `Date.now()` prerender error and the uncached-data navigation warnings on every route: read the session in the root layout inside `<Suspense>`, call `connection()` before creating the Supabase server client (Supabase auth reads the clock to check token expiry), and add a `loading.tsx` boundary next to every page in `app/layout.tsx`, `lib/supabase/server.ts`, `lib/auth/guards.ts`, `app/**/loading.tsx` and `components/ui/page-loading.tsx` per plan: Next.js 16 Cache Components (contradicts)
+- [x] T152 Add `next build` to the CI app job so prerender errors fail CI (the vinext build does not prerender with Cache Components) in `.github/workflows/ci.yml` per Constitution quality gates (missing)

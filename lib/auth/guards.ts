@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isApproved, type Permission } from "@/lib/permissions/roles";
 import type { AppRole, ProfileStatus } from "@/types/database";
@@ -13,7 +14,8 @@ export interface SessionProfile {
 }
 
 const readSessionProfile = async (): Promise<SessionProfile | null> => {
-  if (demoMode) return { userId: "demo-owner", displayName: "Demo Owner", role: "owner", accountStatus: "approved" };
+  // Demo mode reads no cookies; connection() keeps it on the same request-time path as real sessions.
+  if (demoMode) { await connection(); return { userId: "demo-owner", displayName: "Demo Owner", role: "owner", accountStatus: "approved" }; }
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
