@@ -63,3 +63,10 @@ Re-run `VHAH` after the migration was applied: **23/23 passed**.
 The dropdowns use the same colours as the status badges: Active green, In repair yellow, Retired
 red, and Inactive red (Inactive was grey before). The computed colour and background of each
 dropdown equal the matching badge's: **5/5 passed**.
+## Dropdown size and refusal message (run `HPKZ`, 2026-10-30)
+
+The status dropdown is badge-like: 2.125rem (34 px) tall, 1.52x the 22.4 px status badge, and only
+as wide as its text. A refusal message now floats under the dropdown, with a Dismiss button, so it
+no longer changes the row or cell size. Checked at 360 px and 1280 px: **12/12 passed** (row
+height and dropdown width unchanged, message fully visible, no page overflow). Regression re-runs:
+`YBJP` 23/23 and `AXSC` 5/5.
