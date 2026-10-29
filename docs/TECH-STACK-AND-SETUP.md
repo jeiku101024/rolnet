@@ -265,7 +265,7 @@ Phone / desktop browser
         │
         ▼
 Cloudflare Worker (vinext build of Next.js 16)
-  ├─ middleware.ts ............ refresh Supabase session cookie, gate routes by role/approval
+  ├─ proxy.ts ................. refresh Supabase session cookie, gate routes by role/approval
   ├─ app/(owner)/* ............ owner-only pages (server components)
   ├─ app/(operations)/* ....... owner + approved staff pages
   ├─ app/actions/*.ts ......... server actions (Zod-validate → supabase.rpc / insert)
