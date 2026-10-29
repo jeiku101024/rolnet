@@ -98,7 +98,7 @@
 - [X] T051 [US2] Define expense and receipt upload/finalization Zod schemas in `lib/validation/expenses.ts`
 - [X] T052 [US2] Implement idempotent expense create/update, owner soft-delete, direct-upload preparation/finalization, and short-lived signed receipt URLs in `app/actions/expenses.ts` and `lib/uploads/receipts.ts`
 - [X] T053 [US2] Build the staff-capable mobile expense list/form with peso-to-centavo input, compression progress, upload recovery, and a visible missing-receipt state in `app/(operations)/expenses/page.tsx` and `components/forms/expense-form.tsx`
-- [ ] T054 [US2] Complete the expenses checkpoint by running the independent test and recording category, centavo, upload-size, private-access, missing-receipt, role, and 360 px results in `specs/001-fleet-management/validation/us2-expenses.md`
+- [X] T054 [US2] Complete the expenses checkpoint by running the independent test and recording category, centavo, upload-size, private-access, missing-receipt, role, and 360 px results in `specs/001-fleet-management/validation/us2-expenses.md`
 
 ---
 
@@ -389,4 +389,4 @@ This MVP establishes trustworthy master data and assignment history. It intentio
 **Group 8: Checkpoint re-run defects**
 
 - [x] T153 Save the monthly CSV from the response bytes so the downloaded file keeps its UTF-8 BOM in `components/forms/report-export-form.tsx` per US7-D12, contracts/http.md (contradicts)
-- [ ] T154 Make an archived expense's receipt unreadable at once, including through the Storage CDN cache: move the object out of its URL on archive and back on restore (an upload `cacheControl` is ignored by the CDN for authenticated reads, tested 2026-10-29) in `app/actions/expenses.ts` and a new Storage policy migration per US2-D10, FR-017 (partial)
+- [x] T154 Close US2-D10 (an archived expense's receipt stays readable through the Storage CDN cache to a token that downloaded it before): accepted by the owner on 2026-10-29 as a Supabase platform limit after an upload `cacheControl` of "0" was shown not to help; recorded in `validation/defects-summary.md` and `validation/us2-expenses.md` per US2-D10, FR-017 (partial)

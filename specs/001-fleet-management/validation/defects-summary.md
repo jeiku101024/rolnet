@@ -12,7 +12,7 @@ PR #14, every migration through `20261029001500`), with the same checks as the f
 |---|---|---|---|---|
 | T026 | Foundation | all | not re-run | Pass, after #6 and the `signIn` fix (#7) |
 | T043 | Units and drivers | 24 / 40 | 40 / 40 (`FCVM`) | Pass |
-| T054 | Expenses | 68 / 83 | 82 / 83 (`EDZX`); after T154: 82 / 83 (`RZFN`) | Not passed: US2-D10 (T154 did not fix it) |
+| T054 | Expenses | 68 / 83 | 82 / 83 (`EDZX`); after T154: 82 / 83 (`RZFN`) | Pass with an accepted limit (US2-D10, accepted 2026-10-29) |
 | T065 | Remittances | 47 / 64 | 64 / 64 (`AURM`) | Pass |
 | T077 | Parts and tires | 56 / 70 | 70 / 70 (`MPKJ`) | Pass |
 | T090 | Documents | 60 / 81 | 81 / 81 (`RECB`) | Pass |
@@ -26,12 +26,16 @@ owner-only master data; money is stored as exact integer centavos; private Stora
 publicly readable; uploads are compressed and size-limited; pages have no horizontal overflow at
 360 px; uniqueness and overlap constraints reject conflicting records.
 
-## Open after the re-run
+## Accepted limits after the re-run
 
 Updated after the T153–T154 re-run (2026-10-29, runs `RZFN` and `VMPH`): US7-D12 is fixed (the
-saved CSVs start with `EF BB BF`); US2-D10 is still open.
+saved CSVs start with `EF BB BF`). No defect is open. The owner accepted US2-D10 on 2026-10-29 as a
+Supabase platform limit: only a user who already downloaded the receipt with the same token can
+re-read it, for a limited time, and the app itself only opens receipts through signed URLs, which
+are refused at once. Moving the object on archive (and back on restore) would close it if this
+is revisited.
 
-| ID | Defect | Cause (short) |
+| ID | Limit | Cause (short) |
 |---|---|---|
 | US2-D10 | A receipt stays downloadable through the direct authenticated Storage URL for at least ten minutes after its expense is archived (signed URLs are refused at once) | Supabase CDN caches the authenticated object response; soft delete leaves the object, so nothing invalidates it. RLS policy is correct. T154 (`cacheControl: "0"`) is in effect (objects carry `max-age=0`, responses send `private, max-age=0, must-revalidate`) but the CDN still answers `HIT`: 200 at +607 s after the archive in `probe-receipt5.mjs`. Needs the object to change on archive (move or remove it) |
 
