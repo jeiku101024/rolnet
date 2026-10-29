@@ -1,12 +1,12 @@
 # US2 Expenses Validation
 
 Original implementation: 2026-10-20. Checkpoint T054 run: 2026-10-28 (not passed). Re-run T146:
-2026-10-29. Re-run after T153–T154: 2026-10-29. **Result: not passed (82 / 83; D10 still open).**
+2026-10-29. Re-run after T153–T154: 2026-10-29. **Result: passed with an accepted limit (82 / 83; D10 accepted by the owner on 2026-10-29 as a Supabase CDN limit).**
 
 ## Re-run 2026-10-29 (after T153–T154)
 
-The `cacheControl: "0"` change tested here did not fix D10 and was reverted before commit; T154 is
-reopened with the move-on-archive approach.
+The `cacheControl: "0"` change tested here did not fix D10 and was reverted before commit; T154 was
+then closed without a code change: the owner accepted D10 as a platform limit (see `defects-summary.md`).
 
 - Run id `RZFN`. Same script and 83 checks as run `EDZX`, Chromium at 360 × 800 (mobile, touch).
 - Code tested: `4aa3c54` on branch `fix/001-receipt-cache-and-csv-bom` plus the uncommitted T154
