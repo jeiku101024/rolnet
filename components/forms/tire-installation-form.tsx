@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { installTire } from "@/app/actions/tires";
 import { parseCentavos } from "@/lib/money/centavos";
 import { fleetToday } from "@/lib/dates/fleet-date";
@@ -11,6 +12,7 @@ import { useActionForm } from "@/components/forms/use-action-form";
 import { text, wholeNumber } from "@/components/forms/form-values";
 
 export function TireInstallationForm({ unitId, currentMileage }: { unitId: string; currentMileage?: number }) {
+  const router = useRouter();
   const { pending, status, submit } = useActionForm();
   return <FormPanel className="space-y-5" onSubmit={submit(async ({ data }) => {
     const nextDueDate = text(data, "nextDueDate");
@@ -19,6 +21,7 @@ export function TireInstallationForm({ unitId, currentMileage }: { unitId: strin
     const position = String(data.get("position"));
     const result = await installTire({ unitId, position, brand: text(data, "brand"), installedOn: text(data, "installedOn"), installedMileage: wholeNumber(data, "installedMileage", "installed mileage"), costCentavos: parseCentavos(text(data, "cost") ?? ""), nextDueDate, nextDueMileage });
     if (!result.ok) return result;
+    router.refresh();
     const label = tirePositionLabels[position] ?? position;
     return { ok: true, message: result.data.replaced ? `${label} tire replaced. The previous tire is kept in the history.` : `${label} tire saved.` };
   })}>

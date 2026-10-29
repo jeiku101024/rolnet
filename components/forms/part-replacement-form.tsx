@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { logPartReplacement } from "@/app/actions/parts";
 import { parseCentavos } from "@/lib/money/centavos";
 import { fleetToday } from "@/lib/dates/fleet-date";
@@ -10,13 +11,16 @@ import { useActionForm } from "@/components/forms/use-action-form";
 import { text, wholeNumber } from "@/components/forms/form-values";
 
 export function PartReplacementForm({ unitId, currentMileage }: { unitId: string; currentMileage?: number }) {
+  const router = useRouter();
   const { pending, status, submit } = useActionForm();
   return <FormPanel className="space-y-5" onSubmit={submit(async ({ data }) => {
     const nextDueDate = text(data, "nextDueDate");
     const nextDueMileage = wholeNumber(data, "nextDueMileage", "next due mileage");
     if (!nextDueDate && nextDueMileage === undefined) return { ok: false, message: "Add a next due date or a next due mileage so the part shows up when it is due." };
     const result = await logPartReplacement({ unitId, partName: text(data, "partName"), costCentavos: parseCentavos(text(data, "cost") ?? ""), replacedOn: text(data, "replacedOn"), replacementMileage: wholeNumber(data, "replacementMileage", "replacement mileage"), nextDueDate, nextDueMileage, notes: text(data, "notes") });
-    return result.ok ? { ok: true, message: "Part replacement saved." } : result;
+    if (!result.ok) return result;
+    router.refresh();
+    return { ok: true, message: "Part replacement saved." };
   })}>
     <h2 className="font-semibold">Log part replacement</h2>
     <FormField label="Part name" required><Input required name="partName" placeholder="e.g. brake pads" maxLength={120} /></FormField>
