@@ -29,10 +29,13 @@ export function ReportExportForm({ units }: { units: Unit[] }) {
       if (response.status === 401) return { ok: false, message: "Your session has ended. Sign in again, then download the report." };
       return { ok: false, message: body?.error?.message ?? "The report could not be created. Try again." };
     }
-    const csv = await response.text();
+    // Save the response bytes as they are: response.text() would drop the UTF-8 BOM that lets
+    // spreadsheet apps read the file as UTF-8 (contracts/http.md).
+    const file = await response.blob();
+    const csv = await file.text();
     const name = /filename="([^"]+)"/.exec(response.headers.get("content-disposition") ?? "")?.[1] ?? `rolnet-${month}.csv`;
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    link.href = URL.createObjectURL(file);
     link.download = name;
     link.click();
     setTimeout(() => URL.revokeObjectURL(link.href), 1000);

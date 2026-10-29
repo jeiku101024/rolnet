@@ -1,7 +1,37 @@
 # US2 Expenses Validation
 
 Original implementation: 2026-10-20. Checkpoint T054 run: 2026-10-28 (not passed). Re-run T146:
-2026-10-29. **Result: not passed (82 / 83, one open defect, D10).**
+2026-10-29. Re-run after T153–T154: 2026-10-29. **Result: not passed (82 / 83; D10 still open).**
+
+## Re-run 2026-10-29 (after T153–T154)
+
+The `cacheControl: "0"` change tested here did not fix D10 and was reverted before commit; T154 is
+reopened with the move-on-archive approach.
+
+- Run id `RZFN`. Same script and 83 checks as run `EDZX`, Chromium at 360 × 800 (mobile, touch).
+- Code tested: `4aa3c54` on branch `fix/001-receipt-cache-and-csv-bom` plus the uncommitted T154
+  change (`lib/uploads/receipts.ts` and `lib/uploads/documents.ts` upload with `cacheControl: "0"`),
+  served by `next dev` against `rolnet-dev`.
+- **82 of 83 checks passed** (82 / 83 before). The only failure is D10.
+- **D10: not fixed.** The fix is in effect: both receipts uploaded through the form in this run
+  (`receipts/951d1f56-…/de1e30e8-….webp` and `receipts/6099c59f-…/5ee6abfb-….webp`) have
+  `metadata.cacheControl = max-age=0` in `storage.objects` (run `EDZX`'s receipts have
+  `max-age=3600`). The CDN still caches the authenticated response:
+  - Journey: after the owner archives the large-receipt expense (`soft_delete_record()` 200), the
+    signed-URL request is 400, the same direct authenticated GET with the same staff JWT is
+    **200** (CDN-cached), and the same GET with a cache-busting query is 400.
+  - Probe (`probe-receipt5.mjs`): a receipt uploaded with supabase-js and `cacheControl: "0"` (the
+    app's options) for a new expense. Before archiving: 200 `cf-cache-status: MISS`, then 200
+    `HIT`, both with `cache-control: private, max-age=0, must-revalidate`. After
+    `soft_delete_record()` (200): 200 `HIT`, 200 `HIT`, and still **200 `HIT` at +607 s**, when the
+    probe stopped. With `?v=<timestamp>`: 400 `BYPASS`.
+  - So Supabase's CDN does not follow the object's `cache-control` for authenticated reads; it keeps
+    the response until its own expiry or until the object changes. Changing the upload option
+    cannot close D10. A fix has to change the object when the expense is archived (move it to an
+    archive path or remove it), so the CDN entry is invalidated.
+- An earlier attempt the same afternoon (run `MAYU`, 81 / 83) ran at the same time as the US7
+  journey; it also failed the Archive-button check (`listRowGone=false`, row already archived in the
+  database; the list had not refreshed within the wait). That check passed when run alone (`RZFN`).
 
 ## Implementation (2026-10-20)
 
