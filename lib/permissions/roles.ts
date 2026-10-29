@@ -29,3 +29,8 @@ export function hasPermission(role: AppRole, permission: Permission) {
 export function isApproved(status: ProfileStatus) {
   return status === "approved";
 }
+
+/** Where each role lands after signing in (T143): owners on the dashboard, staff on daily entry. */
+export function startPageFor(role: AppRole) {
+  return role === "owner" ? "/dashboard" : "/remittances";
+}
