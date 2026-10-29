@@ -371,7 +371,7 @@ This MVP establishes trustworthy master data and assignment history. It intentio
 
 **Group 5: Behavioural pgTAP coverage**
 
-- [ ] T144 Replace existence-only assertions in `supabase/tests/constraints/020_expenses.sql` through `070_monthly_reports.sql` and the matching `supabase/tests/rls/` files with behavioural tests using fixtures (inserts, updates, function calls, role switches), keeping every fix from T116–T127 covered per the constitution's Development Workflow and Quality Gates (partial)
+- [x] T144 Replace existence-only assertions in `supabase/tests/constraints/020_expenses.sql` through `070_monthly_reports.sql` and the matching `supabase/tests/rls/` files with behavioural tests using fixtures (inserts, updates, function calls, role switches), keeping every fix from T116–T127 covered per the constitution's Development Workflow and Quality Gates (partial)
 
 **Group 6: Re-run checkpoints**
 
