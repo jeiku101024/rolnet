@@ -68,7 +68,11 @@ reset role;
 -- An inactive driver's primary assignment can still be ended (no eligibility re-check on end).
 insert into public.driver_assignments (id, unit_id, driver_id, assignment_type, starts_on)
 values ('00000000-0000-0000-0000-000000170305', '00000000-0000-0000-0000-000000170104', '00000000-0000-0000-0000-000000170204', 'primary', '2031-03-01');
+-- Since 20261030000100 a driver with an open assignment cannot be set inactive; data from before
+-- that rule can still be in this state, so the setup bypasses the new check.
+alter table public.drivers disable trigger drivers_reject_deactivation_with_assignments;
 update public.drivers set is_active = false where id = '00000000-0000-0000-0000-000000170204';
+alter table public.drivers enable trigger drivers_reject_deactivation_with_assignments;
 set local role authenticated;
 select lives_ok($$update public.driver_assignments set ends_on = '2031-03-31' where id = '00000000-0000-0000-0000-000000170305'$$,
   'the owner can end the primary assignment of a driver who is no longer active');
