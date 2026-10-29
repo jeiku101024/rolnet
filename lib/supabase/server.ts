@@ -1,7 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 
 export async function createSupabaseServerClient() {
+  // Supabase auth reads the clock (Date.now) to check token expiry. Under Cache Components that is
+  // only allowed at request time, so mark the request as dynamic before creating the client.
+  await connection();
   const cookieStore = await cookies();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
