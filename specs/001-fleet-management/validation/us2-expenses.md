@@ -1,6 +1,7 @@
 # US2 Expenses Validation
 
-Original implementation: 2026-10-20. Checkpoint T054 run: 2026-10-28. **Result: not passed (open defects).**
+Original implementation: 2026-10-20. Checkpoint T054 run: 2026-10-28 (not passed). Re-run T146:
+2026-10-29. **Result: not passed (82 / 83, one open defect, D10).**
 
 ## Implementation (2026-10-20)
 
@@ -10,6 +11,122 @@ Original implementation: 2026-10-20. Checkpoint T054 run: 2026-10-28. **Result: 
   receipt prepare/finalize actions, and the mobile expense list/form are implemented.
   `typecheck`, `lint` and `build:vinext` passed.
 - The database-backed checkpoint was blocked (no Docker/WSL2 runtime).
+
+## Re-run 2026-10-29 (after Phase 11)
+
+- Run id `EDZX`, fleet date 2026-10-29 (Asia/Manila, same calendar date in UTC).
+- Commit tested: `423c3f2` (main after PR #14), branch `test/001-checkpoint-reruns`.
+- Environment: `rolnet-dev` with every migration through `20261029001500`, `next dev` in backend
+  mode, Chromium at 360 × 800 (mobile, touch), E2E owner, approved-staff and pending-staff accounts.
+- The same 83 checks as the T054 run, with the same receipts (a 15.7 MB canvas PNG and a 65 KB JPEG).
+  Edit, receipt viewing and archiving now go through the `/expenses` screen; owner deletion also
+  goes through `DELETE /api/v1/expenses/:id` and the `soft_delete_record()` RPC that the Archive
+  button calls. Signed-out and forbidden redirects are streamed (HTTP 200, then a client redirect),
+  so the script waits for the final URL; the first paint has no expense data.
+- Earlier runs `UMJE`, `BKJT` and `XLPK` the same day had script timing errors (reading the page
+  before it finished loading). Their failures were not reproducible; D10 below appeared in all four.
+
+**82 of 83 checks passed** (68 / 83 before).
+
+### Categories
+
+| Check | Result | Evidence |
+|---|---|---|
+| Staff reads the four system categories; the form lists all four | Pass | Fuel, Insurance, Registration, Repairs |
+| One staff expense in each category | Pass | right category and unit on each row |
+| Staff creates a category (direct API) | Pass | 403 `42501` |
+| Owner renames a system category | Pass | 0 rows updated |
+| List row shows category name and body number | Pass | "Fuel · Body EEDZX · T054 EDZX fuel · ₱1,234.56 · Missing" |
+
+### Centavos
+
+| Check | Result | Evidence |
+|---|---|---|
+| `1,234.56`, `₱ 99.5`, `2500`, `0.01`, `3,000.00` (owner) | Pass | 123456, 9950, 250000, 1, 300000 |
+| List shows ₱1,234.56 | Pass | |
+| `12.345` and `-5` rejected, nothing saved | Pass | "Enter a peso amount such as 180 or 180.50." |
+| `0` rejected, nothing saved | Pass | "Enter an amount greater than ₱0.00." |
+| Fractional and zero `amount_centavos` (direct API) | Pass | `22P02`, `23514` |
+| Same idempotency key twice (direct API) | Pass | 201 then 409, one row |
+
+### Receipt upload size
+
+| Check | Result | Evidence |
+|---|---|---|
+| 15.7 MB PNG through the form | Pass | one browser → Storage upload; stored 261,082 B `image/webp` under `receipts/<expense id>/<uuid>.webp`; size and sha256 match the downloaded bytes |
+| 65 KB JPEG through the form | Pass | stored as 60,038 B WebP |
+| 600 KB object uploaded directly | Pass | "The object exceeded the maximum allowed size" |
+| 450 KB object uploaded directly | Pass | 200 |
+| GIF uploaded directly | Pass | 400 |
+| Metadata with `receipt_size_bytes` 600000 | Pass | `23514` |
+| PDF chosen in the form | Pass | "The receipt must be a JPG, PNG or WebP photo. PDFs and other files are not accepted."; no expense saved |
+
+### Private access
+
+| Check | Result | Evidence |
+|---|---|---|
+| Public URL of a receipt | Pass | 400 |
+| Anonymous read, signed-URL request, upload | Pass | all 400 |
+| Pending staff read or upload | Pass | 400 |
+| Approved staff and owner read the object | Pass | 200 |
+| Staff gets a 60 s signed URL that works | Pass | sign 200, fetch 200 |
+| Upload under a non-existent expense id, or outside `receipts/<expense id>/` | Pass | 400 |
+| Staff deletes or overwrites a receipt | Pass | nothing removed; overwrite 400 |
+| Expense linked to another expense's receipt (staff, direct API) | Pass | 400 (`receipt_object_path_owner_check`) |
+| The UI opens an attached receipt | Pass | "View receipt" opens `/storage/v1/object/sign/receipts/…webp` (300 s token), fetch 200 |
+| Receipt of a soft-deleted expense is unreadable | **Fail (D10)** | signed URL refused at once (400), but the direct authenticated download of the same URL still returns 200 from the CDN cache (`cf-cache-status: HIT`); the same request with a cache-busting query returns 400 |
+
+### Missing receipt
+
+| Check | Result | Evidence |
+|---|---|---|
+| Receipt columns null when no receipt | Pass | 4 categories |
+| List flags "Missing" | Pass | |
+| Form confirms "Receipt is marked missing" and clears | Pass | "Expense saved. Receipt is marked missing; you can attach it later from Edit." |
+
+### Role
+
+| Check | Result | Evidence |
+|---|---|---|
+| Staff edits amount and notes (direct API) | Pass | 200 |
+| Edit control in the UI | Pass | staff opened Edit on the JPEG expense, changed ₱80.25 and notes; saved as 8025 |
+| Staff soft-deletes an expense (PATCH and `soft_delete_record`) | Pass | 403 "Only the owner can delete or restore records" / 403 "Owner access is required"; row kept |
+| Staff `DELETE /api/v1/expenses/:id` | Pass | 403 |
+| Hard `DELETE` as staff or owner | Pass | 0 rows affected |
+| Owner soft-deletes via `DELETE /api/v1/expenses/:id` | Pass | 200, row gone |
+| Owner Archive button | Pass | one Archive control on the row; after archiving the row is gone from the list and from REST |
+| Staff opens `/settings/staff` | Pass | `/forbidden` |
+| Pending staff reads or creates expenses | Pass | 0 rows; 403 |
+| Anonymous REST read; signed-out `/expenses` | Pass | 401 `42501`; ends on `/login`, no expense data in the first paint |
+
+### 360 px
+
+| Check | Result |
+|---|---|
+| `/expenses` as staff (empty and with rows) and as owner: no page-level horizontal overflow | Pass |
+
+### Defect status
+
+| Old ID | Status | Notes |
+|---|---|---|
+| D1 | Fixed | Confirmations shown, form cleared |
+| D2 | Fixed | Category and body number in the list |
+| D3 | Fixed | Owner soft-deletes through `soft_delete_record()`; staff are denied by an explicit owner-only trigger |
+| D4 | Fixed | Edit link (staff and owner) and owner Archive button |
+| D5 | Fixed | "View receipt" opens a short-lived signed URL |
+| D6 | Fixed | The file type is checked before anything is saved |
+| D7 | Fixed | Plain-language message for `0` |
+| D8 | Fixed | Check constraint ties the receipt path to the expense id |
+| D9 | Fixed | Compressed receipts are stored as `.webp` |
+
+### New defects
+
+| ID | Area | Defect | Steps | Expected | Actual | Cause |
+|---|---|---|---|---|---|---|
+| D10 | Storage | A receipt stays downloadable for a while after its expense is soft-deleted | Staff downloads a receipt (`GET /storage/v1/object/authenticated/receipts/<path>` with the staff JWT); the owner archives the expense; staff repeats the same GET | 400 (the read policy requires `deleted_at is null`) | 200 with the file. Seen in all four runs; still 200 after 65 s (separate probe) and after 309 s (run `BKJT`), 400 about ten minutes later. A signed URL is refused at once, and the same GET with any extra query string is 400 | Supabase's CDN caches the authenticated object response per URL and token (`cf-cache-status: HIT`). Soft delete leaves the object in place, so nothing invalidates the cache. The RLS policy in `20261019002400_create_receipts_storage.sql` is correct. Only someone who already downloaded the file with the same token can re-read it; the app itself only uses signed URLs. A fix would move or delete the object on archive (`softDeleteExpense` in `app/actions/expenses.ts`), or upload receipts with a short `cacheControl` (`lib/uploads/receipts.ts` uses the supabase-js default of 3600 s) |
+
+Known limit noted: the edit form only finds expenses among the latest 50 (the edited expense was
+among them).
 
 ## T054 run (2026-10-28)
 
