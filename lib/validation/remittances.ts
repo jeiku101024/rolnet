@@ -10,7 +10,7 @@ export const remittanceSchema = z.object({
 
 export const paymentSchema = z.object({
   remittanceId: z.string().uuid(),
-  paidAt: z.string().datetime().optional(),
+  paidAt: z.string().datetime({ offset: true }).optional(),
   amountCentavos: z.number().int().positive(),
   notes: z.string().max(500).optional(),
   idempotencyKey: z.string().uuid(),
@@ -19,5 +19,5 @@ export const paymentSchema = z.object({
 export const remittanceNotesSchema = z.object({
   remittanceId: z.string().uuid(),
   notes: z.string().max(1000),
-  expectedUpdatedAt: z.string().datetime().optional(),
+  expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
 });
