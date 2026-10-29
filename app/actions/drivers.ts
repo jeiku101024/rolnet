@@ -28,7 +28,7 @@ export async function updateDriver(id: string, input: unknown) {
 export async function softDeleteDriver(id: string) {
   await requirePermission("manage_master_data");
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("drivers").update({ deleted_at: new Date().toISOString() }).eq("id", id);
-  if (error) throw new Error("Could not archive driver");
+  const { data, error } = await supabase.rpc("soft_delete_record", { p_table: "drivers", p_id: id });
+  if (error || !data) throw new Error("Could not archive driver. Reload the page and try again.");
   revalidatePath("/drivers");
 }

@@ -28,7 +28,7 @@ export async function updateUnit(id: string, input: unknown) {
 export async function softDeleteUnit(id: string) {
   await requirePermission("manage_master_data");
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("units").update({ deleted_at: new Date().toISOString() }).eq("id", id);
-  if (error) throw new Error("Could not archive unit");
+  const { data, error } = await supabase.rpc("soft_delete_record", { p_table: "units", p_id: id });
+  if (error || !data) throw new Error("Could not archive unit. Reload the page and try again.");
   revalidatePath("/units");
 }
