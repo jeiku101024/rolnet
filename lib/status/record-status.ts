@@ -14,7 +14,7 @@ export const unitStatusOptions: { value: UnitStatus; label: string; tone: Status
 
 export const driverStatusOptions: { value: DriverStatus; label: string; tone: StatusTone }[] = [
   { value: "active", label: "Active", tone: "success" },
-  { value: "inactive", label: "Inactive", tone: "muted" },
+  { value: "inactive", label: "Inactive", tone: "danger" },
 ];
 
 export function unitStatusLabel(status: UnitStatus) {

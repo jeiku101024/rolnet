@@ -17,7 +17,8 @@
   trigger functions do not exist), so it tests the new behaviour.
 - `types/database.ts` was not regenerated: there is no local database here, and the migration adds
   only trigger functions, which the generated types do not include.
-- The migration is **not applied to rolnet-dev**. CI runs `supabase test db` on a fresh database.
+- The migration was applied to rolnet-dev with `supabase db push --linked` on 2026-10-29, at the
+  owner's request, before the PR. CI runs `supabase test db` on a fresh database.
 
 ## Quality gates (T025)
 
@@ -36,10 +37,10 @@ owner and approved staff. The script is kept out of git (`.git/status-lock-check
 | 1 | Search "retired" hides an In repair row; search by body number still finds it | Pass |
 | 2 | Locked unit page: notice, no edit form, history "Active → In repair", no scroll | Pass |
 | 3 | Mileage reading on an In repair unit | Pass in pgTAP (not repeated in the browser) |
-| 4 | REST `PATCH` of `make_model` on a locked unit | Fail on rolnet-dev (200): the migration is not applied there. Pass in pgTAP (23514) |
+| 4 | REST `PATCH` of `make_model` on a locked unit | Pass after the migration was applied (400, value unchanged; run `VHAH`); first run `NSLY` got 200 before it was applied |
 | 5 | Set Active on the unit page: edit form appears without reload; details save | Pass |
 | 6 | Drivers list: set Inactive, kept; driver page notice, no form, history, no scroll | Pass |
-| 7 | Inactive refused for a driver with a current assignment | Pass in pgTAP (23503); needs the migration on rolnet-dev for the browser |
+| 7 | Inactive refused for a driver with a current assignment | Pass (run `VHAH`): the "End or remove them" message is shown and the dropdown returns to Active |
 | 8 | No new assignment for an Inactive driver | Existing rule, unchanged |
 | 9 | License renewal for an Inactive driver updates the expiry | Pass in pgTAP |
 | 10 | Picking the current status again adds no history entry | Pass |
@@ -55,4 +56,10 @@ Correction to the spec: staff can already view the units and drivers pages (they
 owner-only), so they see the status as a read-only badge. The edge case and quickstart row 12
 were updated.
 
-Rows 4 and 7 need the migration on rolnet-dev to pass in the browser.
+Re-run `VHAH` after the migration was applied: **23/23 passed**.
+
+## Status colours (run `VRRX`)
+
+The dropdowns use the same colours as the status badges: Active green, In repair yellow, Retired
+red, and Inactive red (Inactive was grey before). The computed colour and background of each
+dropdown equal the matching badge's: **5/5 passed**.
