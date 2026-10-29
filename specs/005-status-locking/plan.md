@@ -70,8 +70,7 @@ forms, 1 migration
 **Post-design re-check (after Phase 1)**: Pass. Three design choices keep the gates:
 - Reusing `audit_events` for the status history avoids a new table.
 - Keying the lock on the row's old state keeps one rule for the UI, server actions and `/api/v1`.
-- Allowing the license-expiry change only when it matches a current license document keeps
-  Principle V's renewal flow working.
+- Allowing the license-expiry change only during a license renewal (a license document superseded in the same transaction with no replacement yet) keeps Principle V's renewal flow working without changing the renewal function.
 
 ## Project Structure
 

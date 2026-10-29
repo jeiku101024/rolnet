@@ -29,7 +29,7 @@ Single Next.js app at the repository root: `app/`, `components/`, `lib/`, `supab
 
 **Purpose**: Confirm the starting point. No new dependencies or project structure are needed.
 
-- [ ] T001 Confirm that the branch `005-status-locking` is up to date with `origin/main` and that `corepack pnpm lint`, `corepack pnpm typecheck` and `corepack pnpm test` pass before any change; record the baseline at the top of a new `specs/005-status-locking/validation.md` (T026 adds the results)
+- [X] T001 Confirm that the branch `005-status-locking` is up to date with `origin/main` and that `corepack pnpm lint`, `corepack pnpm typecheck` and `corepack pnpm test` pass before any change; record the baseline at the top of a new `specs/005-status-locking/validation.md` (T026 adds the results)
 
 ---
 
@@ -39,35 +39,31 @@ Single Next.js app at the repository root: `app/`, `components/`, `lib/`, `supab
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 Create `supabase/migrations/20261030000100_status_locking.sql` with three trigger functions in `public`. Each function is created with `revoke execute ... from public, anon, authenticated`, `set search_path = public`, and is not `security definer`.
+- [X] T002 Create `supabase/migrations/20261030000100_status_locking.sql` with three trigger functions in `public`. Each function is created with `revoke execute ... from public, anon, authenticated`, `set search_path = public`, and is not `security definer`.
   - **`reject_driver_deactivation_with_assignments()`** with trigger `drivers_reject_deactivation_with_assignments` (BEFORE UPDATE OF is_active on `public.drivers`).
     - When: `old.is_active and not new.is_active` and the driver has a `driver_assignments` row with `deleted_at is null and coalesce(ends_on, 'infinity'::date) >= (now() at time zone 'Asia/Manila')::date`.
     - Raises: `errcode = '23503'`, message "This driver still has current or upcoming assignments. End or remove them before setting the driver to Inactive".
   - **`lock_inactive_driver_details()`** with trigger `drivers_lock_inactive_details` (BEFORE UPDATE on `public.drivers`).
-    - When: `not old.is_active` and any of `full_name, driver_kind, license_number, phone, address` is distinct from old, or `license_expiry_date` changed to a value that is not the `expires_on` of a non-deleted `documents` row with `document_type = 'driver_license'`, `lifecycle_status = 'current'` and `driver_id = new.id`.
+    - When: `not old.is_active` and any of `full_name, driver_kind, license_number, phone, address` is distinct from old, or `license_expiry_date` changed outside a license renewal (below).
     - Raises: `errcode = '23514'`, message "This driver is Inactive. Set the driver to Active before editing their details".
   - **`lock_out_of_service_unit_details()`** with trigger `units_lock_out_of_service_details` (BEFORE UPDATE on `public.units`).
     - When: `old.status in ('in_repair','retired')` and any of `body_number, plate_number, make_model` is distinct from old.
     - Raises: `errcode = '23514'`, message "This unit is In repair. Set the unit to Active before editing its details" (use "Retired" for retired units).
   - Keep `status`, `is_active`, `current_mileage`, `updated_at`, `updated_by`, `deleted_at` and `deleted_by` changes allowed (research R2–R5).
-  - **Recreate `public.renew_compliance_document(p_previous_id uuid, p_document jsonb)`** with the same signature, `security invoker`, `require_owner()` check and grants as in `20261029001500_sync_driver_license_expiry.sql`, but in this order (research R4):
-    1. Supersede the previous document.
-    2. Insert the renewal as `current`.
-    3. Only for `driver_license`: update `drivers.license_expiry_date`.
-    4. Set the previous document's `superseded_by_id`.
-- [ ] T003 Add the pgTAP test `supabase/tests/constraints/250_status_locking.sql`. Use the patterns of `240_unit_delete_and_license_sync.sql`: owner JWT claims, a rollback-only transaction, and `throws_ok`/`lives_ok`. It covers these cases:
+  - The license-expiry exception in `lock_inactive_driver_details()` allows the change only while a `driver_license` document for the driver was superseded in this transaction (`updated_at = now()`) and has no `superseded_by_id` yet, which is the state inside `renew_compliance_document`. The renewal function itself is unchanged (research R4; reordering it would break `documents_license_expiry_matches_profile`).
+- [X] T003 Add the pgTAP test `supabase/tests/constraints/250_status_locking.sql`. Use the patterns of `240_unit_delete_and_license_sync.sql`: owner JWT claims, a rollback-only transaction, and `throws_ok`/`lives_ok`. It covers these cases:
   1. An in-repair or retired unit refuses a `make_model` change (23514).
   2. A locked unit accepts `status` → `active`, then accepts a `make_model` change.
   3. An in-repair unit accepts a `mileage_readings` insert that raises `current_mileage`.
   4. An in-repair unit can be archived and restored with `soft_delete_record`/`restore_record`.
   5. An inactive driver refuses a `phone` change (23514).
   6. An inactive driver refuses a `license_expiry_date` change with no matching current license document.
-  7. An inactive driver accepts `renew_compliance_document` updating its expiry, and an active driver's renewal still updates its expiry (regression for the reordered function).
+  7. An inactive driver accepts `renew_compliance_document` updating its expiry, and an active driver's renewal still updates its expiry (regression check).
   8. An active driver with a current assignment refuses `is_active = false` (23503).
   9. A driver whose only assignment ended yesterday (Manila) can be set inactive.
   10. Staff updating `units.status` changes no row.
   11. The three new functions have no EXECUTE for `anon` or `authenticated`.
-- [ ] T004 Apply the migration locally, then run the database tests and confirm that every test, including the new 250 test, passes:
+- [X] T004 Apply the migration locally, then run the database tests and confirm that every test, including the new 250 test, passes:
   ```bash
   corepack pnpm exec supabase db reset && corepack pnpm exec supabase test db
   ```
@@ -75,20 +71,20 @@ Single Next.js app at the repository root: `app/`, `components/`, `lib/`, `supab
   ```bash
   corepack pnpm exec supabase gen types typescript --local > types/database.ts
   ```
-- [ ] T005 [P] Create `lib/status/record-status.ts`.
+- [X] T005 [P] Create `lib/status/record-status.ts`.
   - Export `UnitStatus = "active" | "in_repair" | "retired"` and `DriverStatus = "active" | "inactive"`.
   - Export option lists with labels: Active, In repair, Retired; Active, Inactive.
   - Export the tones: unit active success, in_repair warning, retired danger; driver active success, inactive muted.
   - Export `isUnitLocked(status)` (true for `in_repair` and `retired`), `isDriverLocked(isActive)` (true when not active), `driverStatusOf(isActive)`, and `lockedMessage(kind, status)`, which returns the notice text from `contracts/status-actions.md`.
-- [ ] T006 [P] Add the status schemas.
+- [X] T006 [P] Add the status schemas.
   - In `lib/validation/units.ts`:
     - Add `unitStatusSchema = z.object({ id: z.uuid(), status: z.enum(["active","in_repair","retired"]), expectedStatus: z.enum(["active","in_repair","retired"]) })`.
     - Add `unitDetailsSchema`: `unitSchema` without `status`, plus `expectedUpdatedAt: z.iso.datetime({ offset: true })`.
   - In `lib/validation/drivers.ts`:
     - Add `driverStatusSchema = z.object({ id: z.uuid(), status: z.enum(["active","inactive"]), expectedStatus: z.enum(["active","inactive"]) })`.
     - Add `expectedUpdatedAt` to the update input used by `updateDriver`.
-- [ ] T007 [P] Add the Vitest file `tests/unit/record-status.test.ts`. It covers `isUnitLocked`, `isDriverLocked`, `lockedMessage` for each status, and the three schemas from T006: valid input, a bad uuid, an unknown status, a missing `expectedStatus`, and a missing `expectedUpdatedAt` for `unitDetailsSchema`.
-- [ ] T008 Add `setUnitStatus(input)` to `app/actions/units.ts`, per `contracts/status-actions.md`.
+- [X] T007 [P] Add the Vitest file `tests/unit/record-status.test.ts`. It covers `isUnitLocked`, `isDriverLocked`, `lockedMessage` for each status, and the three schemas from T006: valid input, a bad uuid, an unknown status, a missing `expectedStatus`, and a missing `expectedUpdatedAt` for `unitDetailsSchema`.
+- [X] T008 Add `setUnitStatus(input)` to `app/actions/units.ts`, per `contracts/status-actions.md`.
   - Guard with `requirePermission("manage_master_data")` and parse with `unitStatusSchema`.
   - Read the current row (`id, status, updated_at`, `deleted_at is null`); a missing row gives `NOT_FOUND`.
   - If the status is unchanged, return `ok` without writing.
@@ -96,19 +92,19 @@ Single Next.js app at the repository root: `app/`, `components/`, `lib/`, `supab
   - If no row is returned, re-read: return `ok` if the status now equals the requested one, otherwise `STALE_RECORD` "This unit was changed by someone else. It is now {Label}."
   - Revalidate `/units` and `/units/{id}`.
   - Change `updateUnit` to use `unitDetailsSchema`, stop writing `status`, add `.eq("updated_at", expectedUpdatedAt)`, and return `STALE_RECORD` when no row matches.
-- [ ] T009 Add `setDriverStatus(input)` to `app/actions/drivers.ts`.
+- [X] T009 Add `setDriverStatus(input)` to `app/actions/drivers.ts`.
   - Use the same flow as T008 with `driverStatusSchema`, mapping `active` to `is_active = true` and comparing `.eq("is_active", expectedStatus === "active")`.
   - The trigger's 23503 message from T002 reaches the user unchanged through `run()`.
   - Revalidate `/drivers` and `/drivers/{id}`.
   - Add the `expectedUpdatedAt` stale check to `updateDriver`.
-- [ ] T010 Create the client component `components/forms/status-select.tsx`.
+- [X] T010 Create the client component `components/forms/status-select.tsx`.
   - Props: `kind: "unit" | "driver"`, `id`, `value` (the saved status, sent as `expectedStatus`), `label`.
   - Reset the local value whenever the `value` prop changes (for example, render it with `key={value}` or sync it in an effect), so the control shows the saved status after the page refreshes.
   - Render the `Select` from `components/ui/form-field.tsx` with the options from `lib/status/record-status.ts` and `aria-label={label}`, full width with no fixed width.
   - On change: show the new value at once, disable the control while saving, and call `setUnitStatus` or `setDriverStatus` inside `useTransition`.
   - On `ok: false`: revert to the saved value and show the message in a `<p role="alert" className="mt-1 text-body-sm text-danger">` under the control.
   - Use only tokens from `app/globals.css`; no hex colours or arbitrary sizes.
-- [ ] T011 [P] Create the server component `components/records/status-history.tsx`.
+- [X] T011 [P] Create the server component `components/records/status-history.tsx`.
   - Read the latest 10 `audit_events` rows for `entity_type` (`units` or `drivers`) and `entity_id` where `action <> 'insert'` and `changed_fields->'before'->>'status' is distinct from changed_fields->'after'->>'status'`. For drivers, compare `is_active` instead.
   - `actor_user_id` references `auth.users`, so fetch display names with a second query: `profiles` by `user_id in (...)`.
   - Render a list with the old and new label, the actor's `profiles.display_name`, and the time formatted in Asia/Manila.
@@ -127,11 +123,11 @@ change is saved and visible in the status history.
 kept and the history shows the change with the owner and the time. Set Active again. Try to
 deactivate a driver with a current assignment: refused with the "End or remove them" message.
 
-- [ ] T012 [US1] In `app/(owner)/drivers/[id]/page.tsx`:
+- [X] T012 [US1] In `app/(owner)/drivers/[id]/page.tsx`:
   - Select `updated_at` with the driver (used by the edit form in T018).
   - For the owner, render `StatusSelect` (`kind="driver"`, `label="Status for {full_name}"`) in place of the static Active/Inactive `StatusBadge`; staff keep the badge.
   - Render `StatusHistory` for drivers below the license block, owner only.
-- [ ] T013 [US1] Check the driver page at 360 × 800, following quickstart rows 6, 7 and 10:
+- [X] T013 [US1] Check the driver page at 360 × 800, following quickstart rows 6, 7 and 10:
   - The select and history fit with no horizontal scroll.
   - A refused change reverts and shows the message.
   - Picking the same status writes no new history row.
@@ -150,28 +146,28 @@ notice and no edit form, and a REST `PATCH` of a detail field is refused. Record
 reading and a maintenance entry for the unit; both save. Set both records back to Active: the edit
 forms appear without a reload and saves succeed.
 
-- [ ] T014 [P] [US2] Create `components/records/locked-notice.tsx`.
+- [X] T014 [P] [US2] Create `components/records/locked-notice.tsx`.
   - Props: `kind`, `status`.
   - Renders the existing `feedback.tsx` notice style with an icon and `lockedMessage(kind, status)` from `lib/status/record-status.ts`, inside `role="status"`.
-- [ ] T015 [P] [US2] Create the client component `components/forms/unit-details-form.tsx`.
+- [X] T015 [P] [US2] Create the client component `components/forms/unit-details-form.tsx`.
   - Props: `unit: { id, body_number, plate_number, make_model, updated_at }`.
   - Fields: body number (`maxLength={40}`, required), plate number (`maxLength={20}`, required, uppercased), make and model (`maxLength={120}`, required).
   - Submits through `updateUnit` with `expectedUpdatedAt`, using `useActionForm`, `FormPanel` and `FormFooter` like `components/forms/unit-form.tsx`.
   - Success message: "Unit details saved."
-- [ ] T016 [P] [US2] Create the client component `components/forms/driver-details-form.tsx`.
+- [X] T016 [P] [US2] Create the client component `components/forms/driver-details-form.tsx`.
   - Fields: full name (required, 1–160 characters), driver type (primary/backup), license number (required, 1–80), license expiry date (`type="date"`, required), phone (required, 3–40, `inputMode="tel"`), address (optional).
   - Submits through `updateDriver` with `expectedUpdatedAt`.
   - Success message: "Driver details saved."
-- [ ] T017 [US2] In `app/(owner)/units/[id]/page.tsx`:
+- [X] T017 [US2] In `app/(owner)/units/[id]/page.tsx`:
   - Select `updated_at` with the unit.
   - For the owner, render `StatusSelect` (`kind="unit"`) next to the unit's status badge.
   - When `isUnitLocked(unit.status)`, render `LockedNotice` and the details as read-only text; otherwise render "Edit details" with `UnitDetailsForm`.
   - Render `StatusHistory` for units, owner only.
   - Keep the mileage, assignment, parts and documents sections unchanged and usable for locked units (FR-009).
-- [ ] T018 [US2] In `app/(owner)/drivers/[id]/page.tsx`:
+- [X] T018 [US2] In `app/(owner)/drivers/[id]/page.tsx`:
   - When `isDriverLocked(driver.is_active)`, render `LockedNotice` above the read-only license block.
   - Otherwise, for the owner, render "Edit details" with `DriverDetailsForm`.
-- [ ] T019 [US2] Check quickstart rows 2, 3, 4, 5, 8 and 9 at 360 × 800 against the local or rolnet-dev database:
+- [X] T019 [US2] Check quickstart rows 2, 3, 4, 5, 8 and 9 at 360 × 800 against the local or rolnet-dev database:
   - Locked pages show the notice and no form.
   - Mileage, maintenance and an expense save for an in-repair unit.
   - A REST `PATCH` of `make_model` with the owner JWT is refused.
@@ -190,15 +186,15 @@ forms appear without a reload and saves succeed.
 `/drivers`, set a driver Inactive: kept. A refused change reverts with the message, and the
 search text stays.
 
-- [ ] T020 [P] [US3] In `app/(owner)/units/page.tsx`:
+- [X] T020 [P] [US3] In `app/(owner)/units/page.tsx`:
   - For the owner, render `StatusSelect` (`kind="unit"`, `label="Status for Body {body_number}"`) in the Status cell in place of `StatusBadge`; staff keep the badge.
-- [ ] T021 [P] [US3] In `app/(owner)/drivers/page.tsx`:
+- [X] T021 [P] [US3] In `app/(owner)/drivers/page.tsx`:
   - For the owner, render `StatusSelect` (`kind="driver"`, `label="Status for {full_name}"`) in the existing Status cell; staff keep the badge.
-- [ ] T022 [US3] Check quickstart rows 1, 11 and 12 at 360 × 800:
+- [X] T022 [US3] Check quickstart rows 1, 11 and 12 at 360 × 800:
   - The table has no horizontal scroll.
   - Search text is kept after a change.
   - A stale change from a second tab is refused with "changed by someone else".
-  - Staff see the owner-only notice, and a staff REST `PATCH` of `status` changes no row.
+  - Staff see read-only status badges with no dropdown, and a staff REST `PATCH` of `status` changes no row.
   - Time two status changes from a list row (tap to saved): each is under 5 s with two taps (SC-001); record the times in `specs/005-status-locking/validation.md`.
 
 **Checkpoint**: All user stories are independently functional
@@ -209,13 +205,13 @@ search text stays.
 
 **Purpose**: Quality gates and records
 
-- [ ] T023 [P] Update the demo data in `lib/demo/mode.ts`, so `NEXT_PUBLIC_DEMO_MODE=true` still renders `/units`, `/drivers` and their detail pages (with `updated_at` on the demo rows for the edit forms), and make `StatusSelect` read-only in demo mode
-- [ ] T024 [P] Update `docs/DEVELOPMENT.md` business rules: Inactive drivers and In repair or Retired units have locked details; daily operations stay allowed; drivers with current or upcoming assignments cannot be set Inactive
-- [ ] T025 Run the definition of done and fix any failure:
+- [X] T023 [P] Update the demo data in `lib/demo/mode.ts`, so `NEXT_PUBLIC_DEMO_MODE=true` still renders `/units`, `/drivers` and their detail pages (with `updated_at` on the demo rows for the edit forms), and make `StatusSelect` read-only in demo mode
+- [X] T024 [P] Update `docs/DEVELOPMENT.md` business rules: Inactive drivers and In repair or Retired units have locked details; daily operations stay allowed; drivers with current or upcoming assignments cannot be set Inactive
+- [X] T025 Run the definition of done and fix any failure:
   - `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`
   - `corepack pnpm exec supabase db reset && corepack pnpm exec supabase test db`
   - `corepack pnpm exec next build`, which must log no prerender errors (`app/(owner)/*/loading.tsx` already provides the boundaries)
-- [ ] T026 Run the full `specs/005-status-locking/quickstart.md` table at 360 × 800 as owner and staff, and record pass/fail for each row in a new `specs/005-status-locking/validation.md`
+- [X] T026 Run the full `specs/005-status-locking/quickstart.md` table at 360 × 800 as owner and staff, and record pass/fail for each row in a new `specs/005-status-locking/validation.md`
 
 ---
 

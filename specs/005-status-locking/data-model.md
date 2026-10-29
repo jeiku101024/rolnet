@@ -9,7 +9,7 @@ explained in [research.md](research.md).
 |---|---|
 | `is_active` (boolean, default true) | The status: `true` = Active, `false` = Inactive |
 | `full_name`, `driver_kind`, `license_number`, `phone`, `address` | Details. Locked while Inactive |
-| `license_expiry_date` | Detail. While Inactive, it may change only to the `expires_on` of the driver's current `driver_license` document (renewal, R4) |
+| `license_expiry_date` | Detail. While Inactive, it may change only during a license renewal (R4) |
 | `updated_at` | Version for the detail edit form's stale check. Status changes compare the shown status instead (R8) |
 | `deleted_at`, `deleted_by`, `updated_by` | System columns. Not locked |
 
@@ -28,7 +28,7 @@ Inactive ──(owner sets Active)──▶ Active
 | Active → Inactive refused while any non-deleted assignment has `coalesce(ends_on,'infinity') >= Manila today` | New trigger `drivers_reject_deactivation_with_assignments` (BEFORE UPDATE OF is_active) | `23503` "This driver still has current or upcoming assignments. End or remove them before setting the driver to Inactive." |
 | When the old row is Inactive, detail columns are unchanged (except the R4 expiry case) | New trigger `drivers_lock_inactive_details` (BEFORE UPDATE) | `23514` "This driver is Inactive. Set the driver to Active before editing their details." |
 | No new assignment for an Inactive driver | Existing assignment trigger | Existing message |
-| A license renewal sets the expiry only after the new current document exists | `renew_compliance_document` recreated in the new migration with the order supersede → insert renewal → update driver (R4) | None (renewals succeed for Inactive drivers) |
+| A license renewal may still set an Inactive driver's expiry | `drivers_lock_inactive_details` allows the change while a license document superseded in the same transaction has no replacement linked yet (R4); `renew_compliance_document` is unchanged | None (renewals succeed for Inactive drivers) |
 
 ## Unit (`public.units`)
 

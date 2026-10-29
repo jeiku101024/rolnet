@@ -52,4 +52,4 @@ Rules are in [data-model.md](data-model.md); UI and action behaviour is in
 | 9 | Renew the Inactive driver's license document | Renewal saved; the driver's expiry updates even though the driver is locked |
 | 10 | Pick the current status again in a dropdown | Nothing saved; no new status history entry |
 | 11 | Open the same unit in two tabs; change the status in tab A, then in tab B | Tab B refused with "changed by someone else", showing the current status |
-| 12 | As staff, open `/units` and `/drivers`, then send a REST `PATCH` of `status` | Owner-only notice in the UI; REST update changes no row |
+| 12 | As staff, open `/units` and `/drivers`, then send a REST `PATCH` of `status` | Statuses shown as read-only badges with no dropdown; REST update changes no row |

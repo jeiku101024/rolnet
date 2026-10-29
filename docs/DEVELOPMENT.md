@@ -108,6 +108,10 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
 - Driver profile license expiry is authoritative and must match uploaded license documents.
 - Receipts target 300 KB and hard-limit at 500 KB; documents hard-limit at 5 MB.
 - Expiry buckets use the fleet timezone: expired, due within 7 days, due within 30 days, valid.
+- Drivers are Active or Inactive; units are Active, In repair or Retired. Only the owner changes a
+  status. Inactive drivers and In repair or Retired units have locked details (enforced in the
+  database); daily operations, mileage, documents and license renewals still work for them.
+- A driver with a current or upcoming assignment cannot be set Inactive until it is ended or removed.
 
 ## Validation and release
 

@@ -53,22 +53,24 @@ below come from the current code (`app/actions/units.ts`, `app/actions/drivers.t
 
 ## R4. License expiry on a locked driver
 
-- **Decision**: On an Inactive driver, `license_expiry_date` may change only to the `expires_on`
-  of a current, non-deleted `driver_license` document for that driver. All other detail changes
-  are refused.
+- **Decision**: On an Inactive driver, `license_expiry_date` may change only while a license
+  renewal is in progress: when the driver has a `driver_license` document that was superseded in
+  this transaction (`updated_at = now()`) and has no replacement linked yet
+  (`superseded_by_id is null`). All other detail changes are refused.
 - **Rationale**:
-  - `renew_compliance_document` updates the driver's expiry as part of a document renewal, and
-    documents remain allowed for locked records (FR-009, Principle V).
-  - A direct edit to an arbitrary date has no matching document, so it is still refused.
-  - The existing `drivers_license_expiry_matches_document` trigger is kept and runs as before.
-  - `renew_compliance_document` today supersedes the old document, then updates the driver, then
-    inserts the renewal, so no current license document exists when the driver is updated. The
-    new migration recreates it with the order **supersede → insert renewal → update driver**. The
-    lock and the expiry-match trigger then both see the new current document. The partial unique
-    index on current driver documents still holds, because the old one is superseded first.
-- **Alternatives considered**: Exempting the expiry entirely was rejected, because it would let
-  a locked driver's expiry be edited directly.
-
+  - `renew_compliance_document` supersedes the old license, then updates the driver's expiry, then
+    inserts the renewal, and documents remain allowed for locked records (FR-009, Principle V).
+  - The order cannot change: `documents_license_expiry_matches_profile`
+    (`20261029000300`) requires a new current license document to match the profile when it is
+    inserted, so the profile must be updated first. (The analysis fix proposed reordering; this
+    was found during implementation and replaced by the rule above.)
+  - A direct edit has no just-superseded document, so it is still refused. The renewal function is
+    unchanged.
+- **Alternatives considered**:
+  - Exempting the expiry entirely was rejected: it would let a locked driver's expiry be edited
+    directly.
+  - A transaction-local flag set by the renewal function was rejected (hidden state, R3).
+  - Reordering the renewal was rejected for the reason above.
 ## R5. Deactivating a driver with assignments
 
 - **Decision**: Add a `BEFORE UPDATE OF is_active` trigger on `drivers`. When `is_active` changes

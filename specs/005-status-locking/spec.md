@@ -133,7 +133,8 @@ see it kept.
   mileage, because mileage is a daily operation, not an edit of the unit's details.
 - An archived (soft-deleted) driver or unit is not shown in the lists and its status cannot be
   changed until it is restored.
-- Staff open a link to a driver or unit page: they are sent to the owner-only notice, as today.
+- Staff open the units or drivers list or a record page: they see the status as a read-only badge,
+  with no status control or edit form (staff could already view these pages).
 - The same status is picked again: nothing is saved and no history entry is added.
 
 ## Requirements *(mandatory)*
