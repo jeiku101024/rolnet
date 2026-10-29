@@ -37,3 +37,22 @@ export function monthlyCsv(month: string, rows: Record<string, unknown>[]) {
   const lines = [reportColumns.join(","), ...rows.map((row) => reportColumns.map((column) => escapeCsv(cell(month, row, column))).join(","))];
   return `﻿${lines.join("\r\n")}\r\n`;
 }
+
+const amountColumnCount = reportColumns.length - 3;
+
+function dataLines(csv: string) {
+  return csv.replace(/^﻿/, "").split("\r\n").slice(1).filter(Boolean);
+}
+
+/** Unit rows in a downloaded CSV: every data row except the FLEET TOTAL row (T142 feedback). */
+export function countUnitRows(csv: string) {
+  return dataLines(csv).filter((line) => !line.includes(",FLEET TOTAL,")).length;
+}
+
+/**
+ * True when any amount in the CSV is not zero. Amounts are the last 11 columns; only the text
+ * columns before them can be quoted (and so contain commas), so they are counted from the end.
+ */
+export function reportHasActivity(csv: string) {
+  return dataLines(csv).some((line) => line.split(",").slice(-amountColumnCount).some((value) => value !== "" && value !== "0"));
+}

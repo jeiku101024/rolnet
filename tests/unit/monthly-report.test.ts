@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { escapeCsv, monthlyCsv, neutraliseFormula, reportColumns } from "@/lib/reports/monthly-csv";
+import { countUnitRows, escapeCsv, monthlyCsv, neutraliseFormula, reportColumns, reportHasActivity } from "@/lib/reports/monthly-csv";
 
 const mocks = vi.hoisted(() => ({ profile: null as unknown, unit: null as unknown, rpc: vi.fn() }));
 
@@ -37,6 +37,15 @@ describe("monthly CSV", () => {
     expect(neutraliseFormula("-1500")).toBe("-1500");
     expect(escapeCsv("=1,2")).toBe("\"'=1,2\"");
     expect(escapeCsv("a\"b")).toBe("\"a\"\"b\"");
+  });
+
+  it("summarises a downloaded CSV for the export form (T142)", () => {
+    const total = { unit_id: null, body_number: "FLEET TOTAL", plate_number: null };
+    const quiet = monthlyCsv("2020-01", [{ unit_id: "u", body_number: "=SUM(1,2)", plate_number: "A,B" }, total]);
+    expect(countUnitRows(quiet)).toBe(1);
+    expect(reportHasActivity(quiet)).toBe(false);
+    expect(countUnitRows(monthlyCsv("2020-01", [total]))).toBe(0);
+    expect(reportHasActivity(monthlyCsv("2026-10", [{ ...total, net_income_centavos: -500 }]))).toBe(true);
   });
 });
 
