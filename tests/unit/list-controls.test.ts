@@ -15,7 +15,7 @@ function recorder() {
 describe("list sort and filter controls (feature 006, US8)", () => {
   it("ignores values a list does not offer and falls back to the default sort", () => {
     const parsed = parseControls({ sort: "bogus", status: "flying", from: "2026-02-30", to: "yesterday" }, listControlSpecs.units, today);
-    expect(parsed.sort.value).toBe("body");
+    expect(parsed.sort.value).toBe("name");
     expect(parsed.sortIsDefault).toBe(true);
     expect(parsed.count).toBe(0);
   });

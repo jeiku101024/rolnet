@@ -11,9 +11,9 @@ const demoId = (group: number, index: number) => `00000000-0000-4000-8000-${pad(
 
 const extraUnitModels = ["Honda TMX", "Yamaha YTX", "Suzuki Raider", "Kawasaki Barako"];
 export const demoUnits = [
-  { id: "00000000-0000-4000-8000-000000000001", body_number: "T-001", plate_number: "ABC-1234", make_model: "Honda TMX", status: "active", current_mileage: 18240 },
-  { id: "00000000-0000-4000-8000-000000000002", body_number: "T-002", plate_number: "ABC-1235", make_model: "Yamaha YTX", status: "in_repair", current_mileage: 24110 },
-  ...Array.from({ length: 10 }, (_, index) => ({ id: demoId(1, index + 3), body_number: `T-${pad(index + 3, 3)}`, plate_number: `ABC-${1236 + index}`, make_model: extraUnitModels[index % extraUnitModels.length], status: index === 4 ? "in_repair" : index === 9 ? "retired" : "active", current_mileage: 15000 + index * 1375 })),
+  { id: "00000000-0000-4000-8000-000000000001", name: "ROLNET-1", body_number: "T-001", plate_number: "ABC-1234", make_model: "Honda TMX", status: "active", current_mileage: 18240 },
+  { id: "00000000-0000-4000-8000-000000000002", name: "ROLNET-2", body_number: "T-002", plate_number: "ABC-1235", make_model: "Yamaha YTX", status: "in_repair", current_mileage: 24110 },
+  ...Array.from({ length: 10 }, (_, index) => ({ id: demoId(1, index + 3), name: `ROLNET-${index + 3}`, body_number: `T-${pad(index + 3, 3)}`, plate_number: `ABC-${1236 + index}`, make_model: extraUnitModels[index % extraUnitModels.length], status: index === 4 ? "in_repair" : index === 9 ? "retired" : "active", current_mileage: 15000 + index * 1375 })),
 ];
 
 const extraDriverNames = ["Maria Reyes", "Jose Garcia", "Ana Bautista", "Ramon Cruz", "Liza Mendoza", "Carlo Villanueva", "Nestor Aquino", "Rosa Lim", "Danilo Ramos", "Grace Torres", "Arnel Flores", "Vilma Castro", "Rey Navarro"];
@@ -33,6 +33,20 @@ export const demoCategories = [
 export const demoAssignments = [{ id: "00000000-0000-4000-8000-000000000031", assignment_type: "primary", starts_on: "2026-01-01", ends_on: null, units: [{ body_number: "T-001" }], drivers: [{ full_name: "Juan Dela Cruz" }] }];
 /** Today's backup coverage: Pedro Santos drives T-003; the other two extradors are free. */
 export const demoBackupAssignments = [{ id: demoId(3, 1), driver_id: "00000000-0000-4000-8000-000000000012", unit_id: demoUnits[2].id, assignment_type: "backup", starts_on: today, ends_on: today }];
+
+// Feature 007: the units register's Current driver column. ROLNET-1 to ROLNET-8 have primary
+// drivers; ROLNET-2's driver is off today with no backup, and ROLNET-3's is off with Pedro Santos
+// covering (matching demoBackupAssignments); ROLNET-9 to ROLNET-12 are unassigned.
+const demoPrimaryDrivers = demoDrivers.filter((driver) => driver.driver_kind === "primary" && driver.is_active).slice(0, 8);
+const demoUnitPrimaries = demoPrimaryDrivers.map((driver, index) => ({ id: demoId(3, index + 11), unit_id: demoUnits[index].id, driver_id: driver.id, driverName: driver.full_name, assignment_type: "primary", starts_on: addDays(today, -30), ends_on: null, covered_primary_assignment_id: null }));
+export const demoUnitAssignments = [
+  ...demoUnitPrimaries,
+  { id: demoBackupAssignments[0].id, unit_id: demoUnits[2].id, driver_id: demoDrivers[1].id, driverName: demoDrivers[1].full_name, assignment_type: "backup", starts_on: today, ends_on: today, covered_primary_assignment_id: demoUnitPrimaries[2].id },
+];
+export const demoUnitDaysOff = [
+  { id: demoId(3, 21), primary_assignment_id: demoUnitPrimaries[1].id, day_off_date: today, notes: null },
+  { id: demoId(3, 22), primary_assignment_id: demoUnitPrimaries[2].id, day_off_date: today, notes: null },
+];
 
 export const demoExpenses = [
   { id: "00000000-0000-4000-8000-000000000041", unit_id: "00000000-0000-4000-8000-000000000001", category_id: "00000000-0000-4000-8000-000000000022", expense_date: addDays(today, -1), amount_centavos: 185000, notes: "Monthly tune-up", receipt_object_path: null, units: [{ body_number: "T-001", plate_number: "ABC-1234" }], expense_categories: [{ name: "Repairs" }] },

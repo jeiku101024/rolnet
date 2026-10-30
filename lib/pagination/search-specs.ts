@@ -17,7 +17,7 @@ const unitLink = { table: "units", column: "body_number", foreignKey: "unit_id" 
 const driverLink = { table: "drivers", column: "full_name", foreignKey: "driver_id" } as const;
 
 export const searchSpecs = {
-  units: { columns: ["body_number", "plate_number", "make_model"], enums: [{ column: "status", labels: unitStatusLabels }] },
+  units: { columns: ["name", "body_number", "plate_number", "make_model"], enums: [{ column: "status", labels: unitStatusLabels }] },
   drivers: { columns: ["full_name", "license_number", "phone"], enums: [{ column: "driver_kind", labels: driverKindLabels }] },
   remittances: { columns: ["notes"], related: [unitLink, driverLink], enums: [{ column: "disposition", labels: dispositionLabels }], dateColumn: "service_date", amountColumn: "amount_due_centavos" },
   expenses: { columns: ["notes"], related: [unitLink, { table: "expense_categories", column: "name", foreignKey: "category_id" }], dateColumn: "expense_date", amountColumn: "amount_centavos" },

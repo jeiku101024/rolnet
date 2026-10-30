@@ -112,6 +112,13 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   status. Inactive drivers and In repair or Retired units have locked details (enforced in the
   database); daily operations, mileage, documents and license renewals still work for them.
 - A driver with a current or upcoming assignment cannot be set Inactive until it is ended or removed.
+- Each unit has a name (for example `ROLNET-1`) alongside its body number: 1–40 characters, unique
+  among non-deleted units ignoring case and surrounding spaces. A missing or blank name defaults to
+  the body number in the database, which is how existing units got theirs (feature 007).
+- The units register's Current driver column uses the unit page's coverage rules
+  (`lib/assignments/coverage.ts`, `lib/assignments/current-drivers.ts`): today's primary driver,
+  the backup covering the primary's day off, "Day off · no backup", or "Unassigned". An assignment
+  whose driver is archived counts as unassigned.
 
 ## Lists and dashboard (feature 006)
 

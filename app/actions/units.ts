@@ -8,14 +8,14 @@ import { unitStatusLabel, type UnitStatus } from "@/lib/status/record-status";
 import { ActionError } from "@/lib/actions/errors";
 import { run } from "@/lib/actions/run";
 
-const labels = { bodyNumber: "body number", plateNumber: "plate number", makeModel: "make and model", status: "status" };
+const labels = { name: "unit name", bodyNumber: "body number", plateNumber: "plate number", makeModel: "motorcycle", status: "status" };
 
 export async function createUnit(input: unknown) {
   return run("Could not save the unit. Check the details and try again.", async () => {
     await requirePermission("manage_master_data");
     const value = unitSchema.parse(input);
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.from("units").insert({ body_number: value.bodyNumber, plate_number: value.plateNumber, make_model: value.makeModel, status: value.status }).select("id").single();
+    const { data, error } = await supabase.from("units").insert({ name: value.name, body_number: value.bodyNumber, plate_number: value.plateNumber, make_model: value.makeModel, status: value.status }).select("id").single();
     if (error) throw error;
     revalidatePath("/units");
     return { id: data.id as string };
@@ -28,7 +28,7 @@ export async function updateUnit(id: string, input: unknown) {
     await requirePermission("manage_master_data");
     const value = unitDetailsSchema.parse(input);
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.from("units").update({ body_number: value.bodyNumber, plate_number: value.plateNumber, make_model: value.makeModel }).eq("id", id).eq("updated_at", value.expectedUpdatedAt).is("deleted_at", null).select("id").maybeSingle();
+    const { data, error } = await supabase.from("units").update({ name: value.name, body_number: value.bodyNumber, plate_number: value.plateNumber, make_model: value.makeModel }).eq("id", id).eq("updated_at", value.expectedUpdatedAt).is("deleted_at", null).select("id").maybeSingle();
     if (error) throw error;
     if (!data) throw new ActionError("STALE_RECORD", "This unit was changed by someone else. Reload the page to see the latest details.");
     revalidatePath("/units");

@@ -32,7 +32,7 @@ describe("record status (feature 005)", () => {
   });
 
   it("requires the loaded version on detail edits and never accepts a status there", () => {
-    const unit = { bodyNumber: "12", plateNumber: "ABC 123", makeModel: "Honda TMX" };
+    const unit = { name: "ROLNET-12", bodyNumber: "12", plateNumber: "ABC 123", makeModel: "Honda TMX" };
     expect(unitDetailsSchema.safeParse({ ...unit, expectedUpdatedAt: updatedAt }).success).toBe(true);
     expect(unitDetailsSchema.safeParse(unit).success).toBe(false);
     expect(unitDetailsSchema.parse({ ...unit, status: "retired", expectedUpdatedAt: updatedAt })).not.toHaveProperty("status");

@@ -68,7 +68,7 @@ test.describe("list sort and filter", () => {
   test("keep the filter panel shut until asked and ignore values a list does not offer", async ({ page }) => {
     await page.goto("/units?status=flying&sort=bogus");
     await expect(filtersPanel(page)).toBeHidden();
-    await expect(sort(page)).toHaveValue("body");
+    await expect(sort(page)).toHaveValue("name");
     await page.getByRole("button", { name: "Filters" }).click();
     await expect(filter(page, "Status")).toHaveValue("");
     await expect(page.locator("tbody tr")).toHaveCount(10);
