@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { remittanceTotals } from "@/lib/remittances/totals";
-import { dueBasis } from "@/components/dashboard/due-maintenance-panel";
+import { dueText, orderDueMaintenance } from "@/lib/dashboard/ordering";
 import { loginErrorMessage } from "@/lib/auth/login-errors";
 import { startPageFor } from "@/lib/permissions/roles";
 
@@ -12,11 +12,13 @@ describe("remittanceTotals (T139)", () => {
   });
 });
 
-describe("dueBasis (T141)", () => {
-  const item = { item_id: "i", item_type: "part", unit_id: "u" };
+describe("due maintenance wording (T141, feature 006)", () => {
+  const item = { item_id: "i", item_type: "part", unit_id: "u", item_name: "Oil", body_number: "T-001" };
   it("names the date and/or mileage that made the item due", () => {
-    expect(dueBasis({ ...item, due_date: "2026-10-01", due_mileage: null }, "2026-10-29")).toBe("Due by date 2026-10-01");
-    expect(dueBasis({ ...item, due_date: "2026-12-01", due_mileage: 1100, current_mileage: 1250 }, "2026-10-29")).toBe("Due by 1,100 km (now 1,250 km)");
+    const [byDate] = orderDueMaintenance([{ ...item, due_date: "2026-10-01", due_mileage: null, current_mileage: 1000 }], "2026-10-29");
+    expect(dueText(byDate)).toBe("28 days overdue");
+    const [both] = orderDueMaintenance([{ ...item, due_date: "2026-10-29", due_mileage: 1100, current_mileage: 1250 }], "2026-10-29");
+    expect(dueText(both)).toBe("Due today · 150 km past due");
   });
 });
 

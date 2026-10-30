@@ -12,11 +12,16 @@ import { DriverDetailsForm } from "@/components/forms/driver-details-form";
 import { LockedNotice } from "@/components/records/locked-notice";
 import { StatusHistory } from "@/components/records/status-history";
 import { driverStatusOf, isDriverLocked } from "@/lib/status/record-status";
+import { pageRows, parseListPage, type SearchParams } from "@/lib/pagination/list-page";
+import { PagedList, listView } from "@/components/ui/paged-list";
+import { driverKindLabels } from "@/lib/pagination/search-specs";
+import { documentTypeLabels } from "@/lib/validation/documents";
 
-export default async function DriverDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function DriverDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<SearchParams> }) {
   const profile = await requireApprovedSession();
   const isOwner = profile.role === "owner";
   const { id } = await params;
+  const query = await searchParams;
   const supabase = await createSupabaseServerClient();
   const { data: driver } = await supabase.from("drivers").select("id, full_name, driver_kind, license_number, license_expiry_date, phone, address, is_active, updated_at").eq("id", id).is("deleted_at", null).maybeSingle();
   if (!driver) notFound();
@@ -31,24 +36,34 @@ export default async function DriverDetailPage({ params }: { params: Promise<{ i
   // Days off belong to this driver's primary assignments; the covering backups are on other drivers' rows.
   const [{ data: daysOff }, { data: coverage }] = primaries.length
     ? await Promise.all([
-      supabase.from("driver_days_off").select("id, primary_assignment_id, day_off_date, notes").in("primary_assignment_id", primaries.map((a) => a.id)).is("deleted_at", null).order("day_off_date", { ascending: false }).limit(30),
+      supabase.from("driver_days_off").select("id, primary_assignment_id, day_off_date, notes").in("primary_assignment_id", primaries.map((a) => a.id)).is("deleted_at", null).order("day_off_date", { ascending: false }),
       supabase.from("driver_assignments").select("id, covered_primary_assignment_id, starts_on, drivers(full_name)").eq("assignment_type", "backup").in("covered_primary_assignment_id", primaries.map((a) => a.id)).is("deleted_at", null),
     ])
     : [{ data: [] }, { data: [] }];
   const coveredBy = (dayOff: { primary_assignment_id: string; day_off_date: string }) => one((coverage ?? []).find((c) => c.covered_primary_assignment_id === dayOff.primary_assignment_id && c.starts_on === dayOff.day_off_date)?.drivers)?.full_name;
   const bodyOf = (assignmentId: string | null) => assignments.find((a) => a.id === assignmentId)?.bodyNumber;
+  const pathname = `/drivers/${driver.id}`;
+  // Each list keeps its own page and search in the URL (contracts/list-paging.md prefixes).
+  const primariesRequest = parseListPage(query, "assignments_");
+  const primariesPage = pageRows(primaries, primariesRequest, (a) => `Body ${a.bodyNumber} ${a.starts_on} ${a.ends_on ?? "current"}`);
+  const backupsRequest = parseListPage(query, "backup_");
+  const backupsPage = pageRows(backups, backupsRequest, (a) => `${a.starts_on} Body ${a.bodyNumber}`);
+  const daysOffRequest = parseListPage(query, "daysoff_");
+  const daysOffPage = pageRows(daysOff ?? [], daysOffRequest, () => "");
+  const documentsRequest = parseListPage(query, "documents_");
+  const documentsPage = pageRows(documents ?? [], documentsRequest, (d) => `${documentTypeLabels[d.document_type] ?? d.document_type} ${d.document_number ?? ""} ${d.expires_on} ${d.lifecycle_status}`);
 
   return <section className="workspace">
-    <PageHeader eyebrow="Driver profile" title={driver.full_name} description={`${driver.driver_kind} · ${driver.phone}`} />
+    <PageHeader eyebrow="Driver profile" title={driver.full_name} description={`${driverKindLabels[driver.driver_kind] ?? driver.driver_kind} · ${driver.phone}`} />
     <div className="mt-8 workspace-grid">
       <div className="border-t border-rule pt-5"><p className="text-label font-bold uppercase text-muted">License</p><p className="mt-2 font-data text-body font-bold">{driver.license_number}</p><p className="mt-1 text-body-sm text-muted">Expires {driver.license_expiry_date}</p>{driver.address ? <p className="mt-1 text-body-sm text-muted">{driver.address}</p> : null}<div className="mt-4">{isOwner ? <StatusSelect kind="driver" id={driver.id} value={driverStatusOf(driver.is_active)} label={`Status for ${driver.full_name}`} align="start" /> : <StatusBadge label={driver.is_active ? "Active" : "Inactive"} tone={driver.is_active ? "success" : "danger"} />}</div>{locked ? <div className="mt-4"><LockedNotice kind="driver" status="inactive" /></div> : null}</div>
       <div className="space-y-8">
         {isOwner && !locked ? <DriverDetailsForm key={driver.updated_at} driver={driver} /> : null}
         {isOwner ? <StatusHistory kind="driver" id={driver.id} /> : null}
-        <div><SectionHeading title="Primary assignments" /><div className="mt-4"><DataTable searchable={false} headers={["Unit", "Period"]} empty={<p className="p-6 text-muted">No primary assignments recorded yet.</p>}>{primaries.map((a) => <tr key={a.id}><td className="font-semibold"><Link className="muted-link" href={`/units/${a.unit_id}`}>Body {a.bodyNumber}</Link></td><td className="font-data">{a.starts_on} → {a.ends_on ?? "current"}</td></tr>)}</DataTable></div></div>
-        <div><SectionHeading title="Days off" description="The 30 most recent days off and who covered them." />{(daysOff ?? []).length ? <ul className="mt-4 divide-y divide-rule border-y border-rule">{(daysOff ?? []).map((dayOff) => { const backup = coveredBy(dayOff); return <li key={dayOff.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="font-data font-semibold">{dayOff.day_off_date}</p><p className="text-body-sm text-muted">Body {bodyOf(dayOff.primary_assignment_id) ?? "?"}{dayOff.notes ? ` · ${dayOff.notes}` : ""}</p></div><StatusBadge label={backup ? `Covered by ${backup}` : "No backup"} tone={backup ? "success" : "warning"} /></li>; })}</ul> : <p className="mt-4 border-y border-rule py-6 text-body-sm text-muted">No days off recorded.</p>}</div>
-        <div><SectionHeading title="Backup coverage" description="Days this driver covered another driver's unit." /><div className="mt-4"><DataTable searchable={false} headers={["Date", "Unit"]} empty={<p className="p-6 text-muted">No backup coverage recorded.</p>}>{backups.map((a) => <tr key={a.id}><td className="font-data">{a.starts_on}</td><td><Link className="muted-link" href={`/units/${a.unit_id}`}>Body {a.bodyNumber}</Link></td></tr>)}</DataTable></div></div>
-        {isOwner ? <div><SectionHeading title="License documents" /><div className="mt-4"><DocumentList documents={documents ?? []} emptyText="No license document uploaded yet. Upload it on the Documents page." /></div></div> : null}
+        <div><SectionHeading title="Primary assignments" /><div className="mt-4"><DataTable list={listView(pathname, query, primariesRequest, primariesPage, { searchLabel: "Search primary assignments" })} headers={["Unit", "Period"]} empty={<p className="p-6 text-muted">No primary assignments recorded yet.</p>}>{primariesPage.rows.map((a) => <tr key={a.id}><td className="font-semibold"><Link className="muted-link" href={`/units/${a.unit_id}`}>Body {a.bodyNumber}</Link></td><td className="font-data">{a.starts_on} → {a.ends_on ?? "current"}</td></tr>)}</DataTable></div></div>
+        <div><SectionHeading title="Days off" description="Newest first, with who covered each day." /><div className="mt-4"><PagedList list={listView(pathname, query, daysOffRequest, daysOffPage, { search: false })} hasRows={daysOffPage.rows.length > 0} empty={<p className="py-6 text-body-sm text-muted">No days off recorded.</p>}><ul className="divide-y divide-rule">{daysOffPage.rows.map((dayOff) => { const backup = coveredBy(dayOff); return <li key={dayOff.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="font-data font-semibold">{dayOff.day_off_date}</p><p className="text-body-sm text-muted">Body {bodyOf(dayOff.primary_assignment_id) ?? "?"}{dayOff.notes ? ` · ${dayOff.notes}` : ""}</p></div><StatusBadge label={backup ? `Covered by ${backup}` : "No backup"} tone={backup ? "success" : "warning"} /></li>; })}</ul></PagedList></div></div>
+        <div><SectionHeading title="Backup coverage" description="Days this driver covered another driver's unit." /><div className="mt-4"><DataTable list={listView(pathname, query, backupsRequest, backupsPage, { searchLabel: "Search backup coverage" })} headers={["Date", "Unit"]} empty={<p className="p-6 text-muted">No backup coverage recorded.</p>}>{backupsPage.rows.map((a) => <tr key={a.id}><td className="font-data">{a.starts_on}</td><td><Link className="muted-link" href={`/units/${a.unit_id}`}>Body {a.bodyNumber}</Link></td></tr>)}</DataTable></div></div>
+        {isOwner ? <div><SectionHeading title="License documents" /><div className="mt-4"><PagedList list={listView(pathname, query, documentsRequest, documentsPage, { searchLabel: "Search license documents" })} hasRows={documentsPage.rows.length > 0} empty={<p className="py-6 text-body-sm text-muted">No license document uploaded yet. Upload it on the Documents page.</p>}><DocumentList documents={documentsPage.rows} emptyText="" /></PagedList></div></div> : null}
       </div>
     </div>
   </section>;

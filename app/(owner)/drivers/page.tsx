@@ -8,11 +8,28 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/feedback";
 import { StatusSelect } from "@/components/forms/status-select";
 import { driverStatusOf } from "@/lib/status/record-status";
+import { pageRows, parseListPage, type SearchParams } from "@/lib/pagination/list-page";
+import { loadListPage } from "@/lib/pagination/search-filter";
+import { driverKindLabels, searchSpecs } from "@/lib/pagination/search-specs";
+import { listView } from "@/components/ui/paged-list";
 
-export default async function DriversPage() {
+export default async function DriversPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const profile = await requireApprovedSession();
   const isOwner = profile.role === "owner";
+  const params = await searchParams;
+  const request = parseListPage(params);
+  // "View all" from the dashboard's extradors panel (contracts/list-paging.md fixed filters).
+  const backupOnly = params.kind === "backup";
   const supabase = demoMode ? null : await createSupabaseServerClient();
-  const { data: drivers } = supabase ? await supabase.from("drivers").select("id, full_name, driver_kind, license_number, license_expiry_date, phone, is_active").is("deleted_at", null).order("full_name") : { data: demoDrivers };
-  return <section className="workspace"><PageHeader eyebrow="People and coverage" title="Drivers" description="Review driver identity, license status, and operating coverage." /><div className="mt-8 workspace-grid"><div><DataTable headers={["Driver", "Role", "License", "Phone", "Status"]} empty={<p className="p-6 text-muted">No drivers recorded yet.</p>}>{(drivers ?? []).map((driver) => <tr key={driver.id}><td><Link className="muted-link" href={`/drivers/${driver.id}`}>{driver.full_name}</Link></td><td className="capitalize">{driver.driver_kind}</td><td className="font-data">{driver.license_number}<br /><span className="text-label text-muted">Expires {driver.license_expiry_date}</span></td><td className="font-data">{driver.phone}</td><td>{isOwner ? <StatusSelect kind="driver" id={driver.id} value={driverStatusOf(driver.is_active)} label={`Status for ${driver.full_name}`} disabled={demoMode} /> : <StatusBadge label={driver.is_active ? "Active" : "Inactive"} tone={driver.is_active ? "success" : "danger"} />}</td></tr>)}</DataTable></div>{isOwner ? <aside className="border-t border-rule pt-5"><h2 className="text-section-title font-bold">Add a driver</h2><p className="mt-1 mb-4 text-body-sm text-muted">Keep license and contact details ready for assignment.</p><DriverForm /></aside> : null}</div></section>;
+  const result = supabase
+    ? await loadListPage(supabase, request, searchSpecs.drivers, (from, to, filter) => {
+      let query = supabase.from("drivers").select("id, full_name, driver_kind, license_number, license_expiry_date, phone, is_active", { count: "exact" }).is("deleted_at", null);
+      if (backupOnly) query = query.eq("driver_kind", "backup");
+      if (filter) query = query.or(filter);
+      return query.order("full_name").range(from, to);
+    })
+    : pageRows([...demoDrivers].filter((driver) => !backupOnly || driver.driver_kind === "backup").sort((a, b) => a.full_name.localeCompare(b.full_name)), request, (driver) => `${driver.full_name} ${driver.license_number} ${driver.phone} ${driverKindLabels[driver.driver_kind]}`);
+  const drivers = result.rows;
+  const list = listView("/drivers", params, request, result, { searchLabel: "Search drivers", filters: backupOnly ? [{ label: "Showing backup drivers (extradors)", param: "kind" }] : [] });
+  return <section className="workspace"><PageHeader eyebrow="People and coverage" title="Drivers" description="Review driver identity, license status, and operating coverage." /><div className="mt-8 workspace-grid"><div><DataTable list={list} headers={["Driver", "Role", "License", "Phone", "Status"]} empty={<p className="p-6 text-muted">No drivers recorded yet.</p>}>{drivers.map((driver) => <tr key={driver.id}><td><Link className="muted-link" href={`/drivers/${driver.id}`}>{driver.full_name}</Link></td><td>{driverKindLabels[driver.driver_kind] ?? driver.driver_kind}</td><td className="font-data">{driver.license_number}<br /><span className="text-label text-muted">Expires {driver.license_expiry_date}</span></td><td className="font-data">{driver.phone}</td><td>{isOwner ? <StatusSelect kind="driver" id={driver.id} value={driverStatusOf(driver.is_active)} label={`Status for ${driver.full_name}`} disabled={demoMode} /> : <StatusBadge label={driver.is_active ? "Active" : "Inactive"} tone={driver.is_active ? "success" : "danger"} />}</td></tr>)}</DataTable></div>{isOwner ? <aside className="border-t border-rule pt-5"><h2 className="text-section-title font-bold">Add a driver</h2><p className="mt-1 mb-4 text-body-sm text-muted">Keep license and contact details ready for assignment.</p><DriverForm /></aside> : null}</div></section>;
 }
