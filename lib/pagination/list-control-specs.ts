@@ -18,6 +18,8 @@ export const auditEntityLabels: Record<string, string> = {
 export const listControlSpecs = {
   units: {
     sorts: [
+      { value: "name", label: "Name, A to Z", column: "name", ascending: true, then: [{ column: "body_number", ascending: true }] },
+      { value: "name-desc", label: "Name, Z to A", column: "name", ascending: false, then: [{ column: "body_number", ascending: true }] },
       { value: "body", label: "Body number, A to Z", column: "body_number", ascending: true },
       { value: "body-desc", label: "Body number, Z to A", column: "body_number", ascending: false },
       { value: "mileage-desc", label: "Mileage, highest first", column: "current_mileage", ascending: false, then: [{ column: "body_number", ascending: true }] },

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const unitSchema = z.object({
+  name: z.string().trim().min(1).max(40),
   bodyNumber: z.string().trim().min(1).max(40),
   plateNumber: z.string().trim().min(1).max(20),
   makeModel: z.string().trim().min(1).max(120),

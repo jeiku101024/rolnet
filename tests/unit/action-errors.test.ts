@@ -39,6 +39,11 @@ describe("databaseFailure", () => {
     expect(databaseFailure({ code: "XX000", message: "internal" }, "Could not save.").message).toBe("Could not save.");
   });
 
+  it("maps the unit name constraints", () => {
+    expect(databaseFailure({ code: "23505", message: 'duplicate key value violates unique constraint "units_name_unique"' }, "f")).toMatchObject({ code: "DUPLICATE_UNIT_NAME", message: "Another unit already uses this name. Choose a different name." });
+    expect(databaseFailure({ code: "23514", message: 'new row for relation "units" violates check constraint "units_name_length"' }, "f")).toMatchObject({ code: "INVALID_UNIT_NAME", message: "Use a unit name of 1 to 40 characters." });
+  });
+
   it("maps known check constraints by name", () => {
     expect(databaseFailure({ code: "23514", message: 'new row for relation "documents" violates check constraint "document_holder_type_check"' }, "f").code).toBe("INVALID_HOLDER");
   });

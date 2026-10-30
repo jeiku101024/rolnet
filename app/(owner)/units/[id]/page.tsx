@@ -32,7 +32,7 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
   const today = fleetToday();
   const date = requestedDate && datePattern.test(requestedDate) ? requestedDate : today;
   const supabase = await createSupabaseServerClient();
-  const { data: unit } = await supabase.from("units").select("id, body_number, plate_number, make_model, status, current_mileage, updated_at").eq("id", id).is("deleted_at", null).maybeSingle();
+  const { data: unit } = await supabase.from("units").select("id, name, body_number, plate_number, make_model, status, current_mileage, updated_at").eq("id", id).is("deleted_at", null).maybeSingle();
   if (!unit) notFound();
   const status = unit.status as UnitStatus;
   const locked = isUnitLocked(status);
@@ -63,10 +63,10 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
   const documentsPage = pageRows(documents ?? [], documentsRequest, (d) => `${documentTypeLabels[d.document_type] ?? d.document_type} ${d.document_number ?? ""} ${d.expires_on} ${d.lifecycle_status}`);
 
   return <section className="workspace">
-    <PageHeader eyebrow="Unit history" title={`Body ${unit.body_number}`} description={`${unit.plate_number} · ${unit.make_model}`} />
+    <PageHeader eyebrow="Unit history" title={unit.name} description={`Body ${unit.body_number} · ${unit.plate_number} · ${unit.make_model}`} />
     <div className="mt-8 workspace-grid">
       <div className="space-y-6 border-t border-rule pt-5">
-        <div><p className="text-label font-bold uppercase text-muted">Current mileage</p><p className="mt-2 font-data text-display font-bold">{unit.current_mileage.toLocaleString()} km</p><div className="mt-4 flex flex-wrap items-center gap-3">{isOwner ? <StatusSelect kind="unit" id={unit.id} value={status} label={`Status for Body ${unit.body_number}`} align="start" /> : <StatusBadge label={unitStatusLabel(status)} tone={unitStatusTone(status)} />}<Link className="muted-link text-body-sm" href={`/maintenance/${unit.id}`}>Maintenance and mileage</Link></div>{locked ? <div className="mt-4"><LockedNotice kind="unit" status={status} /></div> : null}</div>
+        <div><p className="text-label font-bold uppercase text-muted">Current mileage</p><p className="mt-2 font-data text-display font-bold">{unit.current_mileage.toLocaleString()} km</p><div className="mt-4 flex flex-wrap items-center gap-3">{isOwner ? <StatusSelect kind="unit" id={unit.id} value={status} label={`Status for ${unit.name}`} align="start" /> : <StatusBadge label={unitStatusLabel(status)} tone={unitStatusTone(status)} />}<Link className="muted-link text-body-sm" href={`/maintenance/${unit.id}`}>Maintenance and mileage</Link></div>{locked ? <div className="mt-4"><LockedNotice kind="unit" status={status} /></div> : null}</div>
         <div>
           <SectionHeading title="Driver on a date" description="Who operates this unit on the chosen date." />
           <form className="mt-4 flex flex-wrap items-end gap-3" method="get"><FormField label="Date"><Input name="date" type="date" defaultValue={date} /></FormField><Button type="submit" variant="outline">Show</Button></form>

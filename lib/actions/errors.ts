@@ -12,6 +12,8 @@ export class ActionError extends Error {
 
 /** Plain-language messages for database constraints, by constraint or index name. */
 const constraintMessages: Record<string, { code: string; message: string }> = {
+  units_name_unique: { code: "DUPLICATE_UNIT_NAME", message: "Another unit already uses this name. Choose a different name." },
+  units_name_length: { code: "INVALID_UNIT_NAME", message: "Use a unit name of 1 to 40 characters." },
   units_body_number_unique: { code: "DUPLICATE_BODY_NUMBER", message: "Another unit already uses this body number. Check the number and try again." },
   units_plate_number_unique: { code: "DUPLICATE_PLATE", message: "Another unit already uses this plate number. Check the plate and try again." },
   drivers_license_unique: { code: "DUPLICATE_LICENSE", message: "Another driver already uses this license number. Check the license and try again." },
