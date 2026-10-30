@@ -1,16 +1,21 @@
 <!--
 Sync Impact Report
-- Version change: template -> 1.0.0
+- Version change: 1.0.0 -> 1.1.0 (MINOR: principle III gains an explicit, bounded allowance for
+  ordered multi-step writes)
 - Modified principles:
-  - Template Principle 1 -> I. Free-Tier Sustainability
-  - Template Principle 2 -> II. Monolithic Simplicity
-  - Template Principle 3 -> III. Data Integrity and Auditability
-  - Template Principle 4 -> IV. Mobile-First, Human-Centered Operations
-  - Template Principle 5 -> V. Compliance Document Lifecycle
-- Added sections:
-  - Technology and Cost Constraints
-  - Development Workflow and Quality Gates
+  - III. Data Integrity and Auditability: added the multi-step write clause
+- Added sections: none
 - Removed sections: none
+- Rationale: some single user actions need several writes that existing database functions cannot
+  combine into one transaction (for example, recording a remittance and then its first payment, or
+  an owner voiding payments and recording a corrected total). Spec 008 must not change the schema,
+  and the existing create-then-pay form (components/forms/remittance-form.tsx) already works this
+  way. The clause states the safety conditions those flows must meet.
+- Migration impact: none. No schema or data changes. Existing flows that meet the four conditions
+  are compliant without changes.
+- Affected artifacts: specs/008-remittances-daily-view/plan.md and research.md R5 (now cite this
+  clause); templates need no change.
+- Approval: project owner, 2026-10-30 ("Apply all fixes" during /speckit-analyze remediation).
 - Follow-up TODOs: none
 -->
 # ROLNET Constitution
@@ -38,7 +43,13 @@ storage or arithmetic is prohibited. Every business record MUST include creation
 timestamps. Records with business or audit value MUST use soft deletion with a deletion
 timestamp or equivalent status and MUST NOT be physically deleted through normal application
 flows. Database constraints and transactional updates MUST protect balances, payments, and
-other related records from partial or invalid writes. These rules preserve a trustworthy
+other related records from partial or invalid writes. Where one user action needs several writes
+that existing database functions cannot combine into one transaction, the application MAY run them in
+sequence only if: (1) each write is atomic and audited by itself; (2) the writes are ordered so that no
+intermediate state overstates money received or understates money due; (3) retrying the action
+converges on the intended final state through idempotency keys; and (4) a partial failure is shown to
+the user with a plain-language way to finish. A single transactional database function is preferred
+whenever a feature already changes the schema. These rules preserve a trustworthy
 operational and financial history.
 
 ### IV. Mobile-First, Human-Centered Operations
@@ -93,4 +104,4 @@ and PATCH for a clarification that does not change obligations. The constitution
 reviewed whenever architecture, hosting, persistence, financial handling, compliance tracking,
 or primary user workflows change.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-19 | **Last Amended**: 2026-10-19
+**Version**: 1.1.0 | **Ratified**: 2026-10-19 | **Last Amended**: 2026-10-30

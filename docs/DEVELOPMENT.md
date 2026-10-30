@@ -104,6 +104,17 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
 
 - Money is always integer centavos; display formatting is presentation-only.
 - Returned remittance is 18,000 centavos; overnight/overtime is 30,000 centavos total.
+- Remittances (feature 008): Daily view (`/remittances`, optional `?date=YYYY-MM-DD`, never after
+  today) is where remittances are recorded and corrected, one card per scheduled unit; List view
+  (`/remittances?view=list`) is the read-only history, newest first. Cards show the driver assigned
+  on that date (a backup covering a day off is tagged Backup); a saved record keeps the driver it was
+  saved under. A day off with no backup, or a unit in repair today, is "Not operating" and not
+  counted; the owner can assign a backup from the card.
+- Payments entered from a Daily view card are dated on the card's date (now for today, noon in the
+  fleet timezone for a past date), so monthly totals count them on that date. A saved record's
+  disposition never changes (the owner reverses it on its details page); raising the payment adds the
+  difference, and only the owner can lower it, which voids the earlier payments with a reason and
+  records the new total.
 - Business rows have timestamps, actor IDs, and soft deletion.
 - Driver profile license expiry is authoritative and must match uploaded license documents.
 - Receipts target 300 KB and hard-limit at 500 KB; documents hard-limit at 5 MB.
@@ -136,7 +147,7 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   applies it to the Supabase query, and does the same in memory for demo mode. Unknown values are
   ignored; changing a sort or filter drops the page. The dashboard's "View all" links use these
   filters: `/units?status=in_repair`, `/drivers?kind=backup`, `/documents?expiry=due`, and the
-  owner-only `/maintenance?due=1` and `/remittances?balance=unpaid`.
+  owner-only `/maintenance?due=1` and `/remittances?view=list&balance=unpaid`.
 - The dashboard has four bands, in this order on phones: Needs attention (expiring documents, due
   maintenance, unpaid balances, most urgent first), Fleet status (extradors today, units in repair),
   This month (figures and charts from `dashboard_monthly_unit_summary`, matching the monthly

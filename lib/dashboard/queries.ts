@@ -111,7 +111,7 @@ function assemble(input: {
     attention: {
       documents: toPanel(orderExpiringDocuments(input.expiry, input.today), "/documents?expiry=due"),
       maintenance: toPanel(orderDueMaintenance(input.due, input.today), "/maintenance?due=1"),
-      balances: toPanel(orderUnpaidBalances(input.balances), "/remittances?balance=unpaid"),
+      balances: toPanel(orderUnpaidBalances(input.balances), "/remittances?view=list&balance=unpaid"),
     },
     status: {
       extradors: toPanel(orderExtradors(input.extradors), "/drivers?kind=backup"),

@@ -17,13 +17,17 @@ export interface ListView {
   /** `false` for lists without a search box (days off, mileage readings). */
   search?: boolean;
   searchLabel?: string;
+  /** Placeholder text for the search box; defaults to `${searchLabel}…`. */
+  searchPlaceholder?: string;
   /** Sort and filter controls of a main list (User Story 8). */
   controls?: ListControlsView;
   /** A short tip shown after the record count, e.g. what opening a row does. */
   hint?: string;
+  /** Secondary text on its own line directly under the record count (feature 008, FR-038). */
+  note?: ReactNode;
 }
 
-export function listView(pathname: string, searchParams: SearchParams, request: { prefix: string; q: string }, state: ListPageState, options: Pick<ListView, "search" | "searchLabel" | "controls" | "hint"> = {}): ListView {
+export function listView(pathname: string, searchParams: SearchParams, request: { prefix: string; q: string }, state: ListPageState, options: Pick<ListView, "search" | "searchLabel" | "searchPlaceholder" | "controls" | "hint" | "note"> = {}): ListView {
   return { pathname, searchParams, prefix: request.prefix, q: request.q, state, ...options };
 }
 
@@ -31,11 +35,11 @@ export function ListToolbar({ list }: { list: ListView }) {
   const prefix = list.prefix ?? "";
   const { total } = list.state;
   const count = <span className="font-data text-label text-muted">{total} {total === 1 ? "record" : "records"}{list.hint ? <span className="font-sans"> · {list.hint}</span> : null}</span>;
-  const search = list.search === false ? null : <ListSearch pathname={list.pathname} searchParams={list.searchParams} prefix={prefix} initialValue={list.q} label={list.searchLabel} placeholder={list.searchLabel ? `${list.searchLabel}…` : undefined} wide={Boolean(list.controls)} />;
+  const search = list.search === false ? null : <ListSearch pathname={list.pathname} searchParams={list.searchParams} prefix={prefix} initialValue={list.q} label={list.searchLabel} placeholder={list.searchPlaceholder ?? (list.searchLabel ? `${list.searchLabel}…` : undefined)} wide={Boolean(list.controls)} />;
   // Main lists (User Story 8): search, dates and filters on top; the count and sort just above the rows.
   if (list.controls) return <div className="flex flex-col gap-3 border-b border-rule pt-2 pb-3">
     <ListControls pathname={list.pathname} searchParams={list.searchParams} controls={list.controls} search={search} />
-    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">{count}<ListSort pathname={list.pathname} searchParams={list.searchParams} controls={list.controls} /></div>
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">{list.note ? <div className="grid gap-1">{count}<p className="text-body-sm text-muted">{list.note}</p></div> : count}<ListSort pathname={list.pathname} searchParams={list.searchParams} controls={list.controls} /></div>
   </div>;
   return <div className="flex flex-col gap-3 border-b border-rule pt-2 pb-4">
     <div className="flex flex-wrap items-center justify-between gap-3">{search}{count}</div>

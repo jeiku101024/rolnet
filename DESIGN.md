@@ -41,6 +41,8 @@ The first four values are extracted directly from the supplied SVG assets:
 | `--color-ok` | `#246B4A` | Compliant status | On `#E7F3EC`: 5.62:1; on white: 6.41:1 |
 | `--color-warn` | `#8A5100` | Expiring-soon status | On `#FFF1D6`: 5.77:1; on white: 6.45:1 |
 | `--color-danger` | `#A33F3B` | Expired or overdue status | On `#FBE9E8`: 5.38:1; on white: 6.30:1 |
+| `--color-info` | `#1F4F7A` | Informational tags (the Remittances "Primary" driver tag) on `--color-info-soft` `#E6EEF7` | On `#E6EEF7`: 7.30:1; on white: 8.54:1 |
+| `--color-control-border` | `#7D8996` | Borders of interactive controls (search field, toolbar buttons, segmented control) | Non-text: on white 3.56:1; on `#FFF1BD` 3.15:1; on `#F3F4F6` 3.24:1 |
 
 The yellow brand accent never carries white text. Status colors are deliberately separate from the brand accent and always appear with an icon and a text label; color is never the only status signal.
 
@@ -57,6 +59,7 @@ The yellow brand accent never carries white text. Status colors are deliberately
 - Touch targets are at least `44px` high.
 - The base radius is 4px; the control radius is 6px. There are no pill-shaped controls.
 - Shadows are absent except for the focus ring. Separation comes from rules and spacing.
+- Remittances Daily view lays out one card per unit (4 per row from 1200px via the `desk` breakpoint, 2 from 768px, 1 on phones). Each card is one unit of work, so it is a deliberate exception to "Do not put every element in a rounded card".
 - Mobile is a single-column ledger with horizontal table overflow where a data table requires it. Desktop expands into two-column specimen groups.
 - Keyboard focus is visible with the darker brand-derived focus color.
 
