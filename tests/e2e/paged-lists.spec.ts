@@ -21,9 +21,10 @@ test.describe("paged lists", () => {
     await expect(pagination(page)).toContainText("21–30 of 30 records");
     await page.reload();
     await expect(pagination(page)).toContainText("Page 3 of 3");
-    await page.locator("tbody tr a").first().click();
-    await expect(page).toHaveURL(/\/remittances\/[0-9a-f-]+$/);
+    // Leave to another page and come back. (Detail pages have no demo data, so a list page is used.)
+    await page.goto("/drivers");
     await page.goBack();
+    await expect(page).toHaveURL(/\/remittances\?page=3/);
     await expect(pagination(page)).toContainText("Page 3 of 3");
     await expectNoSidewaysScroll(page);
   });
@@ -47,6 +48,19 @@ test.describe("paged lists", () => {
     await expect(page.getByText('No records match "zzzz".')).toBeVisible();
     await page.getByRole("link", { name: "Clear search" }).click();
     await expect(page.locator("tbody tr")).toHaveCount(10);
+  });
+
+  test("keep focus and text while results load mid-typing", async ({ page }) => {
+    await page.goto("/drivers");
+    const search = page.getByRole("searchbox", { name: "Search drivers" });
+    await search.click();
+    await page.keyboard.type("Re", { delay: 100 });
+    await expect(page).toHaveURL(/q=Re/);
+    await expect(search).toBeFocused();
+    await page.keyboard.type("y Nav", { delay: 100 });
+    await expect(search).toHaveValue("Rey Nav");
+    await expect(page).toHaveURL(/q=Rey\+Nav/);
+    await expect(page.locator("tbody tr")).toHaveCount(1);
   });
 
   test("keep the search field clear of the table's header rule", async ({ page }) => {

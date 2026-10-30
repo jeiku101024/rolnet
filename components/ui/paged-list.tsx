@@ -29,7 +29,7 @@ export function ListToolbar({ list }: { list: ListView }) {
   const { total } = list.state;
   return <div className="flex flex-col gap-3 border-b border-rule pt-2 pb-4">
     <div className="flex flex-wrap items-center justify-between gap-3">
-      {list.search === false ? null : <ListSearch key={list.q} pathname={list.pathname} searchParams={list.searchParams} prefix={prefix} initialValue={list.q} label={list.searchLabel} placeholder={list.searchLabel ? `${list.searchLabel}…` : undefined} />}
+      {list.search === false ? null : <ListSearch pathname={list.pathname} searchParams={list.searchParams} prefix={prefix} initialValue={list.q} label={list.searchLabel} placeholder={list.searchLabel ? `${list.searchLabel}…` : undefined} />}
       <span className="font-data text-label text-muted">{total} {total === 1 ? "record" : "records"}</span>
     </div>
     {list.filters?.length ? <div className="flex flex-wrap gap-2">{list.filters.map((filter) => <Link key={filter.param} className="touch-target inline-flex items-center gap-1 rounded-md bg-brand-soft px-3 text-label font-semibold text-brand-dark" href={listHref(list.pathname, list.searchParams, { [filter.param]: null, [`${prefix}page`]: null })} aria-label={`${filter.label}. Remove this filter`}>{filter.label}<X aria-hidden="true" size={14} /></Link>)}</div> : null}
