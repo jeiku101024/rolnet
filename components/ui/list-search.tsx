@@ -13,7 +13,7 @@ const typingPause = 400;
  * the list's page so results start on page 1; the server then reads every matching record.
  * The same input stays mounted while results load, so focus and the text being typed are never lost.
  */
-export function ListSearch({ pathname, searchParams, prefix = "", initialValue, placeholder = "Search records", label }: { pathname: string; searchParams: SearchParams; prefix?: string; initialValue: string; placeholder?: string; label?: string }) {
+export function ListSearch({ pathname, searchParams, prefix = "", initialValue, placeholder = "Search records", label, wide = false }: { pathname: string; searchParams: SearchParams; prefix?: string; initialValue: string; placeholder?: string; label?: string; wide?: boolean }) {
   const router = useRouter();
   const [value, setValue] = useState(initialValue);
   const [pending, startTransition] = useTransition();
@@ -49,7 +49,7 @@ export function ListSearch({ pathname, searchParams, prefix = "", initialValue, 
     return () => clearTimeout(timer);
   });
 
-  return <label className="relative block w-full min-w-0 text-body-sm sm:max-w-sm">
+  return <label className={`relative block w-full min-w-0 text-body-sm ${wide ? "" : "sm:max-w-sm"}`}>
     <span className="sr-only">{label ?? placeholder}</span>
     <Search aria-hidden="true" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
     <input ref={inputRef} className="touch-target w-full rounded-md border border-rule bg-surface pl-9 pr-28 text-body-sm text-ink placeholder:text-muted" value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); send(value); } }} placeholder={placeholder} type="search" aria-busy={pending} />

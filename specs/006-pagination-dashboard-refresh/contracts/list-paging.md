@@ -84,11 +84,16 @@ drops `page`. The first sort listed is the default and is left out of the URL.
 - Dashboard "View all" targets: `/units?status=in_repair`, `/drivers?kind=backup`,
   `/maintenance?due=1`, `/remittances?balance=unpaid`, `/documents?expiry=due`.
 
-**`ListControls`** (client) sits in the list toolbar under the search box:
-- A "Sort" select and one labelled control per filter (select, or two date inputs for a range).
-  Choosing a value updates the URL at once (`router.replace`, no full reload).
-- "Clear filters" appears when any filter or a non-default sort is on; it keeps `q`.
-- Below 48rem the controls are folded behind a "Sort and filter" button showing "(N on)".
+**`ListControls`** (client) is the list toolbar of a main list (layout from the remittances redesign):
+- Row 1: the search box, a date button (lists with a range; shows "Any date", a preset name or the
+  dates) and a "Filters" button with the number of filters on.
+- The date button opens Any date / Today / Yesterday / This week (from Monday) / This month /
+  Custom… (From and To inputs). Choices update the URL at once (`router.replace`).
+- The Filters button opens a panel with one labelled select per filter; "Apply filters" writes them
+  all at once, "Cancel" closes without changes.
+- Active filters show as chips ("Status: In repair ×"); "Clear all" removes them, keeping `q`,
+  `sort` and the dates.
+- **`ListSort`**: a labelled "Sort" select beside the record count, just above the rows.
 
 ## Demo mode
 

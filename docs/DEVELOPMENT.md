@@ -122,8 +122,9 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   `lib/pagination/search-filter.ts`, specs in `lib/pagination/search-specs.ts`). Names on related
   rows are matched through an id lookup; enum columns are matched by their display labels.
   Detail-page lists are already fully loaded for coverage logic, so they page in memory (`pageRows`).
-- The main lists also have "Sort and filter" (`sort`, `from`/`to` dates, and per-list filters such
-  as `status`, `unit`, `category`). Each list declares its sorts and filters once in
+- The main lists also have sort and filter (`sort`, `from`/`to` dates, and per-list filters such
+  as `status`, `unit`, `category`): a date button with quick ranges and a Filters panel next to
+  search, removable chips, and a Sort menu beside the record count (`components/ui/list-controls.tsx`). Each list declares its sorts and filters once in
   `lib/pagination/list-control-specs.ts`; `lib/pagination/list-controls.ts` validates the URL,
   applies it to the Supabase query, and does the same in memory for demo mode. Unknown values are
   ignored; changing a sort or filter drops the page. The dashboard's "View all" links use these

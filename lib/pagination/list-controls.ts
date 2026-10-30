@@ -88,10 +88,10 @@ export function parseControls(searchParams: SearchParams, spec: ControlsSpec, to
 }
 
 /** What the toolbar needs to draw a list's sort and filter controls (plain data, safe to pass to the client). */
-export interface ListControlsView { spec: ControlsSpec; sort: string; values: Record<string, string>; count: number }
+export interface ListControlsView { spec: ControlsSpec; sort: string; values: Record<string, string>; count: number; today: string }
 
 export function controlsView(parsed: ParsedControls): ListControlsView {
-  return { spec: parsed.spec, sort: parsed.sort.value, values: parsed.values, count: parsed.count };
+  return { spec: parsed.spec, sort: parsed.sort.value, values: parsed.values, count: parsed.count, today: parsed.today };
 }
 
 export function activeValue(parsed: ParsedControls, param: string) {

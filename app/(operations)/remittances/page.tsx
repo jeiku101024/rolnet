@@ -45,8 +45,8 @@ export default async function RemittancesPage({ searchParams }: { searchParams: 
     }),
   ]) : [{ data: demoAssignments }, pageRows(controlRows(demoRemittances.filter((r) => !unpaidOnly || remittanceTotals(r.amount_due_centavos, r.remittance_payments).balance > 0), controls), request, (r) => `${r.service_date} ${one(r.units)?.body_number} ${one(r.drivers)?.full_name} ${dispositionLabels[r.disposition]} ${r.notes}`)];
   const remittances = result.rows;
-  const list = listView("/remittances", params, request, result, { searchLabel: "Search remittances", controls: controlsView(controls) });
-  return <section className="workspace"><PageHeader eyebrow="Daily income" title="Remittances" description="Returned units are ₱180. Bring-home/overtime days are ₱300 total. Open an entry to add a payment or edit notes." />
+  const list = listView("/remittances", params, request, result, { searchLabel: "Search remittances", controls: controlsView(controls), hint: "Open an entry to add a payment or edit notes" });
+  return <section className="workspace"><PageHeader eyebrow="Daily income" title="Remittances" description="Returned units are ₱180. Bring-home/overtime days are ₱300 total." />
     <div className="mt-8 workspace-grid">
       <div><DataTable list={list} headers={["Date", "Unit / driver", "Disposition", "Due", "Paid", "Balance"]} empty={<p className="p-6 text-muted">No remittances recorded yet.</p>}>{remittances.map((r) => { const totals = remittanceTotals(r.amount_due_centavos, r.remittance_payments); return <tr key={r.id}>
         <td className="font-data"><Link className="muted-link" href={`/remittances/${r.id}`}>{r.service_date}</Link></td>
