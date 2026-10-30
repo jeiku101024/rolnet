@@ -33,7 +33,7 @@ State rules: changing `q` ⇒ `page` resets to 1. `page > lastPage` ⇒ slice re
 |---|---|
 | `columns` | own text columns matched with `ilike *q*` |
 | `related` | `{ table, column, foreignKey }[]` — ids of rows in `table` whose `column ilike *q*` become `foreignKey.in.(…)` |
-| `fixedFilters` | URL filters that are not free text: drivers `kind=backup`, units `status=in_repair`, maintenance `due=1`, remittances `balance=unpaid`, documents `expiring=1` (the last three are id lists from the owner-only RPCs `due_maintenance`, `driver_outstanding_balances`, `expiring_documents`) |
+| `fixedFilters` | URL filters that are not free text: drivers `kind=backup`, units `status=in_repair`, maintenance `due=1`, remittances `balance=unpaid`, documents `expiry=due`. `due` and `balance` are id lists from the owner-only RPCs `due_maintenance` and `driver_outstanding_balances`; the rest are column filters. Superseded by `ListControls` (User Story 8). |
 
 ## Dashboard view models (`lib/dashboard/queries.ts`, `lib/dashboard/ordering.ts`)
 

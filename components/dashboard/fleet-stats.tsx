@@ -14,7 +14,7 @@ export function FleetStats({ stats, monthLabel }: { stats: Stats; monthLabel: st
     <Tile label="Expenses" value={formatPesos(stats.expenseCentavos)} />
     <Tile label="Net income" value={formatPesos(stats.netCentavos)} detail={stats.netCentavos < 0 ? "Spent more than collected" : "Collected minus expenses"} tone={stats.netCentavos < 0 ? "text-danger" : "text-ok"} />
     <Tile label="Units on the road" value={`${stats.unitsActive}`} detail={`${stats.unitsInRepair} in repair`} href="/units" />
-    <Tile label="Documents due" value={`${stats.documentsDue}`} detail="Expired or within 30 days" href="/documents?expiring=1" tone={stats.documentsDue ? "text-warn" : "text-ink"} />
+    <Tile label="Documents due" value={`${stats.documentsDue}`} detail="Expired or within 30 days" href="/documents?expiry=due" tone={stats.documentsDue ? "text-warn" : "text-ink"} />
     <Tile label="Maintenance due" value={`${stats.maintenanceDue}`} detail="Parts and tires" href="/maintenance?due=1" tone={stats.maintenanceDue ? "text-warn" : "text-ink"} />
   </ul>;
 }

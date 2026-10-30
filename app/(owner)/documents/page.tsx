@@ -7,9 +7,10 @@ import { DocumentList, type DocumentRow } from "@/components/documents/document-
 import { demoDocuments, demoDrivers, demoMode, demoUnits } from "@/lib/demo/mode";
 import { PageHeader, SectionHeading } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/feedback";
-import { addDays, fleetToday } from "@/lib/dates/fleet-date";
 import { pageRows, parseListPage, type SearchParams } from "@/lib/pagination/list-page";
 import { loadListPage } from "@/lib/pagination/search-filter";
+import { applyFilters, applySort, controlRows, controlsView, parseControls, prepareSpec } from "@/lib/pagination/list-controls";
+import { listControlSpecs } from "@/lib/pagination/list-control-specs";
 import { searchSpecs } from "@/lib/pagination/search-specs";
 import { documentTypeLabels } from "@/lib/validation/documents";
 import { PagedList, listView } from "@/components/ui/paged-list";
@@ -39,23 +40,22 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
   await requirePermission("manage_documents");
   const params = await searchParams;
   const request = parseListPage(params);
-  // "View all" from the dashboard's expiring-documents panel (same rows as expiring_documents()).
-  const expiringOnly = params.expiring === "1";
+  // Sort and filter (US8); the dashboard's "View all" opens this with expiry=due.
+  const controls = parseControls(params, prepareSpec(listControlSpecs.documents));
   const s = demoMode ? null : await createSupabaseServerClient();
-  const expiringIds = s && expiringOnly ? ((await s.rpc("expiring_documents", { as_of: fleetToday() })).data ?? []).map((row: { id: string }) => row.id) : [];
   const demoDocs = demoDocuments.map((d) => ({ ...d, units: d.unit_id ? { body_number: demoUnits.find((unit) => unit.id === d.unit_id)?.body_number ?? "?" } : null, drivers: d.driver_id ? { full_name: demoDrivers.find((driver) => driver.id === d.driver_id)?.full_name ?? "Driver" } : null }));
   const [result, { data: units }, { data: drivers }] = s ? await Promise.all([
     loadListPage(s, request, searchSpecs.documents, (from, to, filter) => {
       let query = s.from("documents").select("id, document_type, document_number, expires_on, lifecycle_status, unit_id, driver_id, units(body_number), drivers(full_name)", { count: "exact" }).is("deleted_at", null).eq("lifecycle_status", "current");
-      if (expiringOnly) query = query.in("id", expiringIds);
+      query = applyFilters(query, controls);
       if (filter) query = query.or(filter);
-      return query.order("expires_on").order("id").range(from, to);
+      return applySort(query, controls).range(from, to);
     }),
     s.from("units").select("id, body_number, plate_number").is("deleted_at", null).order("body_number"),
     s.from("drivers").select("id, full_name, license_expiry_date").is("deleted_at", null).order("full_name"),
-  ]) : [pageRows([...demoDocs].filter((d) => !expiringOnly || d.expires_on <= addDays(fleetToday(), 30)).sort((a, b) => a.expires_on.localeCompare(b.expires_on)), request, (d) => `${documentTypeLabels[d.document_type]} ${d.document_number} ${d.units?.body_number ?? ""} ${d.drivers?.full_name ?? ""} ${d.expires_on}`), { data: demoUnits }, { data: demoDrivers }];
+  ]) : [pageRows(controlRows(demoDocs, controls), request, (d) => `${documentTypeLabels[d.document_type]} ${d.document_number} ${d.units?.body_number ?? ""} ${d.drivers?.full_name ?? ""} ${d.expires_on}`), { data: demoUnits }, { data: demoDrivers }];
   const current = result.rows as Doc[];
-  const list = listView("/documents", params, request, result, { searchLabel: "Search documents", filters: expiringOnly ? [{ label: "Showing documents expired or expiring within 30 days", param: "expiring" }] : [] });
+  const list = listView("/documents", params, request, result, { searchLabel: "Search documents", controls: controlsView(controls) });
   return <section className="workspace"><PageHeader eyebrow="Compliance register" title="Documents" description="Current OR/CR, MTOP franchise and insurance by unit, and licenses by driver, soonest expiry first. Open a document to see its history or renew it." />
     <div className="mt-8 workspace-grid">
       <div><SectionHeading title="Current documents" /><div className="mt-4"><PagedList list={list} hasRows={current.length > 0} empty={<EmptyState title="No compliance documents recorded yet." description="Upload the first OR/CR, franchise, insurance or license file." />}><div className="space-y-6 pt-2"><Groups title="Units" groups={groupBy(current, "unit")} /><Groups title="Drivers" groups={groupBy(current, "driver")} /></div></PagedList></div></div>

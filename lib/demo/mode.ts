@@ -35,8 +35,8 @@ export const demoAssignments = [{ id: "00000000-0000-4000-8000-000000000031", as
 export const demoBackupAssignments = [{ id: demoId(3, 1), driver_id: "00000000-0000-4000-8000-000000000012", unit_id: demoUnits[2].id, assignment_type: "backup", starts_on: today, ends_on: today }];
 
 export const demoExpenses = [
-  { id: "00000000-0000-4000-8000-000000000041", expense_date: addDays(today, -1), amount_centavos: 185000, notes: "Monthly tune-up", receipt_object_path: null, units: [{ body_number: "T-001", plate_number: "ABC-1234" }], expense_categories: [{ name: "Repairs" }] },
-  ...Array.from({ length: 11 }, (_, index) => ({ id: demoId(4, index + 2), expense_date: addDays(today, -(index + 2)), amount_centavos: 25000 + index * 5000, notes: index % 2 ? "Gasoline" : "", receipt_object_path: index % 3 ? "demo" : null, units: [{ body_number: demoUnits[index % 4].body_number, plate_number: demoUnits[index % 4].plate_number }], expense_categories: [{ name: demoCategories[index % 2].name }] })),
+  { id: "00000000-0000-4000-8000-000000000041", unit_id: "00000000-0000-4000-8000-000000000001", category_id: "00000000-0000-4000-8000-000000000022", expense_date: addDays(today, -1), amount_centavos: 185000, notes: "Monthly tune-up", receipt_object_path: null, units: [{ body_number: "T-001", plate_number: "ABC-1234" }], expense_categories: [{ name: "Repairs" }] },
+  ...Array.from({ length: 11 }, (_, index) => ({ id: demoId(4, index + 2), unit_id: demoUnits[index % 4].id, category_id: demoCategories[index % 2].id, expense_date: addDays(today, -(index + 2)), amount_centavos: 25000 + index * 5000, notes: index % 2 ? "Gasoline" : "", receipt_object_path: index % 3 ? "demo" : null, units: [{ body_number: demoUnits[index % 4].body_number, plate_number: demoUnits[index % 4].plate_number }], expense_categories: [{ name: demoCategories[index % 2].name }] })),
 ];
 
 export const demoRemittances = Array.from({ length: 30 }, (_, index) => {

@@ -74,3 +74,21 @@
   the request for "3–5 records"; "View all N" appears whenever rows are hidden.
 - The T011 "keep old panels during the transition" step was skipped: the dashboard was replaced in
   one change.
+
+## Sort and filter (User Story 8, T053–T060, 2026-10-30)
+
+| Check | Result |
+|---|---|
+| `corepack pnpm lint` | Pass: 0 errors, the same 4 existing warnings |
+| `corepack pnpm typecheck` | Pass |
+| `corepack pnpm test` | Pass: 21 files, 101 tests (8 new in `tests/unit/list-controls.test.ts`) |
+| Playwright `list-sort-filter` (6 new), `paged-lists` (7), `dashboard-refresh` (6) against the demo build on :3100 | 19 of 19 pass |
+| Browser check | Desktop: controls in a row above the table (expenses filtered to Fuel, sorted by amount: 6 records). Phone (360 px): folded behind "Sort and filter (1 on)", full-width labelled controls, no sideways scroll |
+
+- The final `sm:items-end` alignment tweak to `components/ui/list-controls.tsx` (desktop only) was
+  made after the Playwright run; lint, typecheck and unit tests were re-run after it.
+- Each select now has its own accessible name ("Unit", "Sort") through a separate label, and the
+  controls are one "Sort and filter" group. The first version wrapped each select in its label,
+  so screen readers read the option text as part of the name.
+- Not run against Supabase: the filters' SQL path (`applyFilters`/`applySort`) is covered by unit
+  tests that check the exact query calls, not by a live database.

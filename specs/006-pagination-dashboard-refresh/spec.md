@@ -31,6 +31,10 @@
 - Q: What happens to the monthly unit summary table once the per-unit chart is added? → A: The chart replaces the table; each unit's exact peso amounts appear as labels or a readable list beside the chart.
 - Q: The dashboard was no shorter on a phone after adding figures and charts; keep the 40% goal (SC-004) or relax it? → A: Keep it, and fold more on phones (charts and recent activity behind "Show" buttons).
 
+### Session 2026-10-30 (follow-up)
+
+- Q: Lists can be paged and searched but not sorted or filtered; which sorts and filters? → A: Owner asked for "filter by date, name, etc., whatever is best": each main list gets a sort choice and the filters that fit its records (date range, unit, driver, category, type, status), defined per list in User Story 8.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Browse long lists one page at a time (Priority: P1)
@@ -199,6 +203,36 @@ absence of horizontal scrolling, and legible text in every panel.
 2. **Given** a desktop screen, **When** the dashboard loads, **Then** headline figures appear in
    one row and panels are arranged in two or more columns.
 
+### User Story 8 - Sort and filter the main lists (Priority: P2)
+
+On each main list page (units, drivers, remittances, expenses, maintenance, documents, audit
+history, staff) the user opens "Sort and filter", picks how the list is ordered (for example
+"Oldest first" or "Amount, highest first") and narrows it with filters that fit that list: a date
+range, a unit, a driver, a category, a type or a status. Filters combine with search and paging,
+and the page shows which filters are on, with one action to clear them.
+
+**Why this priority**: Search finds one known record; owners also need questions like "all fuel
+expenses for Body T-003 last month" or "drivers whose license expires soonest", which search
+alone cannot answer.
+
+**Independent Test**: On Expenses, choose a unit, a category and a date range, sort by amount,
+and confirm only matching rows appear in the chosen order, the count and pages reflect the
+filters, and "Clear filters" restores the full list.
+
+**Acceptance Scenarios**:
+
+1. **Given** the Expenses list, **When** the user picks Body T-003, category Fuel and the dates
+   2026-10-01 to 2026-10-31, **Then** only Fuel expenses for Body T-003 in October are listed and
+   the record count says how many.
+2. **Given** a filtered list on page 3, **When** the user changes a filter or the sort, **Then**
+   results restart at page 1 and the URL keeps the choices for refresh, sharing and Back.
+3. **Given** the Drivers list, **When** the user sorts by "License expiry, soonest first", **Then**
+   the driver whose license expires next is at the top of page 1.
+4. **Given** one or more filters are on, **When** the user selects "Clear filters", **Then** the
+   list returns to its default order and every record, keeping any search text.
+5. **Given** a 360 px screen, **When** the user opens a list, **Then** the sort and filter controls
+   are folded behind one "Sort and filter" button that shows how many filters are on.
+
 ### Edge Cases
 
 - A record is added or removed while a user is on the last page: the page still loads; if the
@@ -217,6 +251,12 @@ absence of horizontal scrolling, and legible text in every panel.
 - Staff without dashboard permission still cannot see the dashboard; paging and search never show
   records a user's role cannot already see.
 - Exports and printed reports are unaffected by paging and still include every matching record.
+- A sort or filter value in the URL that the list does not offer is ignored, and the list shows
+  its default order or all records rather than an error.
+- A "from" date later than the "to" date returns no records with the usual "no records match"
+  message; a date that is not a real calendar date is ignored.
+- Filters a role cannot use (unpaid balances, maintenance due, documents expiring) are not shown
+  to staff, and the same values in the URL are ignored for them.
 
 ## Requirements *(mandatory)*
 
@@ -303,6 +343,34 @@ absence of horizontal scrolling, and legible text in every panel.
 - **FR-028**: Panels with nothing to show MUST display a short plain-language empty message rather
   than disappearing.
 
+**Sort and filter (User Story 8)**
+
+- **FR-029**: Each main list (units, drivers, remittances, expenses, maintenance, documents,
+  audit history, staff) MUST offer a sort choice; the list's current order is the default.
+- **FR-030**: Each main list MUST offer the filters that fit its records:
+  - Units: status.
+  - Drivers: role (primary or backup), status, license expiry (expired, within 30 days, later).
+  - Remittances: date range, unit, driver, disposition, and for the owner, unpaid balance.
+  - Expenses: date range, unit, category, receipt (attached or missing).
+  - Maintenance: unit status, and for the owner, maintenance due.
+  - Documents: type, holder (unit or driver), expiry (expired, within 30 days, later).
+  - Audit history: date range, action, record type.
+  - Staff: account status.
+- **FR-031**: Sorting and filtering MUST apply to every record of the list (not only the current
+  page), combine with search, and update the record count and page count.
+- **FR-032**: Changing a sort or filter MUST return the list to page 1; the choices MUST be kept
+  in the URL so refresh, sharing and Back keep them.
+- **FR-033**: The list MUST show how many filters are on and offer one "Clear filters" action that
+  removes them and the sort while keeping the search text.
+- **FR-034**: On phone-sized screens the sort and filter controls MUST be folded behind one "Sort
+  and filter" button showing the number of active filters; on wider screens they MUST be visible
+  above the list. Every control MUST be at least touch-target size and have a visible label.
+- **FR-035**: The dashboard's "View all" links MUST open the matching list with the same filters
+  pre-selected (units in repair, backup drivers, maintenance due, unpaid balances, documents
+  expired or expiring within 30 days).
+- **FR-036**: Date filters MUST use the fleet's calendar date (Asia/Manila), so a record made late
+  in the evening appears under that day.
+
 ### Key Entities *(include if feature involves data)*
 
 - **Record list page**: A view over one kind of record (units, drivers, remittances, expenses,
@@ -336,6 +404,8 @@ absence of horizontal scrolling, and legible text in every panel.
   are in repair?", "which extradors are working today?", and "what expires next?" from the
   dashboard within 30 seconds each, without help.
 - **SC-007**: No list page or the dashboard requires horizontal page scrolling at 360 px.
+- **SC-008**: A user can narrow a 500-record list to "one unit, one category, one month" and read
+  the result in under 30 seconds, without typing a search.
 
 ## Constitution Compliance
 
@@ -360,5 +430,7 @@ absence of horizontal scrolling, and legible text in every panel.
   and report; choosing other months on the dashboard is out of scope.
 - Charts are built with tools the project already uses and stay within the existing design tokens;
   no paid services are added (Constitution principle I).
+- Sort and filter cover the main list pages only; the shorter lists inside detail pages keep search
+  and paging without sort or filter controls.
 - Role permissions and soft-deletion rules are unchanged; exports and reports keep returning all
   matching records.

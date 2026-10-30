@@ -6,7 +6,7 @@
 |---|---|---|
 | `{prefix}page` | 1-based page number | `1` |
 | `{prefix}q` | free-text search | empty |
-| fixed filters | `kind=backup` (drivers), `status=in_repair` (units), `due=1` (maintenance: units with items due; owner-only), `balance=unpaid` (remittances with an unpaid balance; owner-only), `expiring=1` (documents expired or expiring within 30 days; owner-only), plus existing filters on Expenses | none |
+| `sort` and filters | per list; see "Sort and filter" below | default order, no filter |
 
 - Invalid page (`0`, `-2`, `abc`) → page 1. Beyond last page → last page.
 - Editing search replaces `{prefix}q` and deletes `{prefix}page`; other lists' params on the page
@@ -61,6 +61,34 @@
 
 Not paged: "Current tires" on `/maintenance/[unitId]` (fixed set of wheel positions), form
 dropdown options, report exports.
+
+## Sort and filter (User Story 8)
+
+Main list pages only. Every value is optional; an unknown value is ignored. Changing any of them
+drops `page`. The first sort listed is the default and is left out of the URL.
+
+| Page | `sort` values | Filters (param: values) |
+|---|---|---|
+| `/units` | `body` (Body no. A–Z), `body-desc`, `mileage-desc`, `mileage` | `status`: `active`, `in_repair`, `retired` |
+| `/drivers` | `name` (A–Z), `name-desc`, `license` (expiry soonest), `license-desc` | `kind`: `primary`, `backup` · `status`: `active`, `inactive` · `license`: `expired`, `soon` (within 30 days), `later` |
+| `/remittances` | `newest`, `oldest`, `amount-desc`, `amount` | `from`, `to` (service date) · `unit`: unit id · `driver`: driver id · `disposition`: `returned`, `overnight_overtime` · `balance`: `unpaid` (owner) |
+| `/expenses` | `newest`, `oldest`, `amount-desc`, `amount` | `from`, `to` (expense date) · `unit` · `category`: category id · `receipt`: `attached`, `missing` |
+| `/maintenance` | `body`, `body-desc`, `mileage-desc`, `mileage` | `status` · `due`: `1` (owner) |
+| `/documents` | `expiry` (soonest), `expiry-desc`, `type`, `newest` (uploaded) | `type`: document type · `holder`: `unit`, `driver` · `expiry`: `expired`, `soon`, `due` (expired or within 30 days), `later` |
+| `/audit` | `newest`, `oldest` | `from`, `to` (Manila date of the change) · `action`: audit action · `entity`: record type |
+| `/settings/staff` | `newest`, `oldest`, `name` | `status`: `pending`, `approved`, `rejected`, `deactivated` |
+
+- Dates are `YYYY-MM-DD` fleet dates; `from` is inclusive from the start of that day and `to`
+  inclusive to its end. A date that is not real is ignored.
+- `soon` = from today to today + 30 days; `later` = after today + 30 days; `expired` = before today.
+- Dashboard "View all" targets: `/units?status=in_repair`, `/drivers?kind=backup`,
+  `/maintenance?due=1`, `/remittances?balance=unpaid`, `/documents?expiry=due`.
+
+**`ListControls`** (client) sits in the list toolbar under the search box:
+- A "Sort" select and one labelled control per filter (select, or two date inputs for a range).
+  Choosing a value updates the URL at once (`router.replace`, no full reload).
+- "Clear filters" appears when any filter or a non-default sort is on; it keeps `q`.
+- Below 48rem the controls are folded behind a "Sort and filter" button showing "(N on)".
 
 ## Demo mode
 
