@@ -206,10 +206,12 @@ absence of horizontal scrolling, and legible text in every panel.
 ### User Story 8 - Sort and filter the main lists (Priority: P2)
 
 On each main list page (units, drivers, remittances, expenses, maintenance, documents, audit
-history, staff) the user opens "Sort and filter", picks how the list is ordered (for example
+history, staff) the user picks how the list is ordered from the Sort menu beside the record count (for example
 "Oldest first" or "Amount, highest first") and narrows it with filters that fit that list: a date
-range, a unit, a driver, a category, a type or a status. Filters combine with search and paging,
-and the page shows which filters are on, with one action to clear them.
+range (from the date button next to search, with Today, Yesterday, This week, This month or a
+custom range), and a unit, a driver, a category, a type or a status (from the Filters panel, applied
+together with "Apply filters"). Filters combine with search and paging, and the filters that are
+on show as removable chips, with "Clear all" to remove them.
 
 **Why this priority**: Search finds one known record; owners also need questions like "all fuel
 expenses for Body T-003 last month" or "drivers whose license expires soonest", which search
@@ -217,7 +219,7 @@ alone cannot answer.
 
 **Independent Test**: On Expenses, choose a unit, a category and a date range, sort by amount,
 and confirm only matching rows appear in the chosen order, the count and pages reflect the
-filters, and "Clear filters" restores the full list.
+filters, and "Clear all" plus "Any date" restore the full list.
 
 **Acceptance Scenarios**:
 
@@ -228,10 +230,11 @@ filters, and "Clear filters" restores the full list.
    results restart at page 1 and the URL keeps the choices for refresh, sharing and Back.
 3. **Given** the Drivers list, **When** the user sorts by "License expiry, soonest first", **Then**
    the driver whose license expires next is at the top of page 1.
-4. **Given** one or more filters are on, **When** the user selects "Clear filters", **Then** the
-   list returns to its default order and every record, keeping any search text.
-5. **Given** a 360 px screen, **When** the user opens a list, **Then** the sort and filter controls
-   are folded behind one "Sort and filter" button that shows how many filters are on.
+4. **Given** one or more filters are on, **When** the user removes a chip or selects "Clear all",
+   **Then** that filter (or every filter) is removed, keeping the search text, sort and dates.
+5. **Given** a 360 px screen, **When** the user opens a list, **Then** search, the date button and
+   the Filters button (showing how many filters are on) fit without sideways scrolling, and the
+   filter panel stays closed until opened.
 
 ### Edge Cases
 
@@ -360,11 +363,12 @@ filters, and "Clear filters" restores the full list.
   page), combine with search, and update the record count and page count.
 - **FR-032**: Changing a sort or filter MUST return the list to page 1; the choices MUST be kept
   in the URL so refresh, sharing and Back keep them.
-- **FR-033**: The list MUST show how many filters are on and offer one "Clear filters" action that
-  removes them and the sort while keeping the search text.
-- **FR-034**: On phone-sized screens the sort and filter controls MUST be folded behind one "Sort
-  and filter" button showing the number of active filters; on wider screens they MUST be visible
-  above the list. Every control MUST be at least touch-target size and have a visible label.
+- **FR-033**: The list MUST show the active filters as removable chips, the number on in the
+  Filters button, and a "Clear all" action that removes them while keeping the search text.
+- **FR-034**: Search, a date button (lists with a date range) and a Filters button MUST sit in one
+  row above the list; quick date choices and the filter panel open under it, and the Sort menu sits
+  beside the record count. Every control MUST be at least touch-target size and have a label
+  (layout reference: the 2026-10-30 remittances redesign).
 - **FR-035**: The dashboard's "View all" links MUST open the matching list with the same filters
   pre-selected (units in repair, backup drivers, maintenance due, unpaid balances, documents
   expired or expiring within 30 days).

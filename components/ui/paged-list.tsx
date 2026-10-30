@@ -4,7 +4,7 @@ import { listHref, type ListPageState, type SearchParams } from "@/lib/paginatio
 import { ListSearch } from "@/components/ui/list-search";
 import { Pagination } from "@/components/ui/pagination";
 import { Card, CardContent } from "@/components/ui/card";
-import { ListControls } from "@/components/ui/list-controls";
+import { ListControls, ListSort } from "@/components/ui/list-controls";
 import type { ListControlsView } from "@/lib/pagination/list-controls";
 
 /** Everything a paged list needs to draw its toolbar and footer (contracts/list-paging.md). */
@@ -19,21 +19,26 @@ export interface ListView {
   searchLabel?: string;
   /** Sort and filter controls of a main list (User Story 8). */
   controls?: ListControlsView;
+  /** A short tip shown after the record count, e.g. what opening a row does. */
+  hint?: string;
 }
 
-export function listView(pathname: string, searchParams: SearchParams, request: { prefix: string; q: string }, state: ListPageState, options: Pick<ListView, "search" | "searchLabel" | "controls"> = {}): ListView {
+export function listView(pathname: string, searchParams: SearchParams, request: { prefix: string; q: string }, state: ListPageState, options: Pick<ListView, "search" | "searchLabel" | "controls" | "hint"> = {}): ListView {
   return { pathname, searchParams, prefix: request.prefix, q: request.q, state, ...options };
 }
 
 export function ListToolbar({ list }: { list: ListView }) {
   const prefix = list.prefix ?? "";
   const { total } = list.state;
+  const count = <span className="font-data text-label text-muted">{total} {total === 1 ? "record" : "records"}{list.hint ? <span className="font-sans"> · {list.hint}</span> : null}</span>;
+  const search = list.search === false ? null : <ListSearch pathname={list.pathname} searchParams={list.searchParams} prefix={prefix} initialValue={list.q} label={list.searchLabel} placeholder={list.searchLabel ? `${list.searchLabel}…` : undefined} wide={Boolean(list.controls)} />;
+  // Main lists (User Story 8): search, dates and filters on top; the count and sort just above the rows.
+  if (list.controls) return <div className="flex flex-col gap-3 border-b border-rule pt-2 pb-3">
+    <ListControls pathname={list.pathname} searchParams={list.searchParams} controls={list.controls} search={search} />
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">{count}<ListSort pathname={list.pathname} searchParams={list.searchParams} controls={list.controls} /></div>
+  </div>;
   return <div className="flex flex-col gap-3 border-b border-rule pt-2 pb-4">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      {list.search === false ? null : <ListSearch pathname={list.pathname} searchParams={list.searchParams} prefix={prefix} initialValue={list.q} label={list.searchLabel} placeholder={list.searchLabel ? `${list.searchLabel}…` : undefined} />}
-      <span className="font-data text-label text-muted">{total} {total === 1 ? "record" : "records"}</span>
-    </div>
-    {list.controls ? <ListControls pathname={list.pathname} searchParams={list.searchParams} controls={list.controls} /> : null}
+    <div className="flex flex-wrap items-center justify-between gap-3">{search}{count}</div>
   </div>;
 }
 
