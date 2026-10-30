@@ -43,6 +43,9 @@
   --token-warn-soft: #fff1d6;
   --token-danger: #a33f3b;
   --token-danger-soft: #fbe9e8;
+  --token-info: #1f4f7a;
+  --token-info-soft: #e6eef7;
+  --token-control-border: #7d8996;
 
   --token-text-display: 2.25rem;
   --token-text-page-title: 1.75rem;
@@ -117,6 +120,10 @@
   --color-warn-soft: var(--token-warn-soft);
   --color-danger: var(--token-danger);
   --color-danger-soft: var(--token-danger-soft);
+  --color-info: var(--token-info);
+  --color-info-soft: var(--token-info-soft);
+  --color-control-border: var(--token-control-border);
+  --breakpoint-desk: 75rem;
   --font-sans: var(--font-geist-sans);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --text-display: var(--token-text-display);

@@ -37,7 +37,7 @@ than starting over.
 
 | Area | Status |
 |---|---|
-| Spec Kit | Initialized (v1.2.2.dev0) with the **Codex** integration, constitution v1.0.0 ratified |
+| Spec Kit | Initialized (v1.2.2.dev0) with the **Codex** integration, constitution v1.1.0 (ratified 1.0.0, amended 2026-10-30) |
 | Feature 001 – Fleet management | 105 / 115 tasks done; 10 open are **validation checkpoints** blocked by no local Supabase runtime (T026, T043, T054, T065, T077, T090, T101, T108, T112, T115) |
 | Feature 002 – UI system refresh | 42 / 45 done |
 | Feature 003 – App navigation | 4 / 35 done |
@@ -504,7 +504,7 @@ results in each `validation/*.md`. In Claude Code you can say:
 
 | Order | Command | Output | Your job |
 |---|---|---|---|
-| once | `/speckit-constitution` | `.specify/memory/constitution.md` | Already v1.0.0 — only amend deliberately (semver bump) |
+| once | `/speckit-constitution` | `.specify/memory/constitution.md` | Now v1.1.0 — only amend deliberately (semver bump) |
 | 1 | `/speckit-specify <what & why>` | `specs/NNN-name/spec.md` + branch | Describe behavior only, no tech |
 | 2 | `/speckit-clarify` | Clarifications appended to spec | Answer every question; this prevents rework |
 | 3 | `/speckit-plan <tech notes>` | `plan.md`, `research.md`, `data-model.md`, `contracts/`, `quickstart.md` | Point it at this stack + DESIGN.md; review the data model hard |

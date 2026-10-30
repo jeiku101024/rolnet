@@ -7,10 +7,10 @@ import { listHref, type SearchParams } from "@/lib/pagination/list-page";
 import type { ListControlsView } from "@/lib/pagination/list-controls";
 import { datePresets, matchingPreset, rangeText } from "@/lib/pagination/date-presets";
 
-const field = "touch-target w-full min-w-0 rounded-md border border-rule bg-surface px-3 text-body-sm text-ink";
-const toolButton = "touch-target inline-flex shrink-0 items-center gap-2 rounded-md border border-rule bg-surface px-3 text-body-sm font-semibold text-ink hover:bg-brand-soft aria-expanded:bg-brand-soft aria-pressed:border-brand aria-pressed:bg-brand-soft aria-pressed:text-brand-dark";
+const field = "touch-target w-full min-w-0 rounded-md border border-control-border bg-surface px-3 text-body-sm text-ink";
+const toolButton = "touch-target inline-flex shrink-0 items-center gap-2 rounded-md border border-control-border bg-surface px-3 text-body-sm font-semibold text-ink hover:bg-brand-soft aria-expanded:bg-brand-soft aria-pressed:border-brand aria-pressed:bg-brand-soft aria-pressed:text-brand-dark";
 
-const chipButton = "touch-target inline-flex items-center gap-2 rounded-md border border-rule bg-surface px-3 text-body-sm text-ink hover:bg-brand-soft";
+const chipButton = "touch-target inline-flex items-center gap-2 rounded-md border border-control-border bg-surface px-3 text-body-sm text-ink hover:bg-brand-soft";
 
 /** A native select with its arrow drawn inside the field, clear of the edge. */
 export function FilterSelect({ className = "", ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
@@ -91,7 +91,7 @@ export function ListControls({ pathname, searchParams, controls, search }: { pat
       </div> : null}
     </div> : null}
 
-    {selects.length && open === "filters" ? <div id={`${id}-filters`} role="group" aria-label="Filters" className="grid gap-3 rounded-md border border-rule bg-canvas p-3">
+    {selects.length && open === "filters" ? <div id={`${id}-filters`} role="group" aria-label="Filters" className="grid gap-3 rounded-md border border-control-border bg-canvas p-3">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {selects.map((def) => <div key={def.param} className="grid min-w-0 gap-1"><label className="text-label font-bold text-muted" htmlFor={`${id}-${def.param}`}>{def.label}</label>
           <FilterSelect id={`${id}-${def.param}`} value={draft[def.param] ?? ""} onChange={(event) => setDraft({ ...draft, [def.param]: event.target.value })}>

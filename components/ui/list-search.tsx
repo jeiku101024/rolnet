@@ -52,7 +52,7 @@ export function ListSearch({ pathname, searchParams, prefix = "", initialValue, 
   return <label className={`relative block w-full min-w-0 text-body-sm ${wide ? "" : "sm:max-w-sm"}`}>
     <span className="sr-only">{label ?? placeholder}</span>
     <Search aria-hidden="true" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-    <input ref={inputRef} className="touch-target w-full rounded-md border border-rule bg-surface pl-9 pr-28 text-body-sm text-ink placeholder:text-muted" value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); send(value); } }} placeholder={placeholder} type="search" aria-busy={pending} />
+    <input ref={inputRef} className="touch-target w-full rounded-md border border-control-border bg-surface pl-9 pr-28 text-body-sm text-ink placeholder:text-muted-foreground focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-focus" value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); send(value); } }} placeholder={placeholder} type="search" aria-busy={pending} />
     <span className="absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1">
       {pending ? <span className="text-label text-muted" role="status">Searching…</span> : null}
       {value ? <button className="min-h-9 px-2 text-label font-semibold text-muted hover:text-ink" type="button" onClick={() => { setValue(""); send(""); inputRef.current?.focus(); }} aria-label="Clear search">Clear</button> : null}

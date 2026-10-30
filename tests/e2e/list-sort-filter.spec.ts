@@ -35,7 +35,7 @@ test.describe("list sort and filter", () => {
   });
 
   test("pick a quick date range", async ({ page }) => {
-    await page.goto("/remittances");
+    await page.goto("/remittances?view=list");
     await page.getByRole("button", { name: "Service date: Any date" }).click();
     await page.getByRole("button", { name: "This month" }).click();
     await expect(page).toHaveURL(new RegExp(`from=${today.slice(0, 8)}01&to=${today}`));

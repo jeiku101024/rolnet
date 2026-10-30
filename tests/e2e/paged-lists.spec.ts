@@ -11,7 +11,7 @@ async function expectNoSidewaysScroll(page: Page) {
 
 test.describe("paged lists", () => {
   test("show 10 rows at a time with a range label and working controls", async ({ page }) => {
-    await page.goto("/remittances");
+    await page.goto("/remittances?view=list");
     await expect(page.locator("tbody tr")).toHaveCount(10);
     await expect(pagination(page)).toContainText("1–10 of 30 records");
     await expect(pagination(page)).toContainText("Page 1 of 3");
@@ -24,7 +24,7 @@ test.describe("paged lists", () => {
     // Leave to another page and come back. (Detail pages have no demo data, so a list page is used.)
     await page.goto("/drivers");
     await page.goBack();
-    await expect(page).toHaveURL(/\/remittances\?page=3/);
+    await expect(page).toHaveURL(/\/remittances\?.*page=3/);
     await expect(pagination(page)).toContainText("Page 3 of 3");
     await expectNoSidewaysScroll(page);
   });
