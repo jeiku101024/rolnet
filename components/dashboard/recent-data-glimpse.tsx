@@ -1,22 +1,39 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { formatPesos } from "@/lib/money/centavos";
-import { EmptyState, StatusBadge } from "@/components/ui/feedback";
+import { documentTypeLabels } from "@/lib/validation/documents";
+import { dispositionLabels } from "@/lib/pagination/search-specs";
+import { StatusBadge } from "@/components/ui/feedback";
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from "@/components/ui/card";
+import { PanelRow } from "@/components/dashboard/dashboard-panel";
+import type { RecentKind } from "@/lib/dashboard/queries";
 
 type Item = Record<string, unknown>;
-type GlimpseKind = "remittances" | "units" | "expenses" | "maintenance" | "documents" | "drivers";
-const config: Record<GlimpseKind, { title: string; href: string }> = { remittances: { title: "Recent remittances", href: "/remittances" }, units: { title: "Recent units", href: "/units" }, expenses: { title: "Recent expenses", href: "/expenses" }, maintenance: { title: "Maintenance activity", href: "/maintenance" }, documents: { title: "Recent documents", href: "/documents" }, drivers: { title: "Recent drivers", href: "/drivers" } };
-export const glimpseKinds: GlimpseKind[] = ["remittances", "units", "expenses", "maintenance", "documents", "drivers"];
-export function getGlimpseConfig(kind: GlimpseKind) { return config[kind]; }
+const config: Record<RecentKind, { title: string; href: string; empty: string }> = {
+  remittances: { title: "Recent remittances", href: "/remittances", empty: "No remittances recorded yet." },
+  expenses: { title: "Recent expenses", href: "/expenses", empty: "No expenses recorded yet." },
+  maintenance: { title: "Recent maintenance work", href: "/maintenance", empty: "No part or tire work recorded yet." },
+  documents: { title: "Recently added documents", href: "/documents", empty: "No documents uploaded yet." },
+};
+/** The four history panels, in the order they appear (US6, FR-025). Units and drivers have their own pages. */
+export const glimpseKinds: RecentKind[] = ["remittances", "expenses", "maintenance", "documents"];
+export function getGlimpseConfig(kind: RecentKind) { return config[kind]; }
 function text(value: unknown, fallback = "—") { return typeof value === "string" || typeof value === "number" ? String(value) : fallback; }
 function nested(item: Item, key: string, field: string) { const value = item[key]; return Array.isArray(value) ? text((value[0] as Item | undefined)?.[field]) : value && typeof value === "object" ? text((value as Item)[field]) : "—"; }
+function paidOf(item: Item) { const payments = item.remittance_payments; return Array.isArray(payments) ? payments.reduce((sum: number, payment) => sum + Number((payment as Item).amount_centavos ?? 0), 0) : 0; }
 
-function GlimpseRows({ kind, items }: { kind: GlimpseKind; items: Item[] }) {
-  return <ul className="divide-y divide-rule">{items.slice(0, 5).map((item, index) => { const key = text(item.id, `${kind}-${index}`); if (kind === "remittances") return <li className="flex items-center justify-between gap-4 py-3" key={key}><div><p className="font-semibold">{text(item.service_date)} · Body {nested(item, "units", "body_number")}</p><p className="text-body-sm text-muted">{nested(item, "drivers", "full_name")} · {text(item.disposition).replaceAll("_", " ")}</p></div><span className="font-data text-data">{formatPesos(Number(item.amount_due_centavos ?? 0))}</span></li>; if (kind === "units") return <li className="flex items-center justify-between gap-4 py-3" key={key}><div><p className="font-semibold">Body {text(item.body_number)}</p><p className="font-data text-body-sm text-muted">{text(item.plate_number)} · {text(item.make_model)}</p></div><StatusBadge label={text(item.status).replaceAll("_", " ")} tone={item.status === "active" ? "success" : "warning"} /></li>; if (kind === "expenses") return <li className="flex items-center justify-between gap-4 py-3" key={key}><div><p className="font-semibold">{nested(item, "expense_categories", "name")}</p><p className="text-body-sm text-muted">{text(item.expense_date)} · Body {nested(item, "units", "body_number")}</p></div><div className="text-right"><p className="font-data text-data">{formatPesos(Number(item.amount_centavos ?? 0))}</p><StatusBadge label={item.receipt_object_path ? "Receipt attached" : "Receipt missing"} tone={item.receipt_object_path ? "success" : "warning"} /></div></li>; if (kind === "maintenance") return <li className="flex items-center justify-between gap-4 py-3" key={key}><div><p className="font-semibold">{text(item.item_name, text(item.item_type).replaceAll("_", " "))}</p><p className="text-body-sm text-muted">Body {text(item.body_number)}</p></div><StatusBadge label="Due" tone="warning" /></li>; if (kind === "documents") return <li className="flex items-center justify-between gap-4 py-3" key={key}><div><p className="font-semibold capitalize">{text(item.document_type).replaceAll("_", " ")}</p><p className="text-body-sm text-muted">Expires {text(item.expires_on)}</p></div><StatusBadge label={text(item.lifecycle_status, "Current")} tone="success" /></li>; return <li className="flex items-center justify-between gap-4 py-3" key={key}><div><p className="font-semibold">{text(item.full_name)}</p><p className="text-body-sm capitalize text-muted">{text(item.driver_kind)} · license expires {text(item.license_expiry_date)}</p></div><StatusBadge label={item.is_active === false ? "Inactive" : "Active"} tone={item.is_active === false ? "muted" : "success"} /></li>; })}</ul>;
+function Row({ kind, item }: { kind: RecentKind; item: Item }) {
+  if (kind === "remittances") {
+    const due = Number(item.amount_due_centavos ?? 0);
+    const balance = due - paidOf(item);
+    return <PanelRow href={`/remittances/${text(item.id)}`} title={<span className="font-data">{text(item.service_date)} · Body {nested(item, "units", "body_number")}</span>} detail={`${nested(item, "drivers", "full_name")}, ${dispositionLabels[text(item.disposition)] ?? text(item.disposition)}`} aside={<><p className="font-data text-data">{formatPesos(due)}</p>{balance > 0 ? <StatusBadge label={`${formatPesos(balance)} unpaid`} tone="warning" /> : <StatusBadge label="Paid" tone="success" />}</>} />;
+  }
+  if (kind === "expenses") return <PanelRow title={nested(item, "expense_categories", "name")} detail={<span className="font-data">{text(item.expense_date)} · Body {nested(item, "units", "body_number")}</span>} aside={<><p className="font-data text-data">{formatPesos(Number(item.amount_centavos ?? 0))}</p><StatusBadge label={item.receipt_object_path ? "Receipt attached" : "Receipt missing"} tone={item.receipt_object_path ? "success" : "warning"} /></>} />;
+  if (kind === "maintenance") return <PanelRow href={`/maintenance/${text(item.unitId)}`} title={text(item.name)} detail={<span className="font-data">Body {text(item.bodyNumber)} · {text(item.date)}</span>} />;
+  return <PanelRow href={`/documents/${text(item.id)}`} title={documentTypeLabels[text(item.document_type)] ?? text(item.document_type)} detail={`${text(item.holderLabel, "")} · expires ${text(item.expires_on)}`} />;
 }
 
-export function RecentDataGlimpse({ kind, items }: { kind: GlimpseKind; items: Item[] }) {
+export function RecentDataGlimpse({ kind, items }: { kind: RecentKind; items: Item[] }) {
   const current = config[kind];
-  return <Card className="min-w-0"><CardHeader><CardTitle><h2>{current.title}</h2></CardTitle><CardAction><Link className="inline-flex min-h-11 items-center gap-1 rounded-full border border-border px-3 text-xs font-medium hover:bg-accent" href={current.href}>View all <ArrowUpRight aria-hidden="true" size={14} /></Link></CardAction></CardHeader><CardContent>{items.length ? <GlimpseRows kind={kind} items={items} /> : <EmptyState title={`No recent ${kind} yet.`} description="New activity will appear here as it is recorded." />}</CardContent></Card>;
+  return <Card className="min-w-0"><CardHeader><CardTitle><h3 className="text-section-title font-bold">{current.title}</h3></CardTitle><CardAction><Link className="inline-flex min-h-11 items-center gap-1 rounded-md border border-border px-3 text-label font-semibold hover:bg-accent" href={current.href}>View all <ArrowUpRight aria-hidden="true" size={14} /></Link></CardAction></CardHeader><CardContent>{items.length ? <ul className="panel-rows divide-y divide-rule">{items.slice(0, 5).map((item, index) => <Row key={text(item.id, `${kind}-${index}`)} kind={kind} item={item} />)}</ul> : <p className="py-2 text-body-sm text-muted">{current.empty}</p>}</CardContent></Card>;
 }

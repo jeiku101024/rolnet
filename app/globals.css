@@ -194,8 +194,15 @@
   .muted-link { color: var(--token-brand-dark); font-weight: 600; text-decoration: underline; text-underline-offset: 0.18em; }
 }
 
+/* Dashboard panels (feature 006): 3 rows on phones, up to 5 from 48rem; "View all" covers the rest.
+   Unlayered so it wins over the rows' own display utility. */
+.panel-rows > li:nth-child(n + 4) { display: none; }
+.panel-more-phone { display: inline-flex; }
+
 @media (min-width: 48rem) {
   :root { --space-page-x: 2rem; --space-section-y: 3rem; }
   .workspace-grid { grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.6fr); align-items: start; }
   .workspace-grid-wide { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .panel-rows > li:nth-child(n + 4) { display: flex; }
+  .panel-more-phone { display: none; }
 }

@@ -8,9 +8,12 @@ test.describe("UI system refresh", () => {
     await expect(page.getByRole("link", { name: "Sign in" })).toBeFocused();
   });
 
-  test("dashboard exposes all recent data glimpse areas when available", async ({ page }) => {
+  test("dashboard exposes the recent-activity areas (feature 006)", async ({ page }) => {
     await page.goto("/dashboard");
-    for (const title of ["Recent remittances", "Recent units", "Recent expenses", "Maintenance activity", "Recent documents", "Recent drivers"]) {
+    // Phones fold recent activity behind a button; wider screens show it straight away.
+    const show = page.getByRole("button", { name: /Show recent activity/ });
+    if (await show.isVisible()) await show.click();
+    for (const title of ["Recent remittances", "Recent expenses", "Recent maintenance work", "Recently added documents"]) {
       await expect(page.getByRole("heading", { name: title })).toBeVisible();
     }
     await expect(page.getByRole("link", { name: "View all" }).first()).toBeVisible();

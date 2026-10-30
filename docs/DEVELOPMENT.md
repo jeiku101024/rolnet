@@ -113,6 +113,24 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   database); daily operations, mileage, documents and license renewals still work for them.
 - A driver with a current or upcoming assignment cannot be set Inactive until it is ended or removed.
 
+## Lists and dashboard (feature 006)
+
+- Every record list shows 10 rows per page. The page and search live in the URL: `?page=N&q=text`
+  for a page's main list, and a per-list prefix on detail pages (`assignments_page`, `documents_q`,
+  …). Changing the search drops that list's page; page 1 and empty values are left out of the URL.
+- Top-level lists page and search in the database (`lib/pagination/list-page.ts`,
+  `lib/pagination/search-filter.ts`, specs in `lib/pagination/search-specs.ts`). Names on related
+  rows are matched through an id lookup; enum columns are matched by their display labels.
+  Detail-page lists are already fully loaded for coverage logic, so they page in memory (`pageRows`).
+- Fixed filters used by the dashboard's "View all" links: `/units?status=in_repair`,
+  `/drivers?kind=backup`, and the owner-only `/maintenance?due=1`, `/remittances?balance=unpaid`,
+  `/documents?expiring=1`.
+- The dashboard has four bands, in this order on phones: Needs attention (expiring documents, due
+  maintenance, unpaid balances, most urgent first), Fleet status (extradors today, units in repair),
+  This month (figures and charts from `dashboard_monthly_unit_summary`, matching the monthly
+  report), and Recent activity. Panels show 3 rows on phones and up to 5 on wider screens.
+  Maintenance urgency counts 100 km past due as one day overdue (`kmPerDayEquivalent`).
+
 ## Validation and release
 
 Run lint, typecheck, tests, vinext check, and build:vinext. With a database runtime, also run all Supabase migrations, pgTAP, Storage/RLS tests, Playwright journeys, 100-unit/24-month dashboard performance checks, CSV reconciliation, and the acceptance protocol in specs/001-fleet-management/quickstart.md.

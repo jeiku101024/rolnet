@@ -11,10 +11,13 @@ import { ArchiveButton, SignedFileButton } from "@/components/forms/record-butto
 import { PageHeader, SectionHeading } from "@/components/ui/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/feedback";
+import { pageRows, parseListPage, type SearchParams } from "@/lib/pagination/list-page";
+import { listView } from "@/components/ui/paged-list";
 
-export default async function DocumentDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function DocumentDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<SearchParams> }) {
   await requirePermission("manage_documents");
   const { id } = await params;
+  const query = await searchParams;
   const s = await createSupabaseServerClient();
   const { data: doc } = await s.from("documents").select("id, document_type, document_number, issued_on, expires_on, lifecycle_status, object_path, mime_type, size_bytes, unit_id, driver_id, created_at, units(body_number, plate_number), drivers(full_name)").eq("id", id).is("deleted_at", null).maybeSingle();
   if (!doc) notFound();
@@ -27,6 +30,8 @@ export default async function DocumentDetail({ params }: { params: Promise<{ id:
   const { data: history } = await historyQuery;
   const typeLabel = documentTypeLabels[doc.document_type] ?? doc.document_type;
   const isCurrent = doc.lifecycle_status === "current";
+  const historyRequest = parseListPage(query, "history_");
+  const historyPage = pageRows(history ?? [], historyRequest, (item) => `${item.expires_on} ${item.document_number ?? ""} ${item.lifecycle_status}`);
 
   return <section className="workspace">
     <PageHeader eyebrow="Compliance register" title={typeLabel} description={`${holderLabel}${doc.document_number ? ` · ${doc.document_number}` : ""}`} />
@@ -41,7 +46,7 @@ export default async function DocumentDetail({ params }: { params: Promise<{ id:
         <div className="flex flex-wrap gap-3"><SignedFileButton load={getDocumentUrl.bind(null, doc.id)} label="View or download file" /><ArchiveButton action={softDeleteDocument.bind(null, doc.id)} confirmText="Archive this document? It will no longer count as the holder's document." redirectTo="/documents" /></div>
         {isCurrent ? <DocumentForm units={[]} drivers={[]} renewal={{ documentType: doc.document_type, unitId: doc.unit_id, driverId: doc.driver_id, holderLabel }} /> : <p className="text-body-sm text-muted">This document was replaced. Open the current one from the history to renew it.</p>}
       </div>
-      <div><SectionHeading title="History" description={`Every ${typeLabel} uploaded for ${holderLabel}, newest first.`} /><div className="mt-4"><DataTable searchable={false} headers={["Expires", "Number", "Status"]}>{(history ?? []).map((item) => <tr key={item.id}><td className="font-data">{item.id === doc.id ? item.expires_on : <Link className="muted-link" href={`/documents/${item.id}`}>{item.expires_on}</Link>}</td><td>{item.document_number || "—"}</td><td>{item.lifecycle_status === "current" ? <ExpiryStatus expiresOn={item.expires_on} /> : <StatusBadge label={item.lifecycle_status} tone="muted" />}</td></tr>)}</DataTable></div></div>
+      <div><SectionHeading title="History" description={`Every ${typeLabel} uploaded for ${holderLabel}, newest first.`} /><div className="mt-4"><DataTable list={listView(`/documents/${doc.id}`, query, historyRequest, historyPage, { searchLabel: "Search document history" })} headers={["Expires", "Number", "Status"]}>{historyPage.rows.map((item) => <tr key={item.id}><td className="font-data">{item.id === doc.id ? item.expires_on : <Link className="muted-link" href={`/documents/${item.id}`}>{item.expires_on}</Link>}</td><td>{item.document_number || "—"}</td><td>{item.lifecycle_status === "current" ? <ExpiryStatus expiresOn={item.expires_on} /> : <StatusBadge label={item.lifecycle_status} tone="muted" />}</td></tr>)}</DataTable></div></div>
     </div>
   </section>;
 }
