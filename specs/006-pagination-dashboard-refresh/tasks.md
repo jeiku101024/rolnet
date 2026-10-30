@@ -190,6 +190,25 @@ Record a pass/fail line for each principle in `validation.md`:
 
 ---
 
+## Phase 11: User Story 8 - Sort and filter the main lists (Priority: P2, added 2026-10-30)
+
+**Goal**: Each main list has a sort choice and the filters that fit it (contracts/list-paging.md "Sort and filter")
+
+**Independent Test**: On Expenses, pick a unit, a category and a date range, sort by amount; only matching rows show in that order, counts update, and "Clear filters" restores the list (spec US8)
+
+- [X] T053 [P] [US8] Create `lib/pagination/list-controls.ts`: types for sort options (`value`, `label`, `column`, `ascending`) and filters (`eq` on a column with optional boolean values, `presence` for null / not null, `range` for a from/to date pair, `bucket` for expired / soon / due / later against a date column, `page` for filters the page applies itself); `parseControls(searchParams, spec, today)` validates every value ("an unknown value is ignored", dates must be real `YYYY-MM-DD`) and returns the active sort, active filters and the number of filters on; `applyControls(query, parsed)` adds the `.order()` and filter calls; `matchesControls(row, parsed)` and `sortRows(rows, parsed)` do the same in memory for demo mode; timestamp ranges use the fleet time zone's day bounds
+- [X] T054 [P] [US8] Define each list's sorts and filters in `lib/pagination/list-control-specs.ts`, exactly as the contracts/list-paging.md "Sort and filter" table
+- [X] T055 [P] [US8] Unit tests in `tests/unit/list-controls.test.ts`: unknown values ignored; default sort left out; bad dates ignored; bucket bounds for `expired`, `soon`, `due`, `later`; Manila day bounds for a timestamp range; in-memory filter and sort match the server rules
+- [X] T056 [US8] Create `components/ui/list-controls.tsx` (client): a labelled "Sort" select and one control per filter, each meeting the touch-target size; choosing a value calls `router.replace` with `listHref` and drops `page`; "Clear filters" when anything is on (keeps `q`); folded behind a "Sort and filter (N on)" button below 48rem; render it from `ListToolbar` in `components/ui/paged-list.tsx` when the list view has controls, replacing the removable filter notes
+- [X] T057 [US8] Wire sort and filters into `app/(owner)/units/page.tsx`, `app/(owner)/drivers/page.tsx`, `app/(operations)/remittances/page.tsx`, `app/(operations)/expenses/page.tsx`, `app/(operations)/maintenance/page.tsx`, `app/(owner)/documents/page.tsx`, `lib/audit/queries.ts` + `app/(owner)/audit/page.tsx`, and `app/(owner)/settings/staff/page.tsx`, for both Supabase and demo mode; unit, driver and category options come from the page's existing lookups; owner-only filters (`balance`, `due`) are hidden from staff and ignored for them
+- [X] T058 [US8] Point the dashboard documents "View all" link and tile at `/documents?expiry=due` in `lib/dashboard/queries.ts` and `components/dashboard/fleet-stats.tsx`
+- [X] T059 [US8] Playwright `tests/e2e/list-sort-filter.spec.ts` (demo mode, 360 px): expenses filtered by unit + category + date range and sorted by amount; drivers sorted by license expiry; filter change resets the page; "Clear filters" keeps the search; controls folded on phones; dashboard "View all" lands on a list with the filter selected
+- [X] T060 [US8] Run lint, typecheck, Vitest and the e2e specs; record the results in `specs/006-pagination-dashboard-refresh/validation.md`
+
+**Checkpoint**: Lists can be sorted and filtered, and the dashboard links open them pre-filtered
+
+---
+
 ## Dependencies & Execution Order
 
 - **Setup (T001)** → **Foundational (T002–T011)** → user stories.

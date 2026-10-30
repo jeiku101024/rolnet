@@ -109,7 +109,7 @@ function assemble(input: {
   return {
     month: input.m,
     attention: {
-      documents: toPanel(orderExpiringDocuments(input.expiry, input.today), "/documents?expiring=1"),
+      documents: toPanel(orderExpiringDocuments(input.expiry, input.today), "/documents?expiry=due"),
       maintenance: toPanel(orderDueMaintenance(input.due, input.today), "/maintenance?due=1"),
       balances: toPanel(orderUnpaidBalances(input.balances), "/remittances?balance=unpaid"),
     },

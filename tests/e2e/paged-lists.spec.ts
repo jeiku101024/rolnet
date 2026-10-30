@@ -75,7 +75,8 @@ test.describe("paged lists", () => {
 
   test("open the dashboard's filtered View all lists", async ({ page }) => {
     await page.goto("/units?status=in_repair");
-    await expect(page.getByText("Showing units in repair")).toBeVisible();
+    await page.getByRole("button", { name: "Sort and filter (1 on)" }).click();
+    await expect(page.getByRole("group", { name: "Sort and filter" }).getByRole("combobox", { name: "Status", exact: true })).toHaveValue("in_repair");
     await expect(page.locator("tbody tr")).toHaveCount(2);
     await page.goto("/drivers?kind=backup");
     await expect(page.locator("tbody tr")).toHaveCount(3);

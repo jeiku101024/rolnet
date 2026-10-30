@@ -21,7 +21,7 @@ Owner-only (`view_dashboard`). Current fleet month and fleet "today" from `lib/d
 
 | Panel | Ordering | Each row shows | Row link | View all |
 |---|---|---|---|---|
-| Expiring documents | expired first, then soonest | type, holder, "Expired N days ago" / "Expires in N days" / "Expires today" | `/documents/[id]` | `/documents?expiring=1` |
+| Expiring documents | expired first, then soonest | type, holder, "Expired N days ago" / "Expires in N days" / "Expires today" | `/documents/[id]` | `/documents?expiry=due` |
 | Due maintenance | urgency desc (R7) | item, Body X, "N days overdue" and/or "N km past due" | `/maintenance/[unitId]` | `/maintenance?due=1` |
 | Unpaid balances | amount desc, oldest first on ties | driver, amount, "N unpaid days since DATE" | `/drivers/[id]` | `/remittances?balance=unpaid` |
 | Extradors | assigned first, then name | name, phone, "Body X today" or "Not assigned" | `/drivers/[id]` | `/drivers?kind=backup` |

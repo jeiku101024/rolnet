@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { X } from "lucide-react";
 import { listHref, type ListPageState, type SearchParams } from "@/lib/pagination/list-page";
 import { ListSearch } from "@/components/ui/list-search";
 import { Pagination } from "@/components/ui/pagination";
 import { Card, CardContent } from "@/components/ui/card";
+import { ListControls } from "@/components/ui/list-controls";
+import type { ListControlsView } from "@/lib/pagination/list-controls";
 
 /** Everything a paged list needs to draw its toolbar and footer (contracts/list-paging.md). */
 export interface ListView {
@@ -16,11 +17,11 @@ export interface ListView {
   /** `false` for lists without a search box (days off, mileage readings). */
   search?: boolean;
   searchLabel?: string;
-  /** Fixed filters shown as removable notes, e.g. "Showing units in repair". */
-  filters?: { label: string; param: string }[];
+  /** Sort and filter controls of a main list (User Story 8). */
+  controls?: ListControlsView;
 }
 
-export function listView(pathname: string, searchParams: SearchParams, request: { prefix: string; q: string }, state: ListPageState, options: Pick<ListView, "search" | "searchLabel" | "filters"> = {}): ListView {
+export function listView(pathname: string, searchParams: SearchParams, request: { prefix: string; q: string }, state: ListPageState, options: Pick<ListView, "search" | "searchLabel" | "controls"> = {}): ListView {
   return { pathname, searchParams, prefix: request.prefix, q: request.q, state, ...options };
 }
 
@@ -32,7 +33,7 @@ export function ListToolbar({ list }: { list: ListView }) {
       {list.search === false ? null : <ListSearch pathname={list.pathname} searchParams={list.searchParams} prefix={prefix} initialValue={list.q} label={list.searchLabel} placeholder={list.searchLabel ? `${list.searchLabel}…` : undefined} />}
       <span className="font-data text-label text-muted">{total} {total === 1 ? "record" : "records"}</span>
     </div>
-    {list.filters?.length ? <div className="flex flex-wrap gap-2">{list.filters.map((filter) => <Link key={filter.param} className="touch-target inline-flex items-center gap-1 rounded-md bg-brand-soft px-3 text-label font-semibold text-brand-dark" href={listHref(list.pathname, list.searchParams, { [filter.param]: null, [`${prefix}page`]: null })} aria-label={`${filter.label}. Remove this filter`}>{filter.label}<X aria-hidden="true" size={14} /></Link>)}</div> : null}
+    {list.controls ? <ListControls pathname={list.pathname} searchParams={list.searchParams} controls={list.controls} /> : null}
   </div>;
 }
 
@@ -45,7 +46,7 @@ export function SearchEmpty({ list }: { list: ListView }) {
 
 /** Toolbar, rows (or the right empty message) and pagination footer, shared by tables and lists. */
 export function ListFrame({ list, hasRows, empty, children }: { list: ListView; hasRows: boolean; empty?: ReactNode; children: ReactNode }) {
-  const narrowed = Boolean(list.q) || Boolean(list.filters?.length);
+  const narrowed = Boolean(list.q) || Boolean(list.controls?.count);
   return <>
     <ListToolbar list={list} />
     <div className="pt-2">{hasRows ? children : narrowed ? <SearchEmpty list={list} /> : empty}</div>

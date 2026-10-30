@@ -122,9 +122,13 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   `lib/pagination/search-filter.ts`, specs in `lib/pagination/search-specs.ts`). Names on related
   rows are matched through an id lookup; enum columns are matched by their display labels.
   Detail-page lists are already fully loaded for coverage logic, so they page in memory (`pageRows`).
-- Fixed filters used by the dashboard's "View all" links: `/units?status=in_repair`,
-  `/drivers?kind=backup`, and the owner-only `/maintenance?due=1`, `/remittances?balance=unpaid`,
-  `/documents?expiring=1`.
+- The main lists also have "Sort and filter" (`sort`, `from`/`to` dates, and per-list filters such
+  as `status`, `unit`, `category`). Each list declares its sorts and filters once in
+  `lib/pagination/list-control-specs.ts`; `lib/pagination/list-controls.ts` validates the URL,
+  applies it to the Supabase query, and does the same in memory for demo mode. Unknown values are
+  ignored; changing a sort or filter drops the page. The dashboard's "View all" links use these
+  filters: `/units?status=in_repair`, `/drivers?kind=backup`, `/documents?expiry=due`, and the
+  owner-only `/maintenance?due=1` and `/remittances?balance=unpaid`.
 - The dashboard has four bands, in this order on phones: Needs attention (expiring documents, due
   maintenance, unpaid balances, most urgent first), Fleet status (extradors today, units in repair),
   This month (figures and charts from `dashboard_monthly_unit_summary`, matching the monthly

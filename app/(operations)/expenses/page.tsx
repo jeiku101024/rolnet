@@ -12,6 +12,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/feedback";
 import { listHref, pageRows, parseListPage, type SearchParams } from "@/lib/pagination/list-page";
 import { loadListPage } from "@/lib/pagination/search-filter";
+import { applyFilters, applySort, controlRows, controlsView, parseControls, prepareSpec } from "@/lib/pagination/list-controls";
+import { listControlSpecs } from "@/lib/pagination/list-control-specs";
 import { searchSpecs } from "@/lib/pagination/search-specs";
 import { listView } from "@/components/ui/paged-list";
 
@@ -24,19 +26,24 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const edit = typeof params.edit === "string" ? params.edit : undefined;
   const request = parseListPage(params);
   const supabase = demoMode ? null : await createSupabaseServerClient();
-  const [{ data: categories }, { data: units }, result, { data: editRow }] = supabase ? await Promise.all([
+  const [{ data: categories }, { data: units }] = supabase ? await Promise.all([
     supabase.from("expense_categories").select("id, name").is("deleted_at", null).order("name"),
     supabase.from("units").select("id, body_number, plate_number").is("deleted_at", null).order("body_number"),
+  ]) : [{ data: demoCategories }, { data: demoUnits }];
+  // Sort and filter (US8): date range, unit, category and receipt.
+  const controls = parseControls(params, prepareSpec(listControlSpecs.expenses, { options: { unit: (units ?? []).map((unit) => ({ value: unit.id, label: `Body ${unit.body_number}` })), category: (categories ?? []).map((category) => ({ value: category.id, label: category.name })) } }));
+  const [result, { data: editRow }] = supabase ? await Promise.all([
     loadListPage(supabase, request, searchSpecs.expenses, (from, to, filter) => {
       let query = supabase.from("expenses").select(expenseColumns, { count: "exact" }).is("deleted_at", null);
+      query = applyFilters(query, controls);
       if (filter) query = query.or(filter);
-      return query.order("expense_date", { ascending: false }).order("created_at", { ascending: false }).range(from, to);
+      return applySort(query, controls).range(from, to);
     }),
     // The expense being edited may be on another page, so it is read on its own.
     edit && /^[0-9a-f-]{36}$/i.test(edit) ? supabase.from("expenses").select(expenseColumns).eq("id", edit).is("deleted_at", null).maybeSingle() : Promise.resolve({ data: null }),
-  ]) : [{ data: demoCategories }, { data: demoUnits }, pageRows(demoExpenses, request, (expense) => `${expense.expense_date} ${one(expense.expense_categories)?.name} ${one(expense.units)?.body_number} ${expense.notes}`), { data: null }];
+  ]) : [pageRows(controlRows(demoExpenses, controls), request, (expense) => `${expense.expense_date} ${one(expense.expense_categories)?.name} ${one(expense.units)?.body_number} ${expense.notes}`), { data: null }];
   const expenses = result.rows;
-  const list = listView("/expenses", params, request, result, { searchLabel: "Search expenses" });
+  const list = listView("/expenses", params, request, result, { searchLabel: "Search expenses", controls: controlsView(controls) });
   const editing = (editRow ?? (edit ? expenses.find((expense) => expense.id === edit) : undefined)) as EditableExpense | undefined;
   const editHref = (id: string) => listHref("/expenses", params, { edit: id });
   const cancelHref = listHref("/expenses", params, { edit: null });

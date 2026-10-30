@@ -8,6 +8,8 @@ import { demoMode } from "@/lib/demo/mode";
 import { pageRows, parseListPage, type SearchParams } from "@/lib/pagination/list-page";
 import { loadListPage } from "@/lib/pagination/search-filter";
 import { searchSpecs } from "@/lib/pagination/search-specs";
+import { applyFilters, applySort, controlRows, controlsView, parseControls, prepareSpec } from "@/lib/pagination/list-controls";
+import { listControlSpecs } from "@/lib/pagination/list-control-specs";
 import { listView } from "@/components/ui/paged-list";
 
 async function approve(formData: FormData) { "use server"; await approveStaff(String(formData.get("userId"))); }
@@ -18,15 +20,17 @@ export default async function StaffSettingsPage({ searchParams }: { searchParams
   await requirePermission("manage_users");
   const params = await searchParams;
   const request = parseListPage(params);
+  const controls = parseControls(params, prepareSpec(listControlSpecs.staff));
   const supabase = demoMode ? null : await createSupabaseServerClient();
   const result = supabase
     ? await loadListPage(supabase, request, searchSpecs.staff, (from, to, filter) => {
       let query = supabase.from("profiles").select("user_id, display_name, account_status, created_at", { count: "exact" }).eq("role", "staff");
+      query = applyFilters(query, controls);
       if (filter) query = query.or(filter);
-      return query.order("created_at", { ascending: false }).range(from, to);
+      return applySort(query, controls).range(from, to);
     })
-    : pageRows([] as { user_id: string; display_name: string; account_status: string; created_at: string }[], request, (person) => person.display_name);
+    : pageRows(controlRows([] as { user_id: string; display_name: string; account_status: string; created_at: string }[], controls), request, (person) => person.display_name);
   const staff = result.rows;
-  const list = listView("/settings/staff", params, request, result, { searchLabel: "Search staff" });
+  const list = listView("/settings/staff", params, request, result, { searchLabel: "Search staff", controls: controlsView(controls) });
   return <section className="workspace"><PageHeader eyebrow="Owner settings" title="Staff accounts" description="Approve pending registrations or deactivate approved staff." /><div className="mt-8"><DataTable list={list} headers={["Staff member", "Status", "Registered", "Actions"]} empty={<p className="p-6 text-muted">No staff registrations yet.</p>}>{staff.map((person) => <tr key={person.user_id}><td className="font-semibold">{person.display_name}</td><td><StatusBadge label={person.account_status} tone={person.account_status === "approved" ? "success" : person.account_status === "pending" ? "warning" : "muted"} /></td><td className="font-data text-body-sm">{new Date(person.created_at).toLocaleDateString()}</td><td><div className="flex flex-wrap gap-2">{person.account_status === "pending" ? <><form action={approve}><input type="hidden" name="userId" value={person.user_id} /><button className="touch-target border border-ok px-3 text-body-sm font-bold text-ok" type="submit">Approve</button></form><form action={reject}><input type="hidden" name="userId" value={person.user_id} /><button className="touch-target border border-danger px-3 text-body-sm font-bold text-danger" type="submit">Reject</button></form></> : null}{person.account_status === "approved" ? <form action={deactivate}><input type="hidden" name="userId" value={person.user_id} /><button className="touch-target border border-rule px-3 text-body-sm font-bold text-muted" type="submit">Deactivate</button></form> : null}</div></td></tr>)}</DataTable></div></section>;
 }
