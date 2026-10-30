@@ -1,12 +1,21 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useId, useState, useTransition, type SelectHTMLAttributes } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, SlidersHorizontal, X } from "lucide-react";
 import { listHref, type SearchParams } from "@/lib/pagination/list-page";
 import type { ListControlsView } from "@/lib/pagination/list-controls";
 
 const field = "touch-target w-full min-w-0 rounded-md border border-rule bg-surface px-3 text-body-sm text-ink";
+// Native selects put their arrow flush against the right edge; draw our own with room around it.
+const selectField = `${field} appearance-none truncate pr-9`;
+
+function FilterSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
+  return <span className="relative block min-w-0">
+    <select {...props} className={selectField} />
+    <ChevronDown aria-hidden="true" size={16} className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-muted" />
+  </span>;
+}
 
 /**
  * Sort and filter for a main list (feature 006, User Story 8). Every change updates the URL at
@@ -36,24 +45,24 @@ export function ListControls({ pathname, searchParams, controls }: { pathname: s
       <span className="inline-flex items-center gap-2"><SlidersHorizontal aria-hidden="true" size={16} />{summary}</span>
       <ChevronDown aria-hidden="true" size={16} className={open ? "rotate-180" : undefined} />
     </button>
-    <div id={id} role="group" aria-label="Sort and filter" className={`${open ? "grid" : "max-md:hidden md:grid"} gap-3 sm:grid-cols-2 sm:items-end lg:grid-cols-4`} aria-busy={pending}>
-      <div className="grid gap-1"><label className="text-label font-bold text-muted" htmlFor={`${id}-sort`}>Sort</label>
-        <select id={`${id}-sort`} className={field} value={controls.sort} onChange={(event) => go({ sort: event.target.value === defaultSort ? null : event.target.value })}>
+    <div id={id} role="group" aria-label="Sort and filter" className={`${open ? "grid sm:flex" : "max-md:hidden md:flex"} grid-cols-2 gap-3 sm:flex-wrap sm:items-end`} aria-busy={pending}>
+      <div className="col-span-2 grid min-w-0 gap-1 sm:w-52"><label className="text-label font-bold text-muted" htmlFor={`${id}-sort`}>Sort</label>
+        <FilterSelect id={`${id}-sort`} value={controls.sort} onChange={(event) => go({ sort: event.target.value === defaultSort ? null : event.target.value })}>
           {controls.spec.sorts.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-        </select>
+        </FilterSelect>
       </div>
       {controls.spec.filters.map((def) => def.kind === "range"
-        ? <fieldset key="range" className="grid min-w-0 gap-1 sm:col-span-2"><legend className="mb-1 text-label font-bold text-muted">{def.label}</legend>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="grid gap-1"><label className="text-label text-muted" htmlFor={`${id}-from`}>From</label><input id={`${id}-from`} className={field} type="date" value={controls.values.from ?? ""} max={controls.values.to} onChange={(event) => go({ from: event.target.value || null })} /></div>
-            <div className="grid gap-1"><label className="text-label text-muted" htmlFor={`${id}-to`}>To</label><input id={`${id}-to`} className={field} type="date" value={controls.values.to ?? ""} min={controls.values.from} onChange={(event) => go({ to: event.target.value || null })} /></div>
+        ? <fieldset key="range" className="col-span-2 grid min-w-0 gap-1"><legend className="mb-1 text-label font-bold text-muted">{def.label}</legend>
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <div className="grid min-w-0 gap-1 sm:w-40"><label className="text-label text-muted" htmlFor={`${id}-from`}>From</label><input id={`${id}-from`} className={field} type="date" value={controls.values.from ?? ""} max={controls.values.to} onChange={(event) => go({ from: event.target.value || null })} /></div>
+            <div className="grid min-w-0 gap-1 sm:w-40"><label className="text-label text-muted" htmlFor={`${id}-to`}>To</label><input id={`${id}-to`} className={field} type="date" value={controls.values.to ?? ""} min={controls.values.from} onChange={(event) => go({ to: event.target.value || null })} /></div>
           </div>
         </fieldset>
-        : <div key={def.param} className="grid gap-1"><label className="text-label font-bold text-muted" htmlFor={`${id}-${def.param}`}>{def.label}</label>
-          <select id={`${id}-${def.param}`} className={field} value={controls.values[def.param] ?? ""} onChange={(event) => go({ [def.param]: event.target.value || null })}>
+        : <div key={def.param} className="grid min-w-0 gap-1 sm:w-40"><label className="text-label font-bold text-muted" htmlFor={`${id}-${def.param}`}>{def.label}</label>
+          <FilterSelect id={`${id}-${def.param}`} value={controls.values[def.param] ?? ""} onChange={(event) => go({ [def.param]: event.target.value || null })}>
             <option value="">All</option>
             {def.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          </FilterSelect>
         </div>)}
     </div>
     {changed ? <div className={`${open ? "flex" : "max-md:hidden md:flex"} flex-wrap items-center gap-3`}>
