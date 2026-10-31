@@ -73,6 +73,16 @@ async function insertPayment(supabase: Supabase, remittanceId: string, amountCen
 }
 
 /**
+ * Feature 009: a payment write updates its remittance's deposit (and so updated_at) in the database,
+ * so the card re-reads both after the last write; otherwise its next notes edit looks stale.
+ */
+async function savedFacts(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, remittanceId: string) {
+  const { data, error } = await supabase.from("remittances").select("updated_at, deposit_centavos").eq("id", remittanceId).single();
+  if (error) throw error;
+  return { updatedAt: data.updated_at as string, depositCentavos: Number(data.deposit_centavos) };
+}
+
+/**
  * Feature 008: records an unrecorded Daily view card (FR-020, FR-020a, FR-028). The payment is dated
  * on the card's date. If only the payment fails, the remittance stays saved and the message says how
  * to finish (constitution III, multi-step clause).
@@ -99,10 +109,10 @@ export async function saveDailyRemittance(input: unknown) {
         await insertPayment(supabase, saved.id, payment, paymentTimestampFor(value.serviceDate), value.paymentKey);
       } catch (error) {
         console.error("Daily remittance payment failed", error);
-        return { id: saved.id as string, updatedAt: saved.updated_at as string, receivedCentavos: 0, partial: "The remittance was saved, but the payment was not. Edit the card to add the payment." };
+        return { id: saved.id as string, ...(await savedFacts(supabase, saved.id)), receivedCentavos: 0, partial: "The remittance was saved, but the payment was not. Edit the card to add the payment." };
       }
     }
-    return { id: saved.id as string, updatedAt: saved.updated_at as string, receivedCentavos: payment, partial: null as string | null };
+    return { id: saved.id as string, ...(await savedFacts(supabase, saved.id)), receivedCentavos: payment, partial: null as string | null };
   }, { assignmentId: "driver assignment", serviceDate: "date", disposition: "disposition", notes: "notes (1,000 characters at most)", paymentCentavos: "payment received" });
 }
 
@@ -119,12 +129,10 @@ export async function editDailyRemittance(input: unknown) {
     const supabase = await createSupabaseServerClient();
     const { data: remittance } = await supabase.from("remittances").select("id, service_date, notes, updated_at, remittance_payments(id, amount_centavos, deleted_at)").eq("id", value.remittanceId).is("deleted_at", null).maybeSingle();
     if (!remittance) throw new ActionError("NOT_FOUND", "This remittance was not found. Reload the page.");
-    let updatedAt = remittance.updated_at as string;
     if ((remittance.notes ?? "") !== value.notes) {
       const { data, error } = await supabase.from("remittances").update({ notes: value.notes || null }).eq("id", remittance.id).eq("updated_at", value.expectedUpdatedAt).is("deleted_at", null).select("updated_at").maybeSingle();
       if (error) throw error;
       if (!data) throw new ActionError("STALE_RECORD", "Someone changed this remittance after you opened it. Reload the card and edit again.");
-      updatedAt = data.updated_at as string;
     }
     const active = ((remittance.remittance_payments as { id: string; amount_centavos: number; deleted_at: string | null }[] | null) ?? []).filter((payment) => !payment.deleted_at);
     const current = active.reduce((sum, payment) => sum + Number(payment.amount_centavos), 0);
@@ -147,6 +155,6 @@ export async function editDailyRemittance(input: unknown) {
       }
     }
     revalidateRemittance(remittance.id);
-    return { updatedAt, receivedCentavos: value.targetPaymentCentavos };
+    return { ...(await savedFacts(supabase, remittance.id)), receivedCentavos: value.targetPaymentCentavos };
   }, { notes: "notes (1,000 characters at most)", targetPaymentCentavos: "payment received", reason: "reason (at least 3 characters)" });
 }

@@ -43,12 +43,18 @@ values
 insert into public.remittance_payments (remittance_id, paid_at, amount_centavos, idempotency_key)
 values
   ('00000000-0000-0000-0000-000000220400', '2031-07-01 00:30+08', 18000, gen_random_uuid()),  -- June 30 16:30 UTC, July in Manila
-  ('00000000-0000-0000-0000-000000220401', '2031-07-01 18:00+08', 10000, gen_random_uuid()),
-  ('00000000-0000-0000-0000-000000220401', '2031-08-02 18:00+08', 10000, gen_random_uuid()),
   ('00000000-0000-0000-0000-000000220402', '2031-07-31 23:30+08', 5000, gen_random_uuid()),
   ('00000000-0000-0000-0000-000000220402', '2031-08-01 00:30+08', 1, gen_random_uuid()),      -- July 31 UTC, August in Manila
   ('00000000-0000-0000-0000-000000220403', '2031-07-15 18:00+08', 18000, gen_random_uuid()),
   ('00000000-0000-0000-0000-000000220404', '2031-07-16 18:00+08', 18000, gen_random_uuid());
+-- Feature 009 rejects payments above the rental; unit A's July 1 overpayment is a legacy record
+-- written as it could have been before that rule, so the check trigger is off for this insert only.
+alter table public.remittance_payments disable trigger remittance_payments_validate;
+insert into public.remittance_payments (remittance_id, paid_at, amount_centavos, idempotency_key)
+values
+  ('00000000-0000-0000-0000-000000220401', '2031-07-01 18:00+08', 10000, gen_random_uuid()),
+  ('00000000-0000-0000-0000-000000220401', '2031-08-02 18:00+08', 10000, gen_random_uuid());
+alter table public.remittance_payments enable trigger remittance_payments_validate;
 update public.remittances set deleted_at = now() where id = '00000000-0000-0000-0000-000000220404';
 
 insert into public.expense_categories (id, name) values ('00000000-0000-0000-0000-000000220501', 'Report Misc 220');

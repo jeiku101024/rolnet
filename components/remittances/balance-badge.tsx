@@ -1,8 +1,7 @@
 import { formatPesos } from "@/lib/money/centavos";
 import { StatusBadge } from "@/components/ui/feedback";
 
-/** Shows what a remittance still owes, or the credit when it was overpaid (FR-015). */
-export function BalanceBadge({ balance, credit }: { balance: number; credit: number }) {
-  if (credit) return <StatusBadge label={`Credit ${formatPesos(credit)}`} tone="success" />;
+/** Shows what a remittance still owes, or "Paid" (FR-008: there is no credit). */
+export function BalanceBadge({ balance }: { balance: number }) {
   return <StatusBadge label={balance ? `Owes ${formatPesos(balance)}` : "Paid"} tone={balance ? "warning" : "success"} />;
 }

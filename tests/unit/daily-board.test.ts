@@ -9,7 +9,7 @@ const backup = (id: string, unit_id: string, covers: string, driverName: string,
   ({ id, unit_id, assignment_type: "backup", starts_on: date, ends_on: date, driver_id: `d-${id}`, covered_primary_assignment_id: covers, driverName });
 const dayOff = (primaryId: string, date = today) => ({ id: `o-${primaryId}`, primary_assignment_id: primaryId, day_off_date: date, notes: null });
 const remittance = (unit_id: string, over: Partial<DailyRows["remittances"][number]> = {}): DailyRows["remittances"][number] => ({
-  id: `r-${unit_id}`, unit_id, driver_id: "d-saved", assignment_id: "a-saved", disposition: "returned", amount_due_centavos: 18000, notes: null,
+  id: `r-${unit_id}`, unit_id, driver_id: "d-saved", assignment_id: "a-saved", disposition: "returned", amount_due_centavos: 18000, allowance_centavos: 4000, deposit_centavos: 14000, notes: null,
   updated_at: "2026-10-30T08:00:00Z", driverName: "Saved Driver", assignmentType: "primary", coveringFor: null, payments: [{ amount_centavos: 18000 }], ...over,
 });
 const rows = (over: Partial<DailyRows> = {}): DailyRows => ({ units: [], assignments: [], daysOff: [], remittances: [], drivers: [], ...over });
@@ -20,6 +20,11 @@ describe("buildDailyBoard (feature 008)", () => {
     const board = build({ units: [unit("u1", "ROLNET-1")], assignments: [primary("p1", "u1", "New Driver")], remittances: [remittance("u1")] });
     expect(board.cards).toHaveLength(1);
     expect(board.cards[0]).toMatchObject({ kind: "saved", remittanceId: "r-u1", receivedCentavos: 18000, dueCentavos: 18000, driver: { name: "Saved Driver", role: "primary" } });
+  });
+
+  it("carries the saved allowance and deposit onto a saved card (feature 009)", () => {
+    const board = build({ units: [unit("u1", "ROLNET-1")], assignments: [primary("p1", "u1", "Juan")], remittances: [remittance("u1", { payments: [{ amount_centavos: 10000 }], deposit_centavos: 6000 })] });
+    expect(board.cards[0]).toMatchObject({ kind: "saved", receivedCentavos: 10000, allowanceCentavos: 4000, depositCentavos: 6000 });
   });
 
   it("shows the scheduled primary on an unrecorded card", () => {

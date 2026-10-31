@@ -10,12 +10,14 @@ import { AlertDialog, AlertDialogClose, AlertDialogContent, AlertDialogFooter } 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLinkItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { BalanceBadge } from "@/components/remittances/balance-badge";
+import { MoneyText } from "@/components/remittances/money-text";
 import { DriverTag } from "@/components/remittances/driver-tag";
 import { AssignBackupPicker } from "@/components/remittances/assign-backup-picker";
 import { clientErrorMessage } from "@/components/forms/use-action-form";
 import { formatPesos, parseCentavos } from "@/lib/money/centavos";
 import { formatShortDate } from "@/lib/dates/fleet-date";
 import { remittanceTotals } from "@/lib/remittances/totals";
+import { ALLOWANCE_CENTAVOS, depositFor, exceedsRental, overRentalMessage } from "@/lib/remittances/financials";
 import { dueFor, type DailyCard as Card, type Disposition, type SavedCard } from "@/lib/remittances/daily-board";
 
 export type CardView = Card & { notice?: string };
@@ -77,6 +79,9 @@ function RecordCard({ card, date, isToday, isOwner, onSaved, onDirty, onReload }
   const key = (name: "remittance" | "payment") => (keys.current[name] ??= crypto.randomUUID());
 
   const due = saved ? saved.dueCentavos : dueFor(disposition);
+  const typed = parseAmount(payment);
+  // A legacy overpaid record (before feature 009) may keep its saved amount, but not take more.
+  const overRental = typed !== null && exceedsRental(typed, due) && !(saved && typed === saved.receivedCentavos);
   const dirty = saved ? editing && (payment !== centavosText(saved.receivedCentavos) || notes !== saved.notes) : disposition !== "returned" || payment !== "" || notes !== "";
   const { key: cardKey } = card;
   useEffect(() => { onDirty(cardKey, dirty); }, [cardKey, dirty, onDirty]);
@@ -99,6 +104,7 @@ function RecordCard({ card, date, isToday, isOwner, onSaved, onDirty, onReload }
     if (busy.current) return;
     const amount = parseAmount(payment);
     if (amount === null) { setError({ message: amountHint }); return; }
+    if (overRental) return;
     if (saved && amount < saved.receivedCentavos && !lowerReason) {
       if (!isOwner) { setError({ message: "Only the owner can lower a recorded payment." }); return; }
       setLowering(amount);
@@ -112,12 +118,12 @@ function RecordCard({ card, date, isToday, isOwner, onSaved, onDirty, onReload }
         const result = await saveDailyRemittance({ assignmentId: card.assignmentId, serviceDate: date, disposition, notes: notes.trim() || undefined, paymentCentavos: amount, remittanceKey: key("remittance"), paymentKey: key("payment") });
         if (!result.ok) { setError({ message: result.message, reload: result.code === "DUPLICATE_REMITTANCE" || result.code === "DUPLICATE_RECORD" }); return; }
         keys.current = {};
-        onSaved({ ...card, kind: "saved", remittanceId: result.data.id, updatedAt: result.data.updatedAt, disposition, dueCentavos: dueFor(disposition), receivedCentavos: result.data.receivedCentavos, notes: notes.trim(), notice: result.data.partial ?? undefined });
+        onSaved({ ...card, kind: "saved", remittanceId: result.data.id, updatedAt: result.data.updatedAt, disposition, dueCentavos: dueFor(disposition), receivedCentavos: result.data.receivedCentavos, allowanceCentavos: ALLOWANCE_CENTAVOS, depositCentavos: result.data.depositCentavos, notes: notes.trim(), notice: result.data.partial ?? undefined });
       } else if (saved) {
         const result = await editDailyRemittance({ remittanceId: saved.remittanceId, expectedUpdatedAt: saved.updatedAt, notes: notes.trim(), targetPaymentCentavos: amount, reason: lowerReason, paymentKey: key("payment") });
         if (!result.ok) { setError({ message: result.message, reload: result.code === "STALE_RECORD" || result.code === "PARTIAL" }); return; }
         keys.current = {};
-        onSaved({ ...saved, updatedAt: result.data.updatedAt, receivedCentavos: result.data.receivedCentavos, notes: notes.trim() });
+        onSaved({ ...saved, updatedAt: result.data.updatedAt, receivedCentavos: result.data.receivedCentavos, depositCentavos: result.data.depositCentavos, notes: notes.trim() });
       }
     } catch (reasonThrown) {
       setError({ message: clientErrorMessage(reasonThrown) });
@@ -129,6 +135,8 @@ function RecordCard({ card, date, isToday, isOwner, onSaved, onDirty, onReload }
 
   const locked = Boolean(saved) && !editing;
   const totals = saved ? remittanceTotals(saved.dueCentavos, [{ amount_centavos: saved.receivedCentavos }]) : null;
+  const allowance = saved ? saved.allowanceCentavos : ALLOWANCE_CENTAVOS;
+  const deposit = locked && saved ? saved.depositCentavos : typed === null || overRental ? null : depositFor(typed, allowance);
 
   return <article className={`${shell} ${locked ? "bg-muted" : "bg-surface"}`} aria-label={card.unitName}>
     <div className="flex min-w-0 items-start justify-between gap-2">
@@ -145,7 +153,7 @@ function RecordCard({ card, date, isToday, isOwner, onSaved, onDirty, onReload }
       </DropdownMenu> : null}
     </div>
 
-    <p className="flex items-baseline justify-between gap-2"><span className="text-body-sm text-muted">Due</span><span className="font-data text-page-title font-bold text-ink" aria-live="polite">{formatPesos(due)}</span></p>
+    <p className="flex items-baseline justify-between gap-2"><span className="text-body-sm text-muted">Rental</span><span className="font-data text-page-title font-bold text-ink" aria-live="polite">{formatPesos(due)}</span></p>
 
     <FormField label="Disposition" hint={saved && editing ? `Disposition can't be changed after saving.${isOwner ? " Reverse it on the record's details page to change it." : ""}` : undefined}>
       <Select value={disposition} disabled={Boolean(saved)} onChange={(event) => setDisposition(event.target.value as Disposition)}>
@@ -154,17 +162,23 @@ function RecordCard({ card, date, isToday, isOwner, onSaved, onDirty, onReload }
       </Select>
     </FormField>
     <FormField label="Payment received (₱)">
-      <Input inputMode="decimal" placeholder="0.00" value={payment} disabled={locked || pending} onChange={(event) => setPayment(event.target.value)} aria-invalid={error?.message === amountHint || undefined} />
+      <Input inputMode="decimal" placeholder="0.00" value={payment} disabled={locked || pending} onChange={(event) => setPayment(event.target.value)} aria-invalid={error?.message === amountHint || (overRental && !locked) || undefined} />
     </FormField>
     <FormField label="Notes">
       <Input placeholder="Add a note" maxLength={1000} value={notes} disabled={locked || pending} onChange={(event) => setNotes(event.target.value)} />
     </FormField>
 
+    <dl className="grid grid-cols-2 gap-x-2 gap-y-1 text-body-sm text-muted" aria-live="polite">
+      <dt>Allowance</dt><dd className="text-right font-data"><MoneyText centavos={allowance} /></dd>
+      <dt>Deposit</dt><dd className="text-right font-data">{deposit === null ? "—" : <MoneyText centavos={deposit} />}</dd>
+    </dl>
+
+    {overRental && !locked ? <p role="alert" className="text-body-sm text-danger">{overRentalMessage(due)}</p> : null}
     {error ? <div role="alert" className="grid gap-2 text-body-sm text-danger"><p>{error.message}</p>{error.reload ? <Button type="button" variant="outline" className="w-fit" onClick={() => { setError(null); onReload(card.key); }}>Reload</Button> : null}</div> : null}
     {card.notice && locked ? <p role="status" className="text-body-sm text-warn">{card.notice}</p> : null}
 
     {locked && totals ? <div className="flex flex-wrap items-center justify-between gap-2">
-      <BalanceBadge balance={totals.balance} credit={totals.credit} />
+      <BalanceBadge balance={totals.balance} />
       <span className="inline-flex items-center gap-1 text-body-sm font-semibold text-muted"><Lock aria-hidden="true" size={14} />Saved</span>
     </div> : <div className="flex flex-wrap gap-2">
       <Button type="button" className="flex-1" disabled={pending} onClick={() => submit()}>{pending ? "Saving…" : "Save remittance"}</Button>

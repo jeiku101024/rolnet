@@ -7,6 +7,7 @@ import { formatPesos } from "@/lib/money/centavos";
 import { fleetTimeZone } from "@/lib/dates/fleet-date";
 import { remittanceTotals } from "@/lib/remittances/totals";
 import { BalanceBadge } from "@/components/remittances/balance-badge";
+import { MoneyText } from "@/components/remittances/money-text";
 import { CorrectPaymentForm, PaymentForm, RemittanceNotesForm, ReverseRemittanceForm } from "@/components/forms/remittance-detail-forms";
 import { PageHeader, SectionHeading } from "@/components/ui/page-header";
 import { DataTable } from "@/components/ui/data-table";
@@ -21,7 +22,7 @@ export default async function RemittanceDetailPage({ params, searchParams }: { p
   const { id } = await params;
   const query = await searchParams;
   const supabase = await createSupabaseServerClient();
-  const { data: remittance } = await supabase.from("remittances").select("id, service_date, disposition, amount_due_centavos, notes, updated_at, unit_id, driver_id, units(body_number), drivers(full_name), remittance_payments(id, paid_at, amount_centavos, notes)").eq("id", id).is("deleted_at", null).maybeSingle();
+  const { data: remittance } = await supabase.from("remittances").select("id, service_date, disposition, amount_due_centavos, allowance_centavos, deposit_centavos, notes, updated_at, unit_id, driver_id, units(body_number), drivers(full_name), remittance_payments(id, paid_at, amount_centavos, notes)").eq("id", id).is("deleted_at", null).maybeSingle();
   if (!remittance) notFound();
   const payments = [...(remittance.remittance_payments ?? [])].sort((a, b) => a.paid_at.localeCompare(b.paid_at));
   const totals = remittanceTotals(remittance.amount_due_centavos, payments);
@@ -35,11 +36,13 @@ export default async function RemittanceDetailPage({ params, searchParams }: { p
     <div className="mt-6 workspace-grid">
       <div className="space-y-6 border-t border-rule pt-5">
         <dl className="grid gap-4 sm:grid-cols-2">
-          <div><dt className="text-label font-bold uppercase text-muted">Due</dt><dd className="mt-1 font-data text-page-title font-bold">{formatPesos(remittance.amount_due_centavos)}</dd></div>
+          <div><dt className="text-label font-bold uppercase text-muted">Rental</dt><dd className="mt-1 font-data text-page-title font-bold">{formatPesos(remittance.amount_due_centavos)}</dd></div>
           <div><dt className="text-label font-bold uppercase text-muted">Paid</dt><dd className="mt-1 font-data text-page-title font-bold">{formatPesos(totals.paid)}</dd></div>
-          <div><dt className="text-label font-bold uppercase text-muted">{totals.credit ? "Credit (overpaid)" : "Balance"}</dt><dd className="mt-1"><BalanceBadge balance={totals.balance} credit={totals.credit} /></dd></div>
+          <div><dt className="text-label font-bold uppercase text-muted">Balance</dt><dd className="mt-1"><BalanceBadge balance={totals.balance} /></dd></div>
+          <div><dt className="text-label font-bold uppercase text-muted">Allowance</dt><dd className="mt-1 font-data font-bold"><MoneyText centavos={Number(remittance.allowance_centavos)} /></dd></div>
+          <div><dt className="text-label font-bold uppercase text-muted">Deposit</dt><dd className="mt-1 font-data font-bold"><MoneyText centavos={Number(remittance.deposit_centavos)} /></dd></div>
         </dl>
-        <PaymentForm remittanceId={remittance.id} balanceText={formatPesos(totals.balance)} />
+        <PaymentForm remittanceId={remittance.id} rentalCentavos={remittance.amount_due_centavos} balanceCentavos={totals.balance} />
         <RemittanceNotesForm key={remittance.updated_at} remittanceId={remittance.id} notes={remittance.notes} updatedAt={remittance.updated_at} />
         {isOwner ? <ReverseRemittanceForm remittanceId={remittance.id} /> : null}
       </div>

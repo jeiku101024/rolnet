@@ -43,9 +43,15 @@ values
   ('00000000-0000-0000-0000-000000210401', '2031-06-01 18:00+08', 10000, gen_random_uuid()),
   ('00000000-0000-0000-0000-000000210401', '2031-06-02 18:00+08', 5000, gen_random_uuid()),
   ('00000000-0000-0000-0000-000000210402', '2031-06-02 18:00+08', 15000, gen_random_uuid()),
-  ('00000000-0000-0000-0000-000000210402', '2031-06-03 18:00+08', 15000, gen_random_uuid()),
+  ('00000000-0000-0000-0000-000000210402', '2031-06-03 18:00+08', 15000, gen_random_uuid());
+-- Feature 009 rejects payments above the rental; Y's overpayment is a legacy record written as it
+-- could have been before that rule, so the check trigger is off for this insert only.
+alter table public.remittance_payments disable trigger remittance_payments_validate;
+insert into public.remittance_payments (remittance_id, paid_at, amount_centavos, idempotency_key)
+values
   ('00000000-0000-0000-0000-000000210404', '2031-06-01 18:00+08', 18000, gen_random_uuid()),
   ('00000000-0000-0000-0000-000000210404', '2031-06-01 19:00+08', 2000, gen_random_uuid());
+alter table public.remittance_payments enable trigger remittance_payments_validate;
 
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000210001","role":"authenticated"}', true);
 set local role authenticated;

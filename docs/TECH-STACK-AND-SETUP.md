@@ -43,14 +43,16 @@ than starting over.
 | Feature 003 – App navigation | 4 / 35 done |
 | Feature 004 – Backend CRUD APIs | 0 / 72 (spec, plan, tasks written; code started under `app/api/v1/[...segments]`) |
 | Database | 48 ordered migrations, RLS on every table, pgTAP constraint + RLS tests, seed |
-| App | Owner/staff route groups, server actions per entity, demo mode, CSV report, audit log |
+| App | Owner/staff route groups, server actions per entity, demo mode, XLSX reports, audit log |
 | Tests | Vitest unit/integration, Playwright e2e (mobile + a11y), pgTAP |
 | Deploy | Cloudflare Workers via **vinext** + Wrangler; Docker dev container |
 
 Business rules already captured (keep them):
 
 - Remittance is daily: **₱180** when the unit is returned to the garage, **₱300** total when the driver
-  keeps it overnight (overtime). Stored as `18000` / `30000` centavos.
+  keeps it overnight (overtime). Stored as `18000` / `30000` centavos and shown as the **Rental**.
+  Each remittance keeps a fixed ₱40 allowance; Deposit = paid − 40 (may be negative). Payments can't
+  exceed the rental, so there is no credit.
 - Each unit has one primary driver; extradors cover on the primary's days off. One operating
   assignment per unit and per driver per calendar date.
 - Staff self-register → owner approves. Staff can create/edit remittances, expenses, maintenance only.
@@ -594,7 +596,7 @@ backup (§13.1) and run `supabase db push --dry-run`.
 |---|---|---|---|
 | Constraints, triggers, money functions | pgTAP | `supabase/tests/constraints/` | Centavo math, one-assignment-per-day, reversal integrity |
 | Row Level Security | pgTAP | `supabase/tests/rls/` | owner / staff / pending / anon for every table & bucket |
-| Pure logic | Vitest | `tests/unit/` | `centavos.ts`, `fleet-date.ts`, Zod schemas, CSV escaping |
+| Pure logic | Vitest | `tests/unit/` | `centavos.ts`, `fleet-date.ts`, Zod schemas, report periods and XLSX layout |
 | API & actions | Vitest | `tests/integration/` | Auth, idempotency, concurrency, soft delete/restore |
 | User journeys | Playwright | `tests/e2e/` | 360 px journeys, keyboard focus, axe a11y |
 
@@ -683,7 +685,7 @@ or `wrangler secret put`):
 | `SUPABASE_SERVICE_ROLE_KEY` | **secret** (only if a server task really needs it) | — |
 
 Smoke test after every deploy: log in, create one expense with a receipt photo, download it,
-open the dashboard, export a CSV.
+open the dashboard, download an XLSX report.
 
 ### 12.3 Fallback if vinext breaks
 
@@ -784,7 +786,7 @@ Status as of the `chore/repo-hygiene` branch (2026-10-28):
 | 6 | New: preventive maintenance schedules by km/date | new spec 005 |
 | 7 | New: PWA install + offline-tolerant remittance entry (queue & sync) | new spec 006 |
 | 8 | New: driver self-view of balance (read-only role) | new spec 007 |
-| 9 | New: Excel/PDF exports (`exceljs`, `@react-pdf/renderer`) beyond CSV | new spec 008 |
+| 9 | Done for Excel: Weekly, Monthly and Yearly .xlsx reports (feature 009, in-repo writer, no package). PDF exports still open | spec 009 |
 | 10 | Optional: free notifications (email via Supabase Auth SMTP limits / Telegram bot) for expiries | new spec 009 (needs constitution check: v1 says in-app only) |
 
 ---

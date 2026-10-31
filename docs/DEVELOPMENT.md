@@ -1,6 +1,6 @@
 # ROLNET Development Guide
 
-ROLNET is a mobile-first tricycle fleet management application for one fleet owner and staff. It covers units, primary/backup drivers, daily remittances, expenses, parts, tires, documents, dashboard alerts, audit history, and monthly CSV reports.
+ROLNET is a mobile-first tricycle fleet management application for one fleet owner and staff. It covers units, primary/backup drivers, daily remittances, expenses, parts, tires, documents, dashboard alerts, audit history, and Weekly, Monthly and Yearly Excel (.xlsx) reports.
 
 ## Quick start
 
@@ -103,7 +103,16 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
 ## Business/data rules
 
 - Money is always integer centavos; display formatting is presentation-only.
-- Returned remittance is 18,000 centavos; overnight/overtime is 30,000 centavos total.
+- Returned remittance is 18,000 centavos; overnight/overtime is 30,000 centavos total. The screens
+  call this amount the **Rental** (formerly "Due").
+- Remittance financials (feature 009): every remittance stores an **Allowance** of ₱40
+  (`allowance_centavos = 4000`), fixed when it is saved, and a **Deposit** = paid − allowance
+  (`deposit_centavos`, may be negative). The database keeps the deposit in step with the payments
+  (triggers `remittances_set_deposit` and `remittance_payments_sync_deposit`), so it is correct for
+  every entry path. A payment can't take a remittance's total above its rental; the database rejects
+  it with "Payment can't exceed the rental of ₱X. At most ₱Y more can be recorded." There is no
+  credit. Records that were already overpaid before this rule keep their payments, show "Paid", and
+  accept no new payment.
 - Remittances (feature 008): Daily view (`/remittances`, optional `?date=YYYY-MM-DD`, never after
   today) is where remittances are recorded and corrected, one card per scheduled unit; List view
   (`/remittances?view=list`) is the read-only history, newest first. Cards show the driver assigned
@@ -115,6 +124,12 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   disposition never changes (the owner reverses it on its details page); raising the payment adds the
   difference, and only the owner can lower it, which voids the earlier payments with a reason and
   records the new total.
+- Reports (`/reports`, owner only) download Weekly (Monday to Sunday of any date), Monthly and Yearly
+  .xlsx files for the whole fleet or one unit (retired units included), from
+  `GET /api/reports/{weekly|monthly|yearly}`. They follow the client's template, with live
+  formulas for subtotals, Net and grand totals. The workbook is written by `lib/reports/xlsx.ts`
+  (no spreadsheet package). The old monthly CSV download is gone; the `monthly_report` SQL function
+  and its pgTAP tests remain in the database but the app no longer calls it.
 - Business rows have timestamps, actor IDs, and soft deletion.
 - Driver profile license expiry is authoritative and must match uploaded license documents.
 - Receipts target 300 KB and hard-limit at 500 KB; documents hard-limit at 5 MB.
@@ -156,7 +171,7 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
 
 ## Validation and release
 
-Run lint, typecheck, tests, vinext check, and build:vinext. With a database runtime, also run all Supabase migrations, pgTAP, Storage/RLS tests, Playwright journeys, 100-unit/24-month dashboard performance checks, CSV reconciliation, and the acceptance protocol in specs/001-fleet-management/quickstart.md.
+Run lint, typecheck, tests, vinext check, and build:vinext. With a database runtime, also run all Supabase migrations, pgTAP, Storage/RLS tests, Playwright journeys, 100-unit/24-month dashboard performance checks, report reconciliation (a month's XLSX totals against List view and the Expenses page), and the acceptance protocol in specs/001-fleet-management/quickstart.md.
 
 The remaining integration checkpoints are tracked in specs/001-fleet-management/tasks.md: T026, T043, T054, T065, T077, T090, T101, T108, T112, T115. They remain unchecked until a working Supabase runtime is available.
 
@@ -169,9 +184,9 @@ The remaining integration checkpoints are tracked in specs/001-fleet-management/
 
 ## Deployment outline
 
-1. Run all code, database, RLS, Storage, E2E, performance, and CSV checks.
+1. Run all code, database, RLS, Storage, E2E, performance, and report checks.
 2. Apply reviewed Supabase migrations with supabase db push --dry-run, then supabase db push.
 3. Configure Cloudflare Workers environment variables/secrets.
 4. Build and deploy through the vinext Cloudflare workflow.
-5. Smoke-test login, one mutation, private upload/download, dashboard, and CSV export.
+5. Smoke-test login, one mutation, private upload/download, dashboard, and an XLSX report download.
 

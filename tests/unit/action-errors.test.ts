@@ -20,6 +20,9 @@ describe("databaseFailure", () => {
 
   it("passes through messages raised by our own triggers", () => {
     expect(databaseFailure({ code: "23514", message: "Mileage cannot be higher than a later reading" }, "fallback").message).toBe("Mileage cannot be higher than a later reading.");
+    // Feature 009: the over-rental message is shown exactly as the database wrote it.
+    expect(databaseFailure({ code: "23514", message: "Payment can't exceed the rental of ₱180.00. At most ₱80.00 more can be recorded." }, "fallback").message)
+      .toBe("Payment can't exceed the rental of ₱180.00. At most ₱80.00 more can be recorded.");
     expect(databaseFailure({ code: "23P01", message: "Driver already operates another unit on this date" }, "fallback").message).toBe("Driver already operates another unit on this date.");
     // From 20261029001400 (PR #10): unit delete blocked by assignments.
     expect(databaseFailure({ code: "23503", message: "This unit still has current or upcoming driver assignments. End or remove them before deleting the unit" }, "fallback").message).toMatch(/^This unit still has current/);

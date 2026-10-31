@@ -51,14 +51,17 @@ export const demoUnitDaysOff = [
 export const demoExpenses = [
   { id: "00000000-0000-4000-8000-000000000041", unit_id: "00000000-0000-4000-8000-000000000001", category_id: "00000000-0000-4000-8000-000000000022", expense_date: addDays(today, -1), amount_centavos: 185000, notes: "Monthly tune-up", receipt_object_path: null, units: [{ body_number: "T-001", plate_number: "ABC-1234" }], expense_categories: [{ name: "Repairs" }] },
   ...Array.from({ length: 11 }, (_, index) => ({ id: demoId(4, index + 2), unit_id: demoUnits[index % 4].id, category_id: demoCategories[index % 2].id, expense_date: addDays(today, -(index + 2)), amount_centavos: 25000 + index * 5000, notes: index % 2 ? "Gasoline" : "", receipt_object_path: index % 3 ? "demo" : null, units: [{ body_number: demoUnits[index % 4].body_number, plate_number: demoUnits[index % 4].plate_number }], expense_categories: [{ name: demoCategories[index % 2].name }] })),
+  // Feature 009: older registration fees so every week of the demo reports has an expense.
+  ...[14, 19, 24, 29].map((daysAgo, index) => ({ id: demoId(4, index + 20), unit_id: demoUnits[3].id, category_id: demoCategories[2].id, expense_date: addDays(today, -daysAgo), amount_centavos: 15000, notes: "", receipt_object_path: null, units: [{ body_number: demoUnits[3].body_number, plate_number: demoUnits[3].plate_number }], expense_categories: [{ name: demoCategories[2].name }] })),
 ];
 
 export const demoRemittances = Array.from({ length: 30 }, (_, index) => {
   const unit = demoUnits[index % 3];
   const driver = demoDrivers[index % 4];
   const due = index % 5 === 0 ? 30000 : 18000;
-  const paid = index % 7 === 3 ? due - 8000 : due;
-  return { id: index === 0 ? "00000000-0000-4000-8000-000000000051" : demoId(5, index + 1), service_date: addDays(today, -index), disposition: due === 30000 ? "overnight_overtime" : "returned", amount_due_centavos: due, notes: "", updated_at: `${addDays(today, -index)}T08:00:00Z`, units: [{ body_number: unit.body_number }], drivers: [{ full_name: driver.full_name }], remittance_payments: [{ amount_centavos: paid }], unit_id: unit.id, driver_id: driver.id };
+  // Feature 009: one unpaid record (deposit −₱40.00) for the List view and reports.
+  const paid = index === 22 ? 0 : index % 7 === 3 ? due - 8000 : due;
+  return { id: index === 0 ? "00000000-0000-4000-8000-000000000051" : demoId(5, index + 1), service_date: addDays(today, -index), disposition: due === 30000 ? "overnight_overtime" : "returned", amount_due_centavos: due, notes: "", updated_at: `${addDays(today, -index)}T08:00:00Z`, units: [{ body_number: unit.body_number }], drivers: [{ full_name: driver.full_name }], allowance_centavos: 4000, deposit_centavos: paid - 4000, remittance_payments: paid ? [{ amount_centavos: paid }] : [], unit_id: unit.id, driver_id: driver.id };
 });
 
 export const demoDocuments = [
