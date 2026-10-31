@@ -3,26 +3,28 @@
 import { useRouter } from "next/navigation";
 import { addRemittancePayment, updateRemittanceNotes } from "@/app/actions/remittances";
 import { correctRemittancePayment, reverseRemittance } from "@/app/actions/remittance-corrections";
-import { parsePositiveCentavos } from "@/lib/money/centavos";
+import { formatPesos, parsePositiveCentavos } from "@/lib/money/centavos";
+import { overRentalMessage } from "@/lib/remittances/financials";
 import { FormPanel } from "@/components/ui/form-panel";
 import { FormField, Input, Textarea } from "@/components/ui/form-field";
 import { FormFooter } from "@/components/forms/form-status";
 import { useActionForm } from "@/components/forms/use-action-form";
 import { text } from "@/components/forms/form-values";
 
-/** A later (partial or balance) payment for a saved remittance (FR-015). */
-export function PaymentForm({ remittanceId, balanceText }: { remittanceId: string; balanceText: string }) {
+/** A later (partial or balance) payment for a saved remittance. It can't exceed the rental (feature 009, FR-007). */
+export function PaymentForm({ remittanceId, rentalCentavos, balanceCentavos }: { remittanceId: string; rentalCentavos: number; balanceCentavos: number }) {
   const router = useRouter();
   const { pending, status, submit } = useActionForm();
   return <FormPanel className="space-y-5" onSubmit={submit(async ({ data, key }) => {
     const amountCentavos = parsePositiveCentavos(text(data, "amount") ?? "");
+    if (amountCentavos > balanceCentavos) return { ok: false, message: `${overRentalMessage(rentalCentavos)}. At most ${formatPesos(balanceCentavos)} more can be recorded.` };
     const result = await addRemittancePayment({ remittanceId, amountCentavos, notes: text(data, "notes"), idempotencyKey: key("payment") });
     if (!result.ok) return result;
     router.refresh();
     return { ok: true, message: "Payment saved." };
   })}>
     <h2 className="font-semibold">Add payment</h2>
-    <div className="grid gap-4 sm:grid-cols-2"><FormField label="Amount received (₱)" required hint={`Balance due: ${balanceText}. Paying more is kept as credit.`}><Input required name="amount" inputMode="decimal" placeholder="0.00" /></FormField><FormField label="Notes"><Input name="notes" maxLength={500} /></FormField></div>
+    <div className="grid gap-4 sm:grid-cols-2"><FormField label="Amount received (₱)" required hint={`Balance: ${formatPesos(balanceCentavos)}. Payments can't exceed the rental.`}><Input required name="amount" inputMode="decimal" placeholder="0.00" /></FormField><FormField label="Notes"><Input name="notes" maxLength={500} /></FormField></div>
     <FormFooter pending={pending} status={status} label="Save payment" />
   </FormPanel>;
 }
@@ -38,7 +40,7 @@ export function RemittanceNotesForm({ remittanceId, notes, updatedAt }: { remitt
     return { ok: true, message: "Notes saved.", keepValues: true };
   })}>
     <h2 className="font-semibold">Notes</h2>
-    <FormField label="Notes" hint="The date, disposition and amount due cannot be changed. The owner can reverse a wrong entry."><Textarea name="notes" maxLength={1000} defaultValue={notes ?? ""} /></FormField>
+    <FormField label="Notes" hint="The date, disposition, rental and allowance cannot be changed. The owner can reverse a wrong entry."><Textarea name="notes" maxLength={1000} defaultValue={notes ?? ""} /></FormField>
     <FormFooter pending={pending} status={status} label="Save notes" />
   </FormPanel>;
 }

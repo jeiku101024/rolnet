@@ -15,14 +15,14 @@ export interface DailyRows {
   daysOff: DayOffRow[];
   remittances: {
     id: string; unit_id: string; driver_id: string; assignment_id: string; disposition: Disposition; amount_due_centavos: number;
-    notes: string | null; updated_at: string; driverName: string; assignmentType: "primary" | "backup"; coveringFor: string | null;
+    allowance_centavos: number; deposit_centavos: number; notes: string | null; updated_at: string; driverName: string; assignmentType: "primary" | "backup"; coveringFor: string | null;
     payments: { amount_centavos: number }[];
   }[];
   drivers: { id: string; full_name: string; is_active: boolean; license_expiry_date: string }[];
 }
 
 interface CardBase { key: string; unitId: string; unitName: string; bodyNumber: string }
-export type SavedCard = CardBase & { kind: "saved"; remittanceId: string; updatedAt: string; disposition: Disposition; dueCentavos: number; receivedCentavos: number; notes: string; driver: DriverOnCard };
+export type SavedCard = CardBase & { kind: "saved"; remittanceId: string; updatedAt: string; disposition: Disposition; dueCentavos: number; receivedCentavos: number; allowanceCentavos: number; depositCentavos: number; notes: string; driver: DriverOnCard };
 export type UnrecordedCard = CardBase & { kind: "unrecorded"; assignmentId: string; driver: DriverOnCard };
 export type NoDriverCard = CardBase & { kind: "no-driver"; dayOffId: string; primaryDriverName: string };
 export type InRepairCard = CardBase & { kind: "in-repair" };
@@ -55,7 +55,8 @@ export function buildDailyBoard({ date, today, rows, isOwner }: { date: string; 
     if (saved) {
       cards.push({
         ...base, kind: "saved", remittanceId: saved.id, updatedAt: saved.updated_at, disposition: saved.disposition, dueCentavos: Number(saved.amount_due_centavos),
-        receivedCentavos: saved.payments.reduce((sum, payment) => sum + Number(payment.amount_centavos), 0), notes: saved.notes ?? "",
+        receivedCentavos: saved.payments.reduce((sum, payment) => sum + Number(payment.amount_centavos), 0),
+        allowanceCentavos: Number(saved.allowance_centavos), depositCentavos: Number(saved.deposit_centavos), notes: saved.notes ?? "",
         driver: { driverId: saved.driver_id, name: saved.driverName, role: saved.assignmentType, coveringFor: saved.coveringFor },
       });
       continue;

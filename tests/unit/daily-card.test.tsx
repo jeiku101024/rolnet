@@ -11,7 +11,7 @@ import { DailyCard, type CardView } from "@/components/remittances/daily-card";
 
 const date = "2026-10-30";
 const unrecorded: UnrecordedCard = { key: `${date}:u1`, unitId: "u1", unitName: "ROLNET-1", bodyNumber: "T-001", kind: "unrecorded", assignmentId: "00000000-0000-4000-8000-000000000031", driver: { driverId: "d1", name: "Juan Dela Cruz", role: "primary", coveringFor: null } };
-const saved: SavedCard = { ...unrecorded, kind: "saved", remittanceId: "00000000-0000-4000-8000-000000000051", updatedAt: "2026-10-30T08:00:00+00:00", disposition: "returned", dueCentavos: 18000, receivedCentavos: 10000, notes: "" };
+const saved: SavedCard = { ...unrecorded, kind: "saved", remittanceId: "00000000-0000-4000-8000-000000000051", updatedAt: "2026-10-30T08:00:00+00:00", disposition: "returned", dueCentavos: 18000, receivedCentavos: 10000, allowanceCentavos: 4000, depositCentavos: 6000, notes: "" };
 
 function renderCard(card: CardView, options: { isOwner?: boolean; isToday?: boolean } = {}) {
   const onSaved = vi.fn();
@@ -37,13 +37,13 @@ describe("DailyCard: recording (feature 008, User Story 1)", () => {
   });
 
   it("saves the card with the payment in centavos and reports the saved record (FR-020)", async () => {
-    mocks.save.mockResolvedValue({ ok: true, data: { id: saved.remittanceId, updatedAt: saved.updatedAt, receivedCentavos: 25000, partial: null } });
+    mocks.save.mockResolvedValue({ ok: true, data: { id: saved.remittanceId, updatedAt: saved.updatedAt, receivedCentavos: 25000, depositCentavos: 21000, partial: null } });
     const { onSaved } = renderCard(unrecorded);
     fireEvent.change(disposition(), { target: { value: "overnight_overtime" } });
     fireEvent.change(payment(), { target: { value: "250" } });
     await press("Save remittance");
     expect(mocks.save).toHaveBeenCalledWith(expect.objectContaining({ assignmentId: unrecorded.assignmentId, serviceDate: date, disposition: "overnight_overtime", paymentCentavos: 25000 }));
-    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ kind: "saved", dueCentavos: 30000, receivedCentavos: 25000 }));
+    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ kind: "saved", dueCentavos: 30000, receivedCentavos: 25000, allowanceCentavos: 4000, depositCentavos: 21000 }));
   });
 
   it("shows a saved card locked, with its badge, the Saved label and the menu (FR-021, FR-023)", () => {
@@ -153,13 +153,13 @@ describe("DailyCard: correcting (feature 008, User Story 2)", () => {
   });
 
   it("adds a payment when the total goes up (FR-027)", async () => {
-    mocks.edit.mockResolvedValue({ ok: true, data: { updatedAt: saved.updatedAt, receivedCentavos: 18000 } });
+    mocks.edit.mockResolvedValue({ ok: true, data: { updatedAt: saved.updatedAt, receivedCentavos: 18000, depositCentavos: 14000 } });
     const { onSaved } = renderCard(saved);
     await openEdit();
     fireEvent.change(payment(), { target: { value: "180" } });
     await press("Save remittance");
     expect(mocks.edit).toHaveBeenCalledWith(expect.objectContaining({ remittanceId: saved.remittanceId, targetPaymentCentavos: 18000, reason: undefined }));
-    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ receivedCentavos: 18000 }));
+    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ receivedCentavos: 18000, depositCentavos: 14000 }));
   });
 
   it("blocks staff from lowering a recorded payment", async () => {
@@ -172,7 +172,7 @@ describe("DailyCard: correcting (feature 008, User Story 2)", () => {
   });
 
   it("asks the owner for a reason before lowering a payment", async () => {
-    mocks.edit.mockResolvedValue({ ok: true, data: { updatedAt: saved.updatedAt, receivedCentavos: 5000 } });
+    mocks.edit.mockResolvedValue({ ok: true, data: { updatedAt: saved.updatedAt, receivedCentavos: 5000, depositCentavos: 1000 } });
     renderCard(saved, { isOwner: true });
     await openEdit();
     fireEvent.change(payment(), { target: { value: "50" } });
@@ -197,5 +197,65 @@ describe("DailyCard: correcting (feature 008, User Story 2)", () => {
     await openEdit();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(payment()).toBeEnabled();
+  });
+});
+
+const breakdown = (term: "Allowance" | "Deposit") => screen.getByText(term, { selector: "dt" }).nextElementSibling as HTMLElement;
+
+describe("DailyCard: Rental, Allowance and Deposit (feature 009, User Story 1)", () => {
+  it("labels the figure Rental, never Due", () => {
+    renderCard(unrecorded);
+    expect(screen.getByText("Rental")).toBeInTheDocument();
+    expect(screen.queryByText("Due")).not.toBeInTheDocument();
+  });
+
+  it("shows the allowance and a live deposit while typing (FR-010, FR-011)", () => {
+    renderCard(unrecorded);
+    expect(breakdown("Allowance")).toHaveTextContent("₱40.00");
+    expect(breakdown("Deposit")).toHaveTextContent("−₱40.00");
+    expect(breakdown("Deposit").querySelector(".text-danger")).not.toBeNull();
+    for (const [typed, deposit] of [["180", "₱140.00"], ["100", "₱60.00"], ["0", "−₱40.00"]]) {
+      fireEvent.change(payment(), { target: { value: typed } });
+      expect(breakdown("Deposit")).toHaveTextContent(deposit);
+    }
+    fireEvent.change(payment(), { target: { value: "abc" } });
+    expect(breakdown("Deposit")).toHaveTextContent("—");
+  });
+
+  it("follows the disposition and blocks amounts above the rental (FR-007)", async () => {
+    renderCard(unrecorded);
+    fireEvent.change(disposition(), { target: { value: "overnight_overtime" } });
+    fireEvent.change(payment(), { target: { value: "250" } });
+    expect(breakdown("Deposit")).toHaveTextContent("₱210.00");
+    fireEvent.change(disposition(), { target: { value: "returned" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("Payment can't exceed the rental of ₱180.00");
+    expect(breakdown("Deposit")).toHaveTextContent("—");
+    await press("Save remittance");
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
+  it("shows the saved figures on a locked card, and a live deposit once editing", async () => {
+    renderCard({ ...saved, depositCentavos: 6000 });
+    expect(breakdown("Allowance")).toHaveTextContent("₱40.00");
+    expect(breakdown("Deposit")).toHaveTextContent("₱60.00");
+    await openEdit();
+    fireEvent.change(payment(), { target: { value: "180" } });
+    expect(breakdown("Deposit")).toHaveTextContent("₱140.00");
+  });
+
+  it("never shows a Credit badge", () => {
+    renderCard({ ...saved, receivedCentavos: 20000, depositCentavos: 16000 });
+    expect(screen.getByText("Paid")).toBeInTheDocument();
+    expect(screen.queryByText(/Credit/)).not.toBeInTheDocument();
+  });
+
+  it("lets a legacy overpaid record keep its amount while notes are edited", async () => {
+    mocks.edit.mockResolvedValue({ ok: true, data: { updatedAt: saved.updatedAt, receivedCentavos: 20000, depositCentavos: 16000 } });
+    renderCard({ ...saved, receivedCentavos: 20000, depositCentavos: 16000 });
+    await openEdit();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Notes"), { target: { value: "checked" } });
+    await press("Save remittance");
+    expect(mocks.edit).toHaveBeenCalledWith(expect.objectContaining({ targetPaymentCentavos: 20000, notes: "checked" }));
   });
 });

@@ -19,7 +19,7 @@ export async function loadDailyRows(supabase: Supabase | null, date: string, isO
     // Primaries whose range covers the date; backups cover only their start date, which this also matches.
     supabase.from("driver_assignments").select("id, unit_id, assignment_type, starts_on, ends_on, driver_id, covered_primary_assignment_id, drivers(full_name)").is("deleted_at", null).lte("starts_on", date).or(`ends_on.is.null,ends_on.gte.${date}`),
     supabase.from("driver_days_off").select("id, primary_assignment_id, day_off_date, notes").eq("day_off_date", date).is("deleted_at", null),
-    supabase.from("remittances").select("id, unit_id, driver_id, assignment_id, disposition, amount_due_centavos, notes, updated_at, drivers(full_name), driver_assignments(assignment_type, covered_primary_assignment_id), remittance_payments(amount_centavos, deleted_at)").eq("service_date", date).is("deleted_at", null),
+    supabase.from("remittances").select("id, unit_id, driver_id, assignment_id, disposition, amount_due_centavos, allowance_centavos, deposit_centavos, notes, updated_at, drivers(full_name), driver_assignments(assignment_type, covered_primary_assignment_id), remittance_payments(amount_centavos, deleted_at)").eq("service_date", date).is("deleted_at", null),
     isOwner ? supabase.from("drivers").select("id, full_name, is_active, license_expiry_date").is("deleted_at", null).eq("is_active", true).gte("license_expiry_date", date) : Promise.resolve({ data: [], error: null }),
   ]);
   for (const result of [units, assignments, daysOff, remittances, drivers]) if (result.error) throw result.error;
@@ -39,7 +39,8 @@ export async function loadDailyRows(supabase: Supabase | null, date: string, isO
       const payments = (row.remittance_payments as { amount_centavos: number; deleted_at: string | null }[] | null) ?? [];
       return {
         id: row.id, unit_id: row.unit_id, driver_id: row.driver_id, assignment_id: row.assignment_id, disposition: row.disposition as Disposition,
-        amount_due_centavos: Number(row.amount_due_centavos), notes: row.notes, updated_at: row.updated_at,
+        amount_due_centavos: Number(row.amount_due_centavos), allowance_centavos: Number(row.allowance_centavos), deposit_centavos: Number(row.deposit_centavos),
+        notes: row.notes, updated_at: row.updated_at,
         driverName: one(row.drivers as Embed<{ full_name: string }>)?.full_name ?? "Unknown driver",
         assignmentType: assignment?.assignment_type ?? "primary",
         coveringFor: assignment?.covered_primary_assignment_id ? driverOf.get(assignment.covered_primary_assignment_id) ?? null : null,
@@ -60,7 +61,7 @@ function demoDailyRows(date: string, isOwner: boolean): DailyRows {
     daysOff: demoUnitDaysOff.filter((row) => row.day_off_date === date),
     remittances: demoRemittances.filter((row) => row.service_date === date && primaryOf.has(row.unit_id)).map((row) => ({
       id: row.id, unit_id: row.unit_id, driver_id: row.driver_id, assignment_id: primaryOf.get(row.unit_id)!.id, disposition: row.disposition as Disposition,
-      amount_due_centavos: row.amount_due_centavos, notes: row.notes || null, updated_at: row.updated_at,
+      amount_due_centavos: row.amount_due_centavos, allowance_centavos: row.allowance_centavos, deposit_centavos: row.deposit_centavos, notes: row.notes || null, updated_at: row.updated_at,
       driverName: demoDrivers.find((driver) => driver.id === row.driver_id)?.full_name ?? "Unknown driver",
       assignmentType: "primary", coveringFor: null, payments: row.remittance_payments,
     })),
