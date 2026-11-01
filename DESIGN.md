@@ -59,7 +59,7 @@ The yellow brand accent never carries white text. Status colors are deliberately
 - Touch targets are at least `44px` high.
 - The base radius is 4px; the control radius is 6px. There are no pill-shaped controls.
 - Shadows are absent except for the focus ring. Separation comes from rules and spacing.
-- Remittances Daily view lays out one card per unit (4 per row from 1200px via the `desk` breakpoint, 2 from 768px, 1 on phones). Each card is one unit of work, so it is a deliberate exception to "Do not put every element in a rounded card".
+- Remittances Daily view and the Units Daily assignment view lay out one card per unit (4 per row from 1200px via the `desk` breakpoint, 2 from 768px, 1 on phones). Each card is one unit of work, so it is a deliberate exception to "Do not put every element in a rounded card". Saved (locked) and blocked cards use the muted background.
 - Mobile is a single-column ledger with horizontal table overflow where a data table requires it. Desktop expands into two-column specimen groups.
 - Keyboard focus is visible with the darker brand-derived focus color.
 

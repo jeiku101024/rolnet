@@ -26,7 +26,7 @@ export default async function MaintenancePage({ searchParams }: { searchParams: 
   const dueUnitIds = dueOnly ? [...new Set((s ? (await s.rpc("due_maintenance", { as_of: fleetToday() })).data ?? [] : demoDueMaintenance).map((row: { unit_id: string }) => row.unit_id))] : [];
   const result = s
     ? await loadListPage(s, request, searchSpecs.maintenanceUnits, (from, to, filter) => {
-      let query = s.from("units").select("id, body_number, plate_number, status, current_mileage", { count: "exact" }).is("deleted_at", null);
+      let query = s.from("units").select("id, body_number, plate_number, status, current_mileage", { count: "exact" }).eq("archived", false).is("deleted_at", null);
       if (dueOnly) query = query.in("id", dueUnitIds);
       query = applyFilters(query, controls);
       if (filter) query = query.or(filter);

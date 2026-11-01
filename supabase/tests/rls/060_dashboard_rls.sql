@@ -24,8 +24,12 @@ insert into public.drivers (id, full_name, license_number, license_expiry_date, 
 values ('00000000-0000-0000-0000-000000065201', 'Dash RLS Driver', 'DSR-065-L1', '2035-12-31', '09170000651');
 insert into public.driver_assignments (id, unit_id, driver_id, assignment_type, starts_on)
 values ('00000000-0000-0000-0000-000000065301', '00000000-0000-0000-0000-000000065101', '00000000-0000-0000-0000-000000065201', 'primary', '2031-09-01');
-insert into public.remittances (assignment_id, unit_id, driver_id, service_date, disposition, idempotency_key)
-values ('00000000-0000-0000-0000-000000065301', '00000000-0000-0000-0000-000000065101', '00000000-0000-0000-0000-000000065201', '2031-09-02', 'returned', gen_random_uuid());
+-- Feature 010: remittances are recorded under the unit's daily assignment for the date.
+insert into public.unit_assignments (unit_id, driver_id, service_date)
+values ('00000000-0000-0000-0000-000000065101', '00000000-0000-0000-0000-000000065201', '2031-09-02')
+on conflict do nothing;
+insert into public.remittances (unit_id, driver_id, service_date, disposition, idempotency_key)
+values ('00000000-0000-0000-0000-000000065101', '00000000-0000-0000-0000-000000065201', '2031-09-02', 'returned', gen_random_uuid());
 insert into public.part_replacements (id, unit_id, part_name, cost_centavos, replaced_on, next_due_date)
 values ('00000000-0000-0000-0000-000000065401', '00000000-0000-0000-0000-000000065101', 'Brake pads', 100, '2031-01-01', '2031-08-01');
 

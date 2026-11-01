@@ -10,11 +10,18 @@ const pad = (value: number, size = 2) => String(value).padStart(size, "0");
 const demoId = (group: number, index: number) => `00000000-0000-4000-8000-${pad(group, 4)}${pad(index, 8)}`;
 
 const extraUnitModels = ["Honda TMX", "Yamaha YTX", "Suzuki Raider", "Kawasaki Barako"];
-export const demoUnits = [
+const demoUnitRows = [
   { id: "00000000-0000-4000-8000-000000000001", name: "ROLNET-1", body_number: "T-001", plate_number: "ABC-1234", make_model: "Honda TMX", status: "active", current_mileage: 18240 },
   { id: "00000000-0000-4000-8000-000000000002", name: "ROLNET-2", body_number: "T-002", plate_number: "ABC-1235", make_model: "Yamaha YTX", status: "in_repair", current_mileage: 24110 },
   ...Array.from({ length: 10 }, (_, index) => ({ id: demoId(1, index + 3), name: `ROLNET-${index + 3}`, body_number: `T-${pad(index + 3, 3)}`, plate_number: `ABC-${1236 + index}`, make_model: extraUnitModels[index % extraUnitModels.length], status: index === 4 ? "in_repair" : index === 9 ? "retired" : "active", current_mileage: 15000 + index * 1375 })),
 ];
+// Feature 010: every demo unit was added 60 days ago; ROLNET-12 (retired) is also archived.
+export const demoUnits = demoUnitRows.map((unit) => ({
+  ...unit,
+  created_at: `${addDays(today, -60)}T00:00:00Z`,
+  archived: unit.name === "ROLNET-12",
+  archived_at: unit.name === "ROLNET-12" ? `${addDays(today, -5)}T08:00:00Z` : null as string | null,
+}));
 
 const extraDriverNames = ["Maria Reyes", "Jose Garcia", "Ana Bautista", "Ramon Cruz", "Liza Mendoza", "Carlo Villanueva", "Nestor Aquino", "Rosa Lim", "Danilo Ramos", "Grace Torres", "Arnel Flores", "Vilma Castro", "Rey Navarro"];
 export const demoDrivers = [
@@ -30,23 +37,27 @@ export const demoCategories = [
   { id: "00000000-0000-4000-8000-000000000024", name: "Insurance" },
 ];
 
-export const demoAssignments = [{ id: "00000000-0000-4000-8000-000000000031", assignment_type: "primary", starts_on: "2026-01-01", ends_on: null, units: [{ body_number: "T-001" }], drivers: [{ full_name: "Juan Dela Cruz" }] }];
-/** Today's backup coverage: Pedro Santos drives T-003; the other two extradors are free. */
-export const demoBackupAssignments = [{ id: demoId(3, 1), driver_id: "00000000-0000-4000-8000-000000000012", unit_id: demoUnits[2].id, assignment_type: "backup", starts_on: today, ends_on: today }];
-
-// Feature 007: the units register's Current driver column. ROLNET-1 to ROLNET-8 have primary
-// drivers; ROLNET-2's driver is off today with no backup, and ROLNET-3's is off with Pedro Santos
-// covering (matching demoBackupAssignments); ROLNET-9 to ROLNET-12 are unassigned.
+// Feature 007: the eight active primary drivers, one per unit ROLNET-1 to ROLNET-8.
 const demoPrimaryDrivers = demoDrivers.filter((driver) => driver.driver_kind === "primary" && driver.is_active).slice(0, 8);
-const demoUnitPrimaries = demoPrimaryDrivers.map((driver, index) => ({ id: demoId(3, index + 11), unit_id: demoUnits[index].id, driver_id: driver.id, driverName: driver.full_name, assignment_type: "primary", starts_on: addDays(today, -30), ends_on: null, covered_primary_assignment_id: null }));
-export const demoUnitAssignments = [
-  ...demoUnitPrimaries,
-  { id: demoBackupAssignments[0].id, unit_id: demoUnits[2].id, driver_id: demoDrivers[1].id, driverName: demoDrivers[1].full_name, assignment_type: "backup", starts_on: today, ends_on: today, covered_primary_assignment_id: demoUnitPrimaries[2].id },
-];
-export const demoUnitDaysOff = [
-  { id: demoId(3, 21), primary_assignment_id: demoUnitPrimaries[1].id, day_off_date: today, notes: null },
-  { id: demoId(3, 22), primary_assignment_id: demoUnitPrimaries[2].id, day_off_date: today, notes: null },
-];
+
+// Feature 010: daily assignments for the last 7 days and today. Each active unit keeps its primary
+// driver, except ROLNET-3, which Pedro Santos (a backup driver) drives today. ROLNET-2 and ROLNET-7
+// are in repair (no assignments while blocked); ROLNET-8 to ROLNET-11 are unassigned today, so
+// their drivers are free in the dropdowns. Nothing is saved for future dates (they show pre-fill).
+const demoDailyUnits = [0, 2, 3, 4, 5];
+export const demoUnitAssignmentsDaily = Array.from({ length: 8 }, (_, back) => addDays(today, back - 7)).flatMap((date, dayIndex) =>
+  demoDailyUnits.map((unitIndex, slot) => {
+    const coveredToday = date === today && unitIndex === 2;
+    const driver = coveredToday ? demoDrivers[1] : demoPrimaryDrivers[unitIndex];
+    return { id: demoId(8, dayIndex * 10 + slot + 1), unit_id: demoUnits[unitIndex].id, driver_id: driver.id, service_date: date, notes: coveredToday ? "Covering today" : null as string | null, updated_at: `${date}T07:00:00Z`, driverName: driver.full_name, driverKind: driver.driver_kind as "primary" | "backup" };
+  }));
+
+/** Feature 010: status history. ROLNET-2 went into repair 9 days ago, ROLNET-7 3 days ago, ROLNET-12 retired 20 days ago. */
+export const demoUnitStatusChanges = [
+  { unit_id: demoUnits[1].id, from_status: "active", to_status: "in_repair", effective_on: addDays(today, -9), changed_at: `${addDays(today, -9)}T02:00:00Z`, changed_by: null as string | null },
+  { unit_id: demoUnits[6].id, from_status: "active", to_status: "in_repair", effective_on: addDays(today, -3), changed_at: `${addDays(today, -3)}T02:00:00Z`, changed_by: null as string | null },
+  { unit_id: demoUnits[11].id, from_status: "active", to_status: "retired", effective_on: addDays(today, -20), changed_at: `${addDays(today, -20)}T02:00:00Z`, changed_by: null as string | null },
+] as const;
 
 export const demoExpenses = [
   { id: "00000000-0000-4000-8000-000000000041", unit_id: "00000000-0000-4000-8000-000000000001", category_id: "00000000-0000-4000-8000-000000000022", expense_date: addDays(today, -1), amount_centavos: 185000, notes: "Monthly tune-up", receipt_object_path: null, units: [{ body_number: "T-001", plate_number: "ABC-1234" }], expense_categories: [{ name: "Repairs" }] },

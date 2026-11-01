@@ -11,11 +11,16 @@ insert into public.drivers (id, full_name, license_number, license_expiry_date, 
 values ('00000000-0000-0000-0000-000000270201', 'Financials Driver', 'FIN-270-L1', '2035-12-31', '09170000270');
 insert into public.driver_assignments (id, unit_id, driver_id, assignment_type, starts_on)
 values ('00000000-0000-0000-0000-000000270301', '00000000-0000-0000-0000-000000270101', '00000000-0000-0000-0000-000000270201', 'primary', '2031-08-01');
-insert into public.remittances (id, assignment_id, unit_id, driver_id, service_date, disposition, idempotency_key)
+-- Feature 010: remittances are recorded under the unit's daily assignment for the date.
+insert into public.unit_assignments (unit_id, driver_id, service_date)
+values ('00000000-0000-0000-0000-000000270101', '00000000-0000-0000-0000-000000270201', '2031-08-01'),
+  ('00000000-0000-0000-0000-000000270101', '00000000-0000-0000-0000-000000270201', '2031-08-02')
+on conflict do nothing;
+insert into public.remittances (id, unit_id, driver_id, service_date, disposition, idempotency_key)
 values
-  ('00000000-0000-0000-0000-000000270401', '00000000-0000-0000-0000-000000270301', '00000000-0000-0000-0000-000000270101',
+  ('00000000-0000-0000-0000-000000270401', '00000000-0000-0000-0000-000000270101',
    '00000000-0000-0000-0000-000000270201', '2031-08-01', 'returned', gen_random_uuid()),
-  ('00000000-0000-0000-0000-000000270402', '00000000-0000-0000-0000-000000270301', '00000000-0000-0000-0000-000000270101',
+  ('00000000-0000-0000-0000-000000270402', '00000000-0000-0000-0000-000000270101',
    '00000000-0000-0000-0000-000000270201', '2031-08-02', 'returned', gen_random_uuid());
 
 select is((select array[allowance_centavos, deposit_centavos] from public.remittances where id = '00000000-0000-0000-0000-000000270401'),

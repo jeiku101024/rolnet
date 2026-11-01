@@ -23,10 +23,16 @@ insert into public.drivers (id, full_name, license_number, license_expiry_date, 
 values ('00000000-0000-0000-0000-000000035201', 'Remit RLS Driver', 'RMR-035-L1', '2035-12-31', '09170000351');
 insert into public.driver_assignments (id, unit_id, driver_id, assignment_type, starts_on)
 values ('00000000-0000-0000-0000-000000035301', '00000000-0000-0000-0000-000000035101', '00000000-0000-0000-0000-000000035201', 'primary', '2031-03-01');
-insert into public.remittances (id, assignment_id, unit_id, driver_id, service_date, disposition, idempotency_key, deleted_at)
+-- Feature 010: remittances are recorded under the unit's daily assignment for the date.
+insert into public.unit_assignments (unit_id, driver_id, service_date)
+values ('00000000-0000-0000-0000-000000035101', '00000000-0000-0000-0000-000000035201', '2031-03-02'),
+  ('00000000-0000-0000-0000-000000035101', '00000000-0000-0000-0000-000000035201', '2031-03-03')
+  , ('00000000-0000-0000-0000-000000035101', '00000000-0000-0000-0000-000000035201', '2031-03-04')
+on conflict do nothing;
+insert into public.remittances (id, unit_id, driver_id, service_date, disposition, idempotency_key, deleted_at)
 values
-  ('00000000-0000-0000-0000-000000035401', '00000000-0000-0000-0000-000000035301', '00000000-0000-0000-0000-000000035101', '00000000-0000-0000-0000-000000035201', '2031-03-02', 'returned', gen_random_uuid(), null),
-  ('00000000-0000-0000-0000-000000035402', '00000000-0000-0000-0000-000000035301', '00000000-0000-0000-0000-000000035101', '00000000-0000-0000-0000-000000035201', '2031-03-03', 'returned', gen_random_uuid(), now());
+  ('00000000-0000-0000-0000-000000035401', '00000000-0000-0000-0000-000000035101', '00000000-0000-0000-0000-000000035201', '2031-03-02', 'returned', gen_random_uuid(), null),
+  ('00000000-0000-0000-0000-000000035402', '00000000-0000-0000-0000-000000035101', '00000000-0000-0000-0000-000000035201', '2031-03-03', 'returned', gen_random_uuid(), now());
 insert into public.remittance_payments (id, remittance_id, amount_centavos, idempotency_key)
 values ('00000000-0000-0000-0000-000000035501', '00000000-0000-0000-0000-000000035401', 18000, gen_random_uuid());
 
@@ -45,8 +51,8 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 set local role authenticated;
 select is_empty($$select 1 from public.remittances where unit_id = '00000000-0000-0000-0000-000000035101'$$, 'a pending user sees no remittances');
 select is_empty($$select 1 from public.remittance_payments where id = '00000000-0000-0000-0000-000000035501'$$, 'a pending user sees no payments');
-select throws_ok($$insert into public.remittances (assignment_id, unit_id, driver_id, service_date, disposition, idempotency_key)
-  values ('00000000-0000-0000-0000-000000035301', '00000000-0000-0000-0000-000000035101', '00000000-0000-0000-0000-000000035201', '2031-03-04', 'returned', gen_random_uuid())$$,
+select throws_ok($$insert into public.remittances (unit_id, driver_id, service_date, disposition, idempotency_key)
+  values ('00000000-0000-0000-0000-000000035101', '00000000-0000-0000-0000-000000035201', '2031-03-04', 'returned', gen_random_uuid())$$,
   '42501', null, 'a pending user cannot record remittances');
 select throws_ok($$insert into public.remittance_payments (remittance_id, amount_centavos, idempotency_key)
   values ('00000000-0000-0000-0000-000000035401', 100, gen_random_uuid())$$, '42501', null, 'a pending user cannot record payments');
@@ -58,8 +64,8 @@ set local role authenticated;
 select isnt_empty($$select 1 from public.remittances where id = '00000000-0000-0000-0000-000000035401'$$, 'staff read current remittances');
 select is_empty($$select 1 from public.remittances where id = '00000000-0000-0000-0000-000000035402'$$, 'staff do not see reversed remittances');
 select isnt_empty($$select 1 from public.remittance_payments where id = '00000000-0000-0000-0000-000000035501'$$, 'staff read payments');
-select lives_ok($$insert into public.remittances (id, assignment_id, unit_id, driver_id, service_date, disposition, idempotency_key)
-  values ('00000000-0000-0000-0000-000000035410', '00000000-0000-0000-0000-000000035301', '00000000-0000-0000-0000-000000035101', '00000000-0000-0000-0000-000000035201', '2031-03-04', 'overnight_overtime', gen_random_uuid())$$,
+select lives_ok($$insert into public.remittances (id, unit_id, driver_id, service_date, disposition, idempotency_key)
+  values ('00000000-0000-0000-0000-000000035410', '00000000-0000-0000-0000-000000035101', '00000000-0000-0000-0000-000000035201', '2031-03-04', 'overnight_overtime', gen_random_uuid())$$,
   'staff record remittances');
 select lives_ok($$insert into public.remittance_payments (remittance_id, amount_centavos, idempotency_key)
   values ('00000000-0000-0000-0000-000000035410', 30000, gen_random_uuid())$$, 'staff record payments');

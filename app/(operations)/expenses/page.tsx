@@ -28,7 +28,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
   const supabase = demoMode ? null : await createSupabaseServerClient();
   const [{ data: categories }, { data: units }] = supabase ? await Promise.all([
     supabase.from("expense_categories").select("id, name").is("deleted_at", null).order("name"),
-    supabase.from("units").select("id, body_number, plate_number").is("deleted_at", null).order("body_number"),
+    supabase.from("units").select("id, body_number, plate_number").eq("archived", false).is("deleted_at", null).order("body_number"),
   ]) : [{ data: demoCategories }, { data: demoUnits }];
   // Sort and filter (US8): date range, unit, category and receipt.
   const controls = parseControls(params, prepareSpec(listControlSpecs.expenses, { options: { unit: (units ?? []).map((unit) => ({ value: unit.id, label: `Body ${unit.body_number}` })), category: (categories ?? []).map((category) => ({ value: category.id, label: category.name })) } }));

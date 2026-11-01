@@ -3,6 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import { Suspense, type ReactNode } from "react";
 import { AppShell } from "@/components/navigation/app-shell";
 import { getSessionProfile } from "@/lib/auth/guards";
+import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -29,9 +30,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${GeistSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Suspense fallback={<div className="min-h-screen bg-canvas" />}>
-          <SessionShell>{children}</SessionShell>
-        </Suspense>
+        <ToastProvider>
+          <Suspense fallback={<div className="min-h-screen bg-canvas" />}>
+            <SessionShell>{children}</SessionShell>
+          </Suspense>
+        </ToastProvider>
       </body>
     </html>
   );

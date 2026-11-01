@@ -1,8 +1,9 @@
 import { test, expect, type Page } from "@playwright/test";
 
-// Feature 008, in demo mode (360 px phone by default). Demo data today: ROLNET-1 to ROLNET-8 have
-// primary drivers; ROLNET-1 is already recorded; ROLNET-2 and ROLNET-7 are in repair; ROLNET-3's
-// driver is off with Pedro Santos covering. See lib/demo/mode.ts.
+// Feature 008, updated by feature 010, in demo mode (360 px phone by default). Demo data today:
+// ROLNET-1 and ROLNET-3 to ROLNET-6 have saved daily assignments (ROLNET-3 is driven by Pedro
+// Santos, a backup driver); ROLNET-1 is already recorded; ROLNET-2 and ROLNET-7 are in repair;
+// ROLNET-8 to ROLNET-11 have no driver; ROLNET-12 is archived. See lib/demo/mode.ts.
 
 const card = (page: Page, name: string) => page.getByRole("article", { name, exact: true });
 const columns = async (page: Page) => new Set(await page.getByRole("article").evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().left)))).size;
@@ -14,17 +15,34 @@ test.describe("remittances daily view", () => {
     await expect(page.getByText("Today", { exact: true }).last()).toBeVisible();
     await expect(page.getByRole("searchbox")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Filters/ })).toHaveCount(0);
-    await expect(page.getByRole("status").filter({ hasText: "recorded" })).toContainText("1 of 6 recorded");
+    await expect(page.getByRole("status").filter({ hasText: "recorded" })).toContainText("1 of 9 recorded");
     await expect(card(page, "ROLNET-1")).toContainText("Saved");
-    await expect(card(page, "ROLNET-2, not operating")).toContainText("Not operating (in repair)");
   });
 
-  test("shows the backup covering a day off", async ({ page }) => {
+  test("grays out units in repair, and hides archived units (feature 010)", async ({ page }) => {
     await page.goto("/remittances");
-    const backup = card(page, "ROLNET-3");
-    await expect(backup).toContainText("Pedro Santos");
-    await backup.getByRole("button", { name: /^Backup, covering for / }).focus();
-    await expect(page.getByText(/^Covering for .+, day off\.$/)).toBeVisible();
+    const blocked = card(page, "ROLNET-2, In repair");
+    await expect(blocked).toContainText("Unit is in repair. No remittance for this date.");
+    await expect(blocked.getByLabel("Payment received (₱)")).toHaveCount(0);
+    await expect(card(page, "ROLNET-7, In repair")).toBeVisible();
+    await expect(page.getByRole("article", { name: /^ROLNET-12/ })).toHaveCount(0);
+  });
+
+  test("shows the day's assigned driver with only a role tag (feature 010)", async ({ page }) => {
+    await page.goto("/remittances");
+    const assigned = card(page, "ROLNET-3");
+    await expect(assigned).toContainText("Pedro Santos");
+    await expect(assigned).toContainText("Backup");
+    await expect(page.getByText(/Covering for/)).toHaveCount(0);
+  });
+
+  test("links an unassigned unit to the Daily assignment view on that date (feature 010)", async ({ page }) => {
+    await page.goto("/remittances");
+    const waiting = card(page, "ROLNET-8, no driver");
+    await expect(waiting).toContainText("No driver assigned for this date.");
+    await waiting.getByRole("link", { name: "Assign driver" }).click();
+    await expect(page).toHaveURL(/\/units\?view=daily&date=\d{4}-\d{2}-\d{2}/);
+    await expect(page.getByRole("status").filter({ hasText: "units assigned" })).toBeVisible();
   });
 
   test("updates the due as soon as the disposition changes", async ({ page }) => {

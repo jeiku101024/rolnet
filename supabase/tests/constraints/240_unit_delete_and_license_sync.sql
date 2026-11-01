@@ -1,8 +1,8 @@
 begin;
 select plan(9);
 
--- softDeleteUnit (contracts/actions.md): a unit with current or upcoming assignments cannot be
--- deleted until they are ended or removed (20261029001400).
+-- Feature 010 (20261101000200): units are archived, never deleted, so soft_delete_record() refuses
+-- every unit, with or without assignments; other records are unaffected.
 -- FR-023: a driver's license expiry cannot drift from the current license document; renewal still
 -- changes both (20261029001500; renewal itself is covered in 200_replacement_history.sql).
 
@@ -28,6 +28,7 @@ values ('00000000-0000-0000-0000-000000240401', 'driver_license', '00000000-0000
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000240001","role":"authenticated"}', true);
 set local role authenticated;
 
+reset role;
 -- Unit A: open primary. Unit B: an upcoming, already-ended range. Unit C: only a past range.
 insert into public.driver_assignments (id, unit_id, driver_id, assignment_type, starts_on)
 values ('00000000-0000-0000-0000-000000240301', '00000000-0000-0000-0000-000000240101', '00000000-0000-0000-0000-000000240201', 'primary', '2020-02-01');
@@ -36,18 +37,17 @@ values ('00000000-0000-0000-0000-000000240102', '00000000-0000-0000-0000-0000002
 insert into public.driver_assignments (unit_id, driver_id, assignment_type, starts_on, ends_on)
 values ('00000000-0000-0000-0000-000000240103', '00000000-0000-0000-0000-000000240203', 'primary', '2020-01-01', '2020-01-31');
 
-select throws_ok($$select public.soft_delete_record('units', '00000000-0000-0000-0000-000000240101')$$,
-  '23503', null, 'a unit with an open primary assignment cannot be deleted');
-select throws_ok($$select public.soft_delete_record('units', '00000000-0000-0000-0000-000000240102')$$,
-  '23503', null, 'a unit with an upcoming assignment cannot be deleted');
-select ok((select public.soft_delete_record('units', '00000000-0000-0000-0000-000000240103')) is not null,
-  'a unit whose assignments have all ended can be deleted');
+set local role authenticated;
 
-update public.driver_assignments
-set ends_on = (now() at time zone 'Asia/Manila')::date - 1
-where id = '00000000-0000-0000-0000-000000240301';
-select ok((select public.soft_delete_record('units', '00000000-0000-0000-0000-000000240101')) is not null,
-  'after its assignment is ended, the unit can be deleted');
+select throws_ok($$select public.soft_delete_record('units', '00000000-0000-0000-0000-000000240101')$$,
+  '22023', 'Units are archived, not deleted. Use Archive.', 'a unit with an open primary assignment cannot be deleted');
+select throws_ok($$select public.soft_delete_record('units', '00000000-0000-0000-0000-000000240102')$$,
+  '22023', 'Units are archived, not deleted. Use Archive.', 'a unit with an upcoming assignment cannot be deleted');
+select throws_ok($$select public.soft_delete_record('units', '00000000-0000-0000-0000-000000240103')$$,
+  '22023', 'Units are archived, not deleted. Use Archive.', 'a unit whose assignments have all ended cannot be deleted either');
+
+select lives_ok($$update public.units set archived = true where id = '00000000-0000-0000-0000-000000240101'$$,
+  'the unit is archived instead');
 select ok((select public.soft_delete_record('drivers', '00000000-0000-0000-0000-000000240203')) is not null,
   'the unit rule does not affect deleting other records');
 

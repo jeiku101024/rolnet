@@ -1,7 +1,10 @@
 import { z } from "zod";
 
+// Feature 010: a remittance is recorded under the unit's saved assignment for its date; the
+// database links it and checks the driver matches (validate_remittance).
 export const remittanceSchema = z.object({
-  assignmentId: z.string().uuid(),
+  unitId: z.string().uuid(),
+  driverId: z.string().uuid(),
   serviceDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   disposition: z.enum(["returned", "overnight_overtime"]),
   notes: z.string().max(1000).optional(),
@@ -26,7 +29,8 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 /** Feature 008: saving an unrecorded Daily view card (contracts/daily-actions.md). */
 export const dailyRemittanceSchema = z.object({
-  assignmentId: z.string().uuid(),
+  unitId: z.string().uuid(),
+  driverId: z.string().uuid(),
   serviceDate: isoDate,
   disposition: z.enum(["returned", "overnight_overtime"]),
   notes: z.string().max(1000).optional(),

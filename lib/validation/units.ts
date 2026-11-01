@@ -16,6 +16,11 @@ export const unitStatusSchema = z.object({ id: z.uuid(), status: unitStatus, exp
 /** Edit-details form: everything but the status, plus the version the form was loaded with. */
 export const unitDetailsSchema = unitSchema.omit({ status: true }).extend({ expectedUpdatedAt: z.iso.datetime({ offset: true }) });
 
+/** Feature 010: archive or restore, from the version the list showed. */
+export const unitArchiveSchema = z.object({ id: z.uuid(), expectedUpdatedAt: z.iso.datetime({ offset: true }) });
+
+export const unitIdSchema = z.object({ id: z.uuid() });
+
 export const mileageSchema = z.object({
   unitId: z.string().uuid(),
   readingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),

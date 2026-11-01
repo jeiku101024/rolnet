@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Ban, Lock, MoreHorizontal, Wrench } from "lucide-react";
+import { Lock, MoreHorizontal, UserPlus, Wrench } from "lucide-react";
 import { editDailyRemittance, saveDailyRemittance } from "@/app/actions/remittances";
 import { Button } from "@/components/ui/button";
 import { FormField, Input, Select } from "@/components/ui/form-field";
@@ -12,19 +12,22 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { BalanceBadge } from "@/components/remittances/balance-badge";
 import { MoneyText } from "@/components/remittances/money-text";
 import { DriverTag } from "@/components/remittances/driver-tag";
-import { AssignBackupPicker } from "@/components/remittances/assign-backup-picker";
+import { StatusBadge } from "@/components/ui/feedback";
 import { clientErrorMessage } from "@/components/forms/use-action-form";
 import { formatPesos, parseCentavos } from "@/lib/money/centavos";
 import { formatShortDate } from "@/lib/dates/fleet-date";
 import { remittanceTotals } from "@/lib/remittances/totals";
 import { ALLOWANCE_CENTAVOS, depositFor, exceedsRental, overRentalMessage } from "@/lib/remittances/financials";
 import { dueFor, type DailyCard as Card, type Disposition, type SavedCard } from "@/lib/remittances/daily-board";
+import { unitStatusLabel } from "@/lib/status/record-status";
+import { unitsDailyHref } from "@/lib/units/view-params";
 
 export type CardView = Card & { notice?: string };
 
 const pastEditFlag = "rolnet:past-edit-confirmed";
 const amountHint = "Enter an amount like 180 or 180.50.";
 const shell = "grid min-w-0 content-start gap-3 rounded-md border border-rule p-4";
+const pickerButton = "touch-target inline-flex items-center gap-2 rounded-md border border-control-border bg-surface px-3 text-body-sm font-semibold text-ink hover:bg-brand-soft";
 
 function centavosText(centavos: number) {
   return centavos ? (centavos / 100).toFixed(2) : "";
@@ -42,19 +45,24 @@ function UnitName({ name }: { name: string }) {
   </Tooltip>;
 }
 
-/** One unit's card in Daily view (feature 008, contracts/remittances-page.md). */
-export function DailyCard({ card, date, isToday, isOwner, freeDrivers, onSaved, onDirty, onReload }: {
-  card: CardView; date: string; isToday: boolean; isOwner: boolean; freeDrivers: { id: string; name: string }[];
+/** One unit's card in Daily view (feature 008, contracts/remittances-page.md; feature 010 cards). */
+export function DailyCard({ card, date, isToday, isOwner, onSaved, onDirty, onReload }: {
+  card: CardView; date: string; isToday: boolean; isOwner: boolean;
   onSaved: (card: SavedCard & { notice?: string }) => void; onDirty: (key: string, dirty: boolean) => void; onReload: (key: string) => void;
 }) {
-  if (card.kind === "in-repair" || card.kind === "no-driver") {
-    return <article className={`${shell} bg-muted`} aria-label={`${card.unitName}, not operating`}>
+  if (card.kind === "blocked") {
+    const label = unitStatusLabel(card.status);
+    return <article className={`${shell} bg-muted`} aria-label={`${card.unitName}, ${label}`}>
       <UnitName name={card.unitName} />
-      <p className="status-badge w-fit bg-surface text-muted">{card.kind === "in-repair" ? <><Wrench aria-hidden="true" size={14} />Not operating (in repair)</> : <><Ban aria-hidden="true" size={14} />Not operating</>}</p>
-      {card.kind === "no-driver" ? <>
-        <p className="text-body-sm text-muted">{card.primaryDriverName} is off {isToday ? "today" : "on this date"}. No backup assigned.</p>
-        {isOwner ? <AssignBackupPicker dayOffId={card.dayOffId} freeDrivers={freeDrivers} /> : <p className="text-body-sm text-muted">Ask the owner to assign a backup driver.</p>}
-      </> : null}
+      <StatusBadge label={label} tone={card.status === "retired" ? "danger" : "warning"} />
+      <p className="flex gap-2 text-body-sm text-muted"><Wrench aria-hidden="true" size={16} className="mt-0.5 shrink-0" />Unit is {label.toLowerCase()}. No remittance for this date.</p>
+    </article>;
+  }
+  if (card.kind === "no-driver") {
+    return <article className={`${shell} bg-surface`} aria-label={`${card.unitName}, no driver`}>
+      <UnitName name={card.unitName} />
+      <p className="text-body-sm text-muted">No driver assigned for this date.</p>
+      <Link className={`${pickerButton} w-fit`} href={unitsDailyHref(date)}><UserPlus aria-hidden="true" size={16} />Assign driver</Link>
     </article>;
   }
   return <RecordCard card={card} date={date} isToday={isToday} isOwner={isOwner} onSaved={onSaved} onDirty={onDirty} onReload={onReload} />;
@@ -115,7 +123,7 @@ function RecordCard({ card, date, isToday, isOwner, onSaved, onDirty, onReload }
     setError(null);
     try {
       if (card.kind === "unrecorded") {
-        const result = await saveDailyRemittance({ assignmentId: card.assignmentId, serviceDate: date, disposition, notes: notes.trim() || undefined, paymentCentavos: amount, remittanceKey: key("remittance"), paymentKey: key("payment") });
+        const result = await saveDailyRemittance({ unitId: card.unitId, driverId: card.driver.driverId, serviceDate: date, disposition, notes: notes.trim() || undefined, paymentCentavos: amount, remittanceKey: key("remittance"), paymentKey: key("payment") });
         if (!result.ok) { setError({ message: result.message, reload: result.code === "DUPLICATE_REMITTANCE" || result.code === "DUPLICATE_RECORD" }); return; }
         keys.current = {};
         onSaved({ ...card, kind: "saved", remittanceId: result.data.id, updatedAt: result.data.updatedAt, disposition, dueCentavos: dueFor(disposition), receivedCentavos: result.data.receivedCentavos, allowanceCentavos: ALLOWANCE_CENTAVOS, depositCentavos: result.data.depositCentavos, notes: notes.trim(), notice: result.data.partial ?? undefined });

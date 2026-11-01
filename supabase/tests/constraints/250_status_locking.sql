@@ -48,7 +48,7 @@ select lives_ok($$insert into public.mileage_readings (unit_id, reading_date, mi
   'a mileage reading is accepted for an In repair unit');
 select is((select current_mileage from public.units where id = '00000000-0000-0000-0000-000000250101'), 1500,
   'the reading raised the locked unit''s current mileage');
-select ok((select public.soft_delete_record('units', '00000000-0000-0000-0000-000000250102')) is not null,
+select lives_ok($$update public.units set archived = true where id = '00000000-0000-0000-0000-000000250102'$$,
   'a locked unit can still be archived');
 select lives_ok($$update public.units set status = 'active' where id = '00000000-0000-0000-0000-000000250101'$$,
   'a locked unit can be set back to Active');
@@ -66,8 +66,8 @@ select is((select license_expiry_date from public.drivers where id = '00000000-0
   'the renewal updated the Inactive driver''s expiry');
 select lives_ok($$select public.renew_compliance_document('00000000-0000-0000-0000-000000250402', '{"expires_on":"2037-07-31","object_path":"documents/lock/l4b.pdf","mime_type":"application/pdf","size_bytes":"100","sha256":"abf"}'::jsonb)$$,
   'a license renewal still works for an Active driver');
-select throws_ok($$update public.drivers set is_active = false where id = '00000000-0000-0000-0000-000000250202'$$,
-  '23503', null, 'a driver with a current assignment cannot be set Inactive');
+select lives_ok($$update public.drivers set is_active = false where id = '00000000-0000-0000-0000-000000250202'$$,
+  'a driver with a current legacy assignment can be set Inactive (feature 010 releases daily assignments instead)');
 select lives_ok($$update public.drivers set is_active = false where id = '00000000-0000-0000-0000-000000250203'$$,
   'a driver whose assignments have all ended can be set Inactive');
 reset role;
@@ -82,7 +82,6 @@ select is((select status::text from public.units where id = '00000000-0000-0000-
 
 select ok(not has_function_privilege('authenticated', 'public.lock_inactive_driver_details()', 'execute')
   and not has_function_privilege('authenticated', 'public.lock_out_of_service_unit_details()', 'execute')
-  and not has_function_privilege('authenticated', 'public.reject_driver_deactivation_with_assignments()', 'execute')
   and not has_function_privilege('anon', 'public.lock_inactive_driver_details()', 'execute'),
   'the new trigger functions are not executable by anon or authenticated');
 

@@ -5,9 +5,9 @@ import { addDays, fleetToday } from "@/lib/dates/fleet-date";
 import { tirePositionLabels } from "@/lib/validation/maintenance";
 import { one } from "@/lib/supabase/embed";
 import { remittanceTotals } from "@/lib/remittances/totals";
-import { demoBackupAssignments, demoDocuments, demoDrivers, demoDueMaintenance, demoExpenses, demoInRepairSince, demoMode, demoRemittances, demoUnits } from "@/lib/demo/mode";
+import { demoDocuments, demoDrivers, demoDueMaintenance, demoExpenses, demoInRepairSince, demoMode, demoRemittances, demoUnitAssignmentsDaily, demoUnits } from "@/lib/demo/mode";
 import {
-  currentAssignment, dailyCollections, daysBetween, monthTotals, orderDueMaintenance, orderExpiringDocuments, orderExtradors, orderInRepair, orderUnpaidBalances, toPanel, unitIncomeBars,
+  dailyCollections, daysBetween, monthTotals, orderDueMaintenance, orderExpiringDocuments, orderExtradors, orderInRepair, orderUnpaidBalances, toPanel, unitIncomeBars,
   type DueMaintenanceRow, type ExtradorItem, type FleetStats, type InRepairUnitItem, type SummaryRow,
 } from "@/lib/dashboard/ordering";
 
@@ -38,7 +38,7 @@ async function liveDashboard(m: string, today: string) {
     s.rpc("expiring_documents", { as_of: today }),
     s.rpc("due_maintenance", { as_of: today }),
     s.rpc("driver_outstanding_balances", { as_of: today }),
-    s.from("units").select("id, body_number, plate_number, status").is("deleted_at", null),
+    s.from("units").select("id, body_number, plate_number, status").eq("archived", false).is("deleted_at", null),
     s.from("drivers").select("id, full_name, phone").eq("driver_kind", "backup").eq("is_active", true).is("deleted_at", null),
     s.from("remittance_payments").select("paid_at, amount_centavos").is("deleted_at", null).gte("paid_at", paymentsFrom),
     s.from("remittances").select("id, service_date, amount_due_centavos, disposition, units(body_number), drivers(full_name), remittance_payments(amount_centavos)").is("deleted_at", null).order("service_date", { ascending: false }).order("created_at", { ascending: false }).limit(5),
@@ -56,7 +56,8 @@ async function liveDashboard(m: string, today: string) {
 
   const [repairEvents, assignments, holderDrivers, dueItems] = await Promise.all([
     inRepairUnits.length ? s.from("audit_events").select("entity_id, occurred_at").eq("entity_type", "units").in("entity_id", inRepairUnits.map((unit) => unit.id)).eq("changed_fields->after->>status", "in_repair").order("occurred_at", { ascending: false }) : Promise.resolve({ data: [] as { entity_id: string; occurred_at: string }[] }),
-    backupIds.length ? s.from("driver_assignments").select("driver_id, unit_id, assignment_type, starts_on, ends_on, units(body_number)").in("driver_id", backupIds).is("deleted_at", null).lte("starts_on", today).or(`ends_on.is.null,ends_on.gte.${today}`) : Promise.resolve({ data: [] as { driver_id: string; unit_id: string; assignment_type: string; starts_on: string; ends_on: string | null; units: unknown }[] }),
+    // Feature 010: a backup driver's unit today is their saved daily assignment.
+    backupIds.length ? s.from("unit_assignments").select("driver_id, unit_id, units(body_number)").in("driver_id", backupIds).eq("service_date", today).is("deleted_at", null) : Promise.resolve({ data: [] as { driver_id: string; unit_id: string; assignment_type: string; starts_on: string; ends_on: string | null; units: unknown }[] }),
     holderDriverIds.length ? s.from("drivers").select("id, full_name").in("id", holderDriverIds) : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
     describeDueItems(s, (due.data ?? []) as DueRow[]),
   ]);
@@ -66,8 +67,8 @@ async function liveDashboard(m: string, today: string) {
   const since = (unitId: string) => (repairEvents.data ?? []).find((event) => event.entity_id === unitId)?.occurred_at ?? null;
 
   const extradors: ExtradorItem[] = (backups.data ?? []).map((driver) => {
-    const assignment = currentAssignment((assignments.data ?? []).filter((row) => row.driver_id === driver.id), today);
-    return { driverId: driver.id, fullName: driver.full_name, phone: driver.phone, currentUnit: assignment ? { unitId: assignment.unit_id, bodyNumber: one(assignment.units as { body_number: string } | null)?.body_number ?? "?" } : null, assignmentType: assignment ? (assignment.assignment_type as "backup" | "primary") : null };
+    const assignment = (assignments.data ?? []).find((row) => row.driver_id === driver.id);
+    return { driverId: driver.id, fullName: driver.full_name, phone: driver.phone, currentUnit: assignment ? { unitId: assignment.unit_id as string, bodyNumber: one(assignment.units as { body_number: string } | null)?.body_number ?? "?" } : null, assignmentType: assignment ? "backup" as const : null };
   });
   const inRepair: InRepairUnitItem[] = inRepairUnits.map((unit) => { const at = since(unit.id); return { unitId: unit.id, bodyNumber: unit.body_number, plateNumber: unit.plate_number, inRepairSince: at, daysInRepair: at ? Math.max(0, daysBetween(manilaDate(at), today)) : null }; });
 
@@ -140,14 +141,14 @@ function demoDashboard(m: string, today: string) {
     return { driver_id: driver.id, driver_name: driver.full_name, outstanding_centavos: unpaid.reduce((sum, x) => sum + x.balance, 0), unpaid_remittance_count: unpaid.length, first_unpaid_service_date: unpaid.map((x) => x.r.service_date).sort()[0] ?? null };
   });
   const extradors: ExtradorItem[] = demoDrivers.filter((driver) => driver.driver_kind === "backup" && driver.is_active).map((driver) => {
-    const assignment = currentAssignment(demoBackupAssignments.filter((row) => row.driver_id === driver.id), today);
+    const assignment = demoUnitAssignmentsDaily.find((row) => row.driver_id === driver.id && row.service_date === today);
     return { driverId: driver.id, fullName: driver.full_name, phone: driver.phone, currentUnit: assignment ? { unitId: assignment.unit_id, bodyNumber: demoUnits.find((unit) => unit.id === assignment.unit_id)?.body_number ?? "?" } : null, assignmentType: assignment ? "backup" : null };
   });
   const inRepair: InRepairUnitItem[] = demoUnits.filter((unit) => unit.status === "in_repair").map((unit) => { const at = demoInRepairSince[unit.id] ?? null; return { unitId: unit.id, bodyNumber: unit.body_number, plateNumber: unit.plate_number, inRepairSince: at, daysInRepair: at ? daysBetween(manilaDate(at), today) : null }; });
   const payments = demoRemittances.map((r) => ({ paid_at: `${r.service_date}T04:00:00Z`, amount_centavos: remittanceTotals(r.amount_due_centavos, r.remittance_payments).paid }));
   const work = demoDueMaintenance.slice(0, 5).map((item, index) => ({ id: item.item_id, unitId: item.unit_id, name: item.item_name, date: addDays(today, -30 - index), bodyNumber: item.body_number }));
   return assemble({
-    m, today, summary, expiry, due: demoDueMaintenance, balances, units: demoUnits, extradors, inRepair, payments,
+    m, today, summary, expiry, due: demoDueMaintenance, balances, units: demoUnits.filter((unit) => !unit.archived), extradors, inRepair, payments,
     recent: {
       remittances: demoRemittances.slice(0, 5) as Item[],
       expenses: demoExpenses.slice(0, 5) as Item[],

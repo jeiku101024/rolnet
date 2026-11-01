@@ -113,12 +113,16 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   it with "Payment can't exceed the rental of ₱X. At most ₱Y more can be recorded." There is no
   credit. Records that were already overpaid before this rule keep their payments, show "Paid", and
   accept no new payment.
-- Remittances (feature 008): Daily view (`/remittances`, optional `?date=YYYY-MM-DD`, never after
-  today) is where remittances are recorded and corrected, one card per scheduled unit; List view
-  (`/remittances?view=list`) is the read-only history, newest first. Cards show the driver assigned
-  on that date (a backup covering a day off is tagged Backup); a saved record keeps the driver it was
-  saved under. A day off with no backup, or a unit in repair today, is "Not operating" and not
-  counted; the owner can assign a backup from the card.
+- Remittances (feature 008, updated by feature 010): Daily view (`/remittances`, optional
+  `?date=YYYY-MM-DD`, never after today) is where remittances are recorded and corrected, one card per
+  non-archived unit; List view (`/remittances?view=list`) is the read-only history, newest first.
+  Each card shows the unit's saved daily assignment for the date, tagged Primary or Backup from the
+  driver record; a saved record keeps the driver it was saved under. A unit with no assignment shows
+  "Assign driver", linking to `/units?view=daily&date=…`, and can't be saved until one exists. A unit
+  In repair or Retired on the date is a grayed-out blocked card, left out of "N of M recorded" and
+  the received total; a record saved before the status change still shows. Archived units are hidden
+  on every date, but their records stay in List view and reports. The database refuses a new
+  remittance without a matching daily assignment (`validate_remittance`).
 - Payments entered from a Daily view card are dated on the card's date (now for today, noon in the
   fleet timezone for a past date), so monthly totals count them on that date. A saved record's
   disposition never changes (the owner reverses it on its details page); raising the payment adds the
@@ -137,14 +141,31 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
 - Drivers are Active or Inactive; units are Active, In repair or Retired. Only the owner changes a
   status. Inactive drivers and In repair or Retired units have locked details (enforced in the
   database); daily operations, mileage, documents and license renewals still work for them.
-- A driver with a current or upcoming assignment cannot be set Inactive until it is ended or removed.
 - Each unit has a name (for example `ROLNET-1`) alongside its body number: 1–40 characters, unique
   among non-deleted units ignoring case and surrounding spaces. A missing or blank name defaults to
   the body number in the database, which is how existing units got theirs (feature 007).
-- The units register's Current driver column uses the unit page's coverage rules
-  (`lib/assignments/coverage.ts`, `lib/assignments/current-drivers.ts`): today's primary driver,
-  the backup covering the primary's day off, "Day off · no backup", or "Unassigned". An assignment
-  whose driver is archived counts as unassigned.
+- Daily assignments (feature 010): drivers are assigned to units day by day on the Units page's
+  Daily assignment view (`/units?view=daily&date=YYYY-MM-DD`, any date, owner and staff). One driver
+  per unit and one unit per driver per day, enforced by unique indexes on `unit_assignments`; saving
+  goes through `save_unit_assignment` (insert, or overwrite with the `updated_at` the card showed).
+  Future dates pre-fill each card with the unit's latest earlier driver
+  (`latest_unit_assignments_before`); pre-fills are never stored. Once a remittance is saved for a
+  unit and date, that day's assignment is locked until the remittance is reversed. A unit's current
+  driver anywhere in the app is its saved assignment for today (`lib/assignments/current-drivers.ts`).
+  Primary assignments, days off and backup coverage are read-only history.
+- Unit status over time (feature 010): every status change is recorded in `unit_status_changes`
+  (written by a trigger, effective on its fleet date). A unit is blocked on a date when its status in
+  effect then is In repair or Retired (`unit_status_on`, mirrored by `lib/units/status-on.ts`); dates
+  before the change are never affected. A unit appears in the daily views from the fleet day it was
+  added.
+- Releasing (feature 010): setting a unit to In repair or Retired, archiving it, or deactivating or
+  archiving a driver soft-deletes their assignments dated today or later, except days that already
+  have a remittance. The screens confirm first when any exist. Released assignments are not restored.
+- Archive (feature 010): units are archived (`units.archived`), never deleted; `soft_delete_record`
+  refuses units. Archived units are hidden from the Units list (unless "Show archived"), both daily
+  views, and pickers for new records; their history stays in remittance List view and reports.
+- Release day: migration `20261101000300` seeds today's assignments from the old model (the primary,
+  or the backup covering the primary's day off). Apply it on the morning the app is deployed.
 
 ## Lists and dashboard (feature 006)
 
