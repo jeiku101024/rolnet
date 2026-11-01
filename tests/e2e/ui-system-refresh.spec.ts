@@ -13,7 +13,7 @@ test.describe("UI system refresh", () => {
     // Phones fold recent activity behind a button; wider screens show it straight away.
     const show = page.getByRole("button", { name: /Show recent activity/ });
     if (await show.isVisible()) await show.click();
-    for (const title of ["Recent remittances", "Recent expenses", "Recent maintenance work", "Recently added documents"]) {
+    for (const title of ["Recent remittances", "Recent expenses", "Recently added documents"]) {
       await expect(page.getByRole("heading", { name: title })).toBeVisible();
     }
     await expect(page.getByRole("link", { name: "View all" }).first()).toBeVisible();

@@ -1,4 +1,5 @@
 import { addDays, fleetToday } from "@/lib/dates/fleet-date";
+import type { ExpenseCategory } from "@/lib/expenses/categories";
 
 export const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 export const demoMasterEmail = process.env.DEMO_MASTER_EMAIL || "owner@demo.local";
@@ -30,13 +31,6 @@ export const demoDrivers = [
   ...extraDriverNames.map((full_name, index) => ({ id: demoId(2, index + 13), full_name, driver_kind: index < 2 ? "backup" : "primary", license_number: `N01-23-${456791 + index}`, license_expiry_date: addDays(today, 90 + index * 30), phone: `0917${pad(2000000 + index, 7)}`, is_active: index !== 12 })),
 ];
 
-export const demoCategories = [
-  { id: "00000000-0000-4000-8000-000000000021", name: "Fuel" },
-  { id: "00000000-0000-4000-8000-000000000022", name: "Repairs" },
-  { id: "00000000-0000-4000-8000-000000000023", name: "Registration" },
-  { id: "00000000-0000-4000-8000-000000000024", name: "Insurance" },
-];
-
 // Feature 007: the eight active primary drivers, one per unit ROLNET-1 to ROLNET-8.
 const demoPrimaryDrivers = demoDrivers.filter((driver) => driver.driver_kind === "primary" && driver.is_active).slice(0, 8);
 
@@ -59,11 +53,28 @@ export const demoUnitStatusChanges = [
   { unit_id: demoUnits[11].id, from_status: "active", to_status: "retired", effective_on: addDays(today, -20), changed_at: `${addDays(today, -20)}T02:00:00Z`, changed_by: null as string | null },
 ] as const;
 
-export const demoExpenses = [
-  { id: "00000000-0000-4000-8000-000000000041", unit_id: "00000000-0000-4000-8000-000000000001", category_id: "00000000-0000-4000-8000-000000000022", expense_date: addDays(today, -1), amount_centavos: 185000, notes: "Monthly tune-up", receipt_object_path: null, units: [{ body_number: "T-001", plate_number: "ABC-1234" }], expense_categories: [{ name: "Repairs" }] },
-  ...Array.from({ length: 11 }, (_, index) => ({ id: demoId(4, index + 2), unit_id: demoUnits[index % 4].id, category_id: demoCategories[index % 2].id, expense_date: addDays(today, -(index + 2)), amount_centavos: 25000 + index * 5000, notes: index % 2 ? "Gasoline" : "", receipt_object_path: index % 3 ? "demo" : null, units: [{ body_number: demoUnits[index % 4].body_number, plate_number: demoUnits[index % 4].plate_number }], expense_categories: [{ name: demoCategories[index % 2].name }] })),
+// Feature 011: fixed categories. Main categories carry a date replaced; Others carry a typed name.
+// Two rows were moved from the old maintenance records (one ₱0, marked for review).
+type DemoExpense = { id: string; unit_id: string; category: ExpenseCategory; custom_category: string | null; replaced_date: string | null; expense_date: string; amount_centavos: number; notes: string | null; needs_review: boolean; source_table: string | null; updated_at: string; receipt_object_path: string | null; units: { body_number: string; plate_number: string; name: string }[] };
+const demoExpenseUnit = (index: number) => [{ body_number: demoUnits[index].body_number, plate_number: demoUnits[index].plate_number, name: demoUnits[index].name }];
+const demoMainCycle: ExpenseCategory[] = ["rear_tire", "chain", "battery", "engine_sprocket", "rear_sprocket", "front_tire", "change_oil"];
+const demoOthersCycle = ["Fuel", "Brake pads", "Registration", "Fuel"];
+function demoExpense(row: Pick<DemoExpense, "id" | "unit_id" | "category" | "expense_date" | "amount_centavos" | "notes" | "receipt_object_path"> & Partial<DemoExpense>, unitIndex: number): DemoExpense {
+  const others = row.category === "others";
+  return { custom_category: null, replaced_date: others ? null : row.expense_date, needs_review: false, source_table: null, updated_at: `${row.expense_date}T08:00:00Z`, units: demoExpenseUnit(unitIndex), ...row };
+}
+
+export const demoExpenses: DemoExpense[] = [
+  demoExpense({ id: "00000000-0000-4000-8000-000000000041", unit_id: demoUnits[0].id, category: "change_oil", expense_date: addDays(today, -1), amount_centavos: 185000, notes: "Monthly tune-up", receipt_object_path: null }, 0),
+  ...Array.from({ length: 11 }, (_, index) => {
+    const category: ExpenseCategory = index < 7 ? demoMainCycle[index] : "others";
+    return demoExpense({ id: demoId(4, index + 2), unit_id: demoUnits[index % 4].id, category, custom_category: category === "others" ? demoOthersCycle[index - 7] : null, expense_date: addDays(today, -(index + 2)), amount_centavos: 25000 + index * 5000, notes: index % 2 ? "Paid at the shop on the highway" : "", receipt_object_path: index % 3 ? "demo" : null }, index % 4);
+  }),
   // Feature 009: older registration fees so every week of the demo reports has an expense.
-  ...[14, 19, 24, 29].map((daysAgo, index) => ({ id: demoId(4, index + 20), unit_id: demoUnits[3].id, category_id: demoCategories[2].id, expense_date: addDays(today, -daysAgo), amount_centavos: 15000, notes: "", receipt_object_path: null, units: [{ body_number: demoUnits[3].body_number, plate_number: demoUnits[3].plate_number }], expense_categories: [{ name: demoCategories[2].name }] })),
+  ...[14, 19, 24, 29].map((daysAgo, index) => demoExpense({ id: demoId(4, index + 20), unit_id: demoUnits[3].id, category: "others", custom_category: "Registration", expense_date: addDays(today, -daysAgo), amount_centavos: 15000, notes: "", receipt_object_path: null }, 3)),
+  // Feature 011: moved from the old maintenance records.
+  demoExpense({ id: demoId(4, 30), unit_id: demoUnits[3].id, category: "rear_tire", expense_date: addDays(today, -35), amount_centavos: 110000, notes: "Rear left · Dunlop · 16000 km", receipt_object_path: null, source_table: "tire_installations" }, 3),
+  demoExpense({ id: demoId(4, 31), unit_id: demoUnits[4].id, category: "others", custom_category: "Brake shoes", expense_date: addDays(today, -40), amount_centavos: 0, notes: "Next due 17500 km", receipt_object_path: null, needs_review: true, source_table: "part_replacements" }, 4),
 ];
 
 export const demoRemittances = Array.from({ length: 30 }, (_, index) => {
@@ -81,17 +92,6 @@ export const demoDocuments = [
   { id: demoId(6, 3), document_type: "mtop_franchise", document_number: "MTOP-0003", expires_on: addDays(today, 2), object_path: "demo", lifecycle_status: "current", unit_id: demoUnits[2].id, driver_id: null as string | null, created_at: `${addDays(today, -20)}T08:00:00Z` },
   { id: demoId(6, 4), document_type: "driver_license", document_number: "N01-23-456790", expires_on: addDays(today, 25), object_path: "demo", lifecycle_status: "current", unit_id: null as string | null, driver_id: demoDrivers[1].id, created_at: `${addDays(today, -10)}T08:00:00Z` },
   ...Array.from({ length: 8 }, (_, index) => ({ id: demoId(6, index + 5), document_type: index % 2 ? "insurance" : "or_cr", document_number: `DOC-${pad(index + 5, 4)}`, expires_on: addDays(today, 120 + index * 15), object_path: "demo", lifecycle_status: "current", unit_id: demoUnits[(index % 8) + 3].id as string | null, driver_id: null as string | null, created_at: `${addDays(today, -60 - index)}T08:00:00Z` })),
-];
-
-/** Parts and tires that are past their due date or mileage, for the due-maintenance panel. */
-export const demoDueMaintenance = [
-  { item_type: "part", item_id: demoId(7, 1), unit_id: demoUnits[0].id, due_date: addDays(today, -12), due_mileage: null as number | null, item_name: "Engine oil", body_number: "T-001", current_mileage: 18240 },
-  { item_type: "part", item_id: demoId(7, 2), unit_id: demoUnits[2].id, due_date: null as string | null, due_mileage: 14600, item_name: "Drive chain", body_number: "T-003", current_mileage: 15000 },
-  { item_type: "tire", item_id: demoId(7, 3), unit_id: demoUnits[3].id, due_date: addDays(today, -2), due_mileage: null as number | null, item_name: "Rear left tire (Dunlop)", body_number: "T-004", current_mileage: 16375 },
-  { item_type: "part", item_id: demoId(7, 4), unit_id: demoUnits[4].id, due_date: addDays(today, -5), due_mileage: 17500, item_name: "Brake shoes", body_number: "T-005", current_mileage: 17750 },
-  { item_type: "part", item_id: demoId(7, 5), unit_id: demoUnits[5].id, due_date: today, due_mileage: null as number | null, item_name: "Spark plug", body_number: "T-006", current_mileage: 19125 },
-  { item_type: "tire", item_id: demoId(7, 6), unit_id: demoUnits[6].id, due_date: null as string | null, due_mileage: 20000, item_name: "Front tire (IRC)", body_number: "T-007", current_mileage: 20500 },
-  { item_type: "part", item_id: demoId(7, 7), unit_id: demoUnits[7].id, due_date: addDays(today, -1), due_mileage: null as number | null, item_name: "Air filter", body_number: "T-008", current_mileage: 21875 },
 ];
 
 /** When each demo unit in repair went into repair. T-007 has no recorded time. */

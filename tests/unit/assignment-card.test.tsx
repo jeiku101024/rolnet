@@ -2,21 +2,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { AssignmentCard as Card } from "@/lib/units/assignment-board";
 
-const mocks = vi.hoisted(() => ({ save: vi.fn(), refresh: vi.fn(), push: vi.fn() }));
+const mocks = vi.hoisted(() => ({ save: vi.fn(), mileage: vi.fn(), refresh: vi.fn(), push: vi.fn() }));
 vi.mock("@/app/actions/unit-assignments", () => ({ saveUnitAssignment: mocks.save }));
+vi.mock("@/app/actions/mileage", () => ({ upsertMileageReading: mocks.mileage }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh, push: mocks.push }) }));
 
 import { AssignmentCard } from "@/components/units/assignment-card";
+import { ToastProvider } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 const today = "2026-11-01";
 const options = [{ id: "00000000-0000-4000-8000-000000000011", label: "Ana (Primary)" }, { id: "00000000-0000-4000-8000-000000000012", label: "Ben (Backup)" }];
-const base = { key: `${today}:u1`, unitId: "00000000-0000-4000-8000-000000000001", unitName: "ROLNET-1", subheader: "T-001 · ABC-1234 · Honda TMX", options };
+const base = { key: `${today}:u1`, unitId: "00000000-0000-4000-8000-000000000001", unitName: "ROLNET-1", subheader: "T-001 · ABC-1234 · Honda TMX", options, currentMileage: 18240 };
 const open: Card = { ...base, kind: "open", prefillDriverId: null };
 const saved: Card = { ...base, kind: "saved", assignmentId: "a1", driverId: options[0].id, driverLabel: "Ana (Primary)", notes: "early", updatedAt: "2026-11-01T07:00:00+00:00" };
 
 function renderCard(card: Card, { date = today, isOwner = true } = {}) {
-  render(<TooltipProvider><AssignmentCard card={card} date={date} today={today} isOwner={isOwner} /></TooltipProvider>);
+  render(<ToastProvider><TooltipProvider><AssignmentCard card={card} date={date} today={today} isOwner={isOwner} /></TooltipProvider></ToastProvider>);
 }
 const driverSelect = () => screen.getByLabelText(/^Assign driver/) as HTMLSelectElement;
 const press = async (name: string) => { await act(async () => { fireEvent.click(screen.getByRole("button", { name })); }); };
@@ -130,5 +132,21 @@ describe("AssignmentCard: blocked (feature 010, User Story 4)", () => {
     renderCard({ ...blocked, status: "retired" } as Card, { isOwner: false });
     expect(screen.getByText("Unit is retired. Change its status on the unit page to assign a driver.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Open unit" })).not.toBeInTheDocument();
+  });
+});
+
+describe("AssignmentCard: Record mileage (feature 011, FR-034a)", () => {
+  it("offers Record mileage on every card, including blocked ones, and saves in a dialog", async () => {
+    mocks.mileage.mockResolvedValue({ ok: true, data: { id: "m1", updated: false } });
+    renderCard(open, { isOwner: false });
+    await press("Record mileage");
+    expect(screen.getByRole("dialog", { name: "Record mileage · ROLNET-1" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^Odometer/), { target: { value: "18300" } });
+    await press("Save mileage");
+    expect(mocks.mileage).toHaveBeenCalledWith(expect.objectContaining({ unitId: base.unitId, mileage: 18300 }));
+    expect(await screen.findByText("Mileage saved")).toBeInTheDocument();
+    cleanup();
+    renderCard({ ...base, options: [], kind: "blocked", status: "in_repair" });
+    expect(screen.getByRole("button", { name: "Record mileage" })).toBeInTheDocument();
   });
 });

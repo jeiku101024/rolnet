@@ -27,8 +27,10 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000002
 set local role authenticated;
 select is((select bucket from public.expiring_documents() where id = '00000000-0000-0000-0000-000000230401'), 'expired',
   'a document that expired yesterday in Manila is expired by default');
+reset role; -- due_maintenance() is no longer callable by app users (feature 011)
 select isnt_empty($$select 1 from public.due_maintenance() where item_id = '00000000-0000-0000-0000-000000230501'$$,
   'a part due today in Manila is due by default');
+set local role authenticated;
 select is((select count(*) from public.expiring_documents()), (select count(*) from public.expiring_documents((now() at time zone 'Asia/Manila')::date)),
   'the default matches an explicit Manila date');
 reset role;

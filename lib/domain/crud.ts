@@ -37,7 +37,7 @@ async function contextForRead(config: ResourceConfig) { return apiContext(config
 async function contextForWrite(config: ResourceConfig) {
   const context = await apiContext(config.writePermission);
   if (config.ownerWrite && context.role !== "owner") throw new ApiError(403, "FORBIDDEN", "Owner access is required.");
-  if (config.readOnly) throw new ApiError(405, "FORBIDDEN", "This resource is read only.");
+  if (config.readOnly) throw new ApiError(405, "FORBIDDEN", config.readOnlyMessage ?? "This resource is read only.");
   return context;
 }
 

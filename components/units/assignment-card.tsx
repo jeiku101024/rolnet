@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { clientErrorMessage } from "@/components/forms/use-action-form";
 import { formatShortDate } from "@/lib/dates/fleet-date";
 import { unitStatusLabel } from "@/lib/status/record-status";
+import { RecordMileageDialog } from "@/components/units/record-mileage-dialog";
 import type { AssignmentCard as Card } from "@/lib/units/assignment-board";
 
 const pastEditFlag = "rolnet.pastAssignmentEditOk";
@@ -43,6 +44,7 @@ export function AssignmentCard({ card, date, today, isOwner }: { card: Card; dat
       <Button type="button" disabled>Save assignment</Button>
       <p className="flex gap-2 text-body-sm text-muted"><Wrench aria-hidden="true" size={16} className="mt-0.5 shrink-0" />Unit is {label.toLowerCase()}. Change its status on the unit page to assign a driver.</p>
       {isOwner ? <Link className="muted-link w-fit text-body-sm font-semibold" href={`/units/${card.unitId}`}>Open unit</Link> : null}
+      <RecordMileageDialog unitId={card.unitId} unitLabel={card.unitName} currentMileage={card.currentMileage} />
     </article>;
   }
   return <EditableCard card={card} date={date} today={today} />;
@@ -134,6 +136,8 @@ function EditableCard({ card, date, today }: { card: Exclude<Card, { kind: "bloc
       <Button type="button" className="flex-1" disabled={pending || (noOptions && !saved)} onClick={submit}>{pending ? "Saving…" : "Save assignment"}</Button>
       {saved ? <Button type="button" variant="outline" disabled={pending} onClick={cancelEdit}>Cancel</Button> : null}
     </div>}
+
+    <RecordMileageDialog unitId={card.unitId} unitLabel={card.unitName} currentMileage={card.currentMileage} />
 
     <AlertDialog open={confirmPast} onOpenChange={setConfirmPast}>
       <AlertDialogContent title={`You are editing an assignment from ${formatShortDate(date)}. Continue?`}>

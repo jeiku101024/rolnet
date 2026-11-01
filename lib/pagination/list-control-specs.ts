@@ -2,6 +2,7 @@ import type { ControlsSpec, FilterOption } from "@/lib/pagination/list-controls"
 import { bucketLabels } from "@/lib/pagination/list-controls";
 import { accountStatusLabels, auditActionLabels, dispositionLabels, driverKindLabels, unitStatusLabels } from "@/lib/pagination/search-specs";
 import { documentTypeLabels } from "@/lib/validation/documents";
+import { expenseCategoryLabels, expenseCategoryOptions } from "@/lib/expenses/categories";
 
 /** Sorts and filters of each main list (contracts/list-paging.md, "Sort and filter"). The first sort is the default. */
 
@@ -65,20 +66,11 @@ export const listControlSpecs = {
     filters: [
       { kind: "range", label: "Expense date", column: "expense_date" },
       { kind: "eq", param: "unit", label: "Unit", column: "unit_id", options: [] },
-      { kind: "eq", param: "category", label: "Category", column: "category_id", options: [] },
+      // Feature 011: the fixed categories, in client order (FR-006, FR-009).
+      { kind: "eq", param: "category", label: "Category", column: "category", options: expenseCategoryOptions.map((value) => ({ value, label: expenseCategoryLabels[value] })) },
       { kind: "presence", param: "receipt", label: "Receipt", options: [{ value: "attached", label: "Attached", column: "receipt_object_path", present: true }, { value: "missing", label: "Missing", column: "receipt_object_path", present: false }] },
-    ],
-  },
-  maintenance: {
-    sorts: [
-      { value: "body", label: "Body number, A to Z", column: "body_number", ascending: true },
-      { value: "body-desc", label: "Body number, Z to A", column: "body_number", ascending: false },
-      { value: "mileage-desc", label: "Mileage, highest first", column: "current_mileage", ascending: false, then: [{ column: "body_number", ascending: true }] },
-      { value: "mileage", label: "Mileage, lowest first", column: "current_mileage", ascending: true, then: [{ column: "body_number", ascending: true }] },
-    ],
-    filters: [
-      { kind: "eq", param: "status", label: "Unit status", column: "status", options: optionsOf(unitStatusLabels) },
-      { kind: "page", param: "due", label: "Maintenance", options: [{ value: "1", label: "Has maintenance due" }], ownerOnly: true },
+      // FR-037: find moved maintenance records, and the ₱0 ones to fix.
+      { kind: "presence", param: "review", label: "Review", options: [{ value: "needs-review", label: "Needs review", column: "needs_review", present: true, equals: true }, { value: "moved", label: "Moved from maintenance", column: "source_table", present: true }] },
     ],
   },
   documents: {

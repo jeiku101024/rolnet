@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "ROLNET Fleet Management",
     short_name: "ROLNET",
-    description: "Tricycle fleet ledger for units, drivers, remittances, expenses, maintenance, and documents.",
+    description: "Tricycle fleet ledger for units, drivers, remittances, expenses, mileage, and documents.",
     start_url: "/dashboard",
     display: "standalone",
     background_color: "#fffcf3",

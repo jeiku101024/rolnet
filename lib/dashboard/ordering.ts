@@ -4,8 +4,6 @@
  */
 
 export const panelLimit = 5;
-/** 100 km past due counts as one day overdue, so date-due and mileage-due items rank together. */
-export const kmPerDayEquivalent = 100;
 
 export interface Panel<Item> { items: Item[]; total: number; href: string }
 
@@ -37,29 +35,6 @@ export function orderExpiringDocuments(rows: { id: string; document_type: string
   return rows
     .map((row) => ({ id: row.id, documentType: row.document_type, holderLabel: row.holderLabel, expiresOn: row.expires_on, daysUntil: daysBetween(today, row.expires_on), bucket: row.bucket }))
     .sort((a, b) => a.expiresOn.localeCompare(b.expiresOn) || a.holderLabel.localeCompare(b.holderLabel));
-}
-
-// Due maintenance
-
-export interface DueMaintenanceRow { item_type: string; item_id: string; unit_id: string; due_date: string | null; due_mileage: number | null; item_name: string; body_number: string; current_mileage: number | null }
-export interface DueMaintenanceItem extends DueMaintenanceRow { daysPastDue: number | null; kmPastDue: number | null; urgency: number }
-
-export function dueText(item: DueMaintenanceItem) {
-  const parts: string[] = [];
-  if (item.daysPastDue !== null) parts.push(item.daysPastDue === 0 ? "Due today" : `${plural(item.daysPastDue, "day")} overdue`);
-  if (item.kmPastDue !== null) parts.push(item.kmPastDue === 0 ? "Due at this mileage" : `${item.kmPastDue.toLocaleString()} km past due`);
-  return parts.join(" · ") || "Due";
-}
-
-export function orderDueMaintenance(rows: DueMaintenanceRow[], today: string): DueMaintenanceItem[] {
-  return rows
-    .map((row) => {
-      const daysPastDue = row.due_date && row.due_date <= today ? daysBetween(row.due_date, today) : null;
-      const kmPastDue = row.due_mileage !== null && row.current_mileage !== null && row.current_mileage >= row.due_mileage ? row.current_mileage - row.due_mileage : null;
-      const urgency = Math.max(daysPastDue ?? 0, (kmPastDue ?? 0) / kmPerDayEquivalent);
-      return { ...row, daysPastDue, kmPastDue, urgency };
-    })
-    .sort((a, b) => b.urgency - a.urgency || a.body_number.localeCompare(b.body_number));
 }
 
 // Unpaid balances
@@ -96,7 +71,7 @@ export function orderInRepair(items: InRepairUnitItem[]) {
 // Month figures (integer centavos only)
 
 export interface SummaryRow { unit_id: string; body_number: string; remittance_paid_centavos: number | null; total_expense_centavos: number | null; net_income_centavos: number | null }
-export interface FleetStats { collectedCentavos: number; expenseCentavos: number; netCentavos: number; unitsActive: number; unitsInRepair: number; documentsDue: number; maintenanceDue: number }
+export interface FleetStats { collectedCentavos: number; expenseCentavos: number; netCentavos: number; unitsActive: number; unitsInRepair: number; documentsDue: number }
 export interface UnitIncomeBar { unitId: string; bodyNumber: string; collectedCentavos: number; expenseCentavos: number; netCentavos: number; collectedPct: number; expensePct: number }
 export interface DailyCollection { date: string; collectedCentavos: number; heightPct: number }
 

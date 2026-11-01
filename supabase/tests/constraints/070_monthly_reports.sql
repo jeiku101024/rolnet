@@ -28,8 +28,8 @@ insert into public.remittances (id, unit_id, driver_id, service_date, dispositio
 values ('00000000-0000-0000-0000-000000070401', '00000000-0000-0000-0000-000000070101', '00000000-0000-0000-0000-000000070201', '2031-10-02', 'returned', gen_random_uuid());
 insert into public.remittance_payments (remittance_id, paid_at, amount_centavos, idempotency_key)
 values ('00000000-0000-0000-0000-000000070401', '2031-10-02 18:00+08', 10000, gen_random_uuid());
-insert into public.expenses (unit_id, category_id, expense_date, amount_centavos, idempotency_key)
-select '00000000-0000-0000-0000-000000070101', id, '2031-10-05', 2500, gen_random_uuid()
+insert into public.expenses (unit_id, category_id, category, custom_category, expense_date, amount_centavos, idempotency_key)
+select '00000000-0000-0000-0000-000000070101', id, 'others', 'Fuel', '2031-10-05', 2500, gen_random_uuid()
 from public.expense_categories where system_key = 'fuel' and is_system and deleted_at is null;
 
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000070001","role":"authenticated"}', true);

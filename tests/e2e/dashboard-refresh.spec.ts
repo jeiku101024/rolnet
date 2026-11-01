@@ -22,8 +22,8 @@ test.describe("dashboard refresh", () => {
     const documents = page.locator("[aria-labelledby=panel-documents] li");
     await expect(documents.first()).toContainText("Expired 3 days ago");
     await expect(documents.nth(1)).toContainText("Expires in 2 days");
-    const maintenance = page.locator("[aria-labelledby=panel-maintenance]");
-    await expect(maintenance.getByRole("link", { name: /View all 7/ })).toHaveAttribute("href", "/maintenance?due=1");
+    // Feature 011: the maintenance panel was retired with next-due reminders.
+    await expect(page.locator("[aria-labelledby=panel-maintenance]")).toHaveCount(0);
   });
 
   test("shows extradors and units in repair instead of recent drivers and units", async ({ page }) => {
@@ -42,7 +42,7 @@ test.describe("dashboard refresh", () => {
 
   test("shows month figures and charts with text values", async ({ page }) => {
     await page.goto("/dashboard");
-    await expect(page.getByRole("list", { name: /Fleet figures for/ }).getByRole("listitem")).toHaveCount(6);
+    await expect(page.getByRole("list", { name: /Fleet figures for/ }).getByRole("listitem")).toHaveCount(5);
     // On a phone the charts are folded behind "Show charts".
     await expect(page.getByRole("heading", { name: "Collected vs expenses by unit" })).toBeHidden();
     await page.getByRole("button", { name: /Show charts/ }).click();

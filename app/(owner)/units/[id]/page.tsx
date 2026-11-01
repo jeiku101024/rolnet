@@ -19,13 +19,17 @@ import { PagedList, listView } from "@/components/ui/paged-list";
 import { documentTypeLabels } from "@/lib/validation/documents";
 import { driverLabel, roleLabel, type DriverKind } from "@/lib/units/assignment-board";
 import { monthlyAllowanceBlocks, windowStart } from "@/lib/units/monthly-allowance";
+import { lastReplacedByCategory } from "@/lib/expenses/last-replaced";
+import { LastReplaced } from "@/components/units/last-replaced";
+import { MileageSection } from "@/components/units/mileage-section";
 
 type Embed<T> = T | T[] | null;
 
 /**
  * Unit history (feature 010, redesigned): header with the status control, an inline Details
  * section, then read-only monthly expenses vs allowance, status history, assignment history and
- * documents (FR-038 to FR-042). Owner only (FR-057).
+ * documents (FR-038 to FR-042). Owner only (FR-057). Feature 011 adds Last replaced per main part and
+ * the Mileage section (formerly on the Maintenance page).
  */
 export default async function UnitDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<SearchParams> }) {
   await requirePermission("manage_master_data");
@@ -36,14 +40,16 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
   const { data: unit } = await supabase.from("units").select("id, name, body_number, plate_number, make_model, status, current_mileage, archived, updated_at").eq("id", id).is("deleted_at", null).maybeSingle();
   if (!unit) notFound();
   const since = `${windowStart(today)}-01`;
-  const [drivers, { data: assignmentRows, error: assignmentsError }, { data: remittances, error: remittancesError }, { data: expenses, error: expensesError }, { data: documents }] = await Promise.all([
+  const [drivers, { data: assignmentRows, error: assignmentsError }, { data: remittances, error: remittancesError }, { data: expenses, error: expensesError }, { data: documents }, { data: replacedRows, error: replacedError }, { data: readings, error: readingsError }] = await Promise.all([
     currentDriversOn(supabase, [id], today),
     supabase.from("unit_assignments").select("id, service_date, driver_id, drivers(full_name, driver_kind)").eq("unit_id", id).is("deleted_at", null).order("service_date", { ascending: false }),
     supabase.from("remittances").select("service_date, allowance_centavos").eq("unit_id", id).is("deleted_at", null).gte("service_date", since),
     supabase.from("expenses").select("expense_date, amount_centavos").eq("unit_id", id).is("deleted_at", null).gte("expense_date", since),
     supabase.from("documents").select("id, document_type, expires_on, lifecycle_status, document_number").eq("unit_id", id).is("deleted_at", null).order("lifecycle_status").order("expires_on", { ascending: false }),
+    supabase.from("expenses").select("category, replaced_date").eq("unit_id", id).neq("category", "others").is("deleted_at", null),
+    supabase.from("mileage_readings").select("id, reading_date, mileage, notes").eq("unit_id", id).is("deleted_at", null).order("reading_date", { ascending: false }),
   ]);
-  for (const error of [assignmentsError, remittancesError, expensesError]) if (error) throw error;
+  for (const error of [assignmentsError, remittancesError, expensesError, replacedError, readingsError]) if (error) throw error;
   const todayDriver = drivers.get(id);
   const currentDriver = todayDriver ? driverLabel(todayDriver.driverName, todayDriver.role) : "No driver assigned today";
   const assignments = (assignmentRows ?? []).map((row) => {
@@ -56,6 +62,8 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
   const assignmentsPage = pageRows(assignments, assignmentsRequest, (a) => `${a.date} ${a.driverName} ${a.role}`);
   const documentsRequest = parseListPage(query, "documents_");
   const documentsPage = pageRows(documents ?? [], documentsRequest, (d) => `${documentTypeLabels[d.document_type] ?? d.document_type} ${d.document_number ?? ""} ${d.expires_on} ${d.lifecycle_status}`);
+  const mileageRequest = parseListPage(query, "mileage_");
+  const mileagePage = pageRows(readings ?? [], mileageRequest, () => "");
   const blocks = monthlyAllowanceBlocks((remittances ?? []).map((row) => ({ service_date: row.service_date, allowance_centavos: Number(row.allowance_centavos) })), (expenses ?? []).map((row) => ({ expense_date: row.expense_date, amount_centavos: Number(row.amount_centavos) })), today);
 
   return <section className="workspace">
@@ -65,6 +73,8 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
     <div className="mt-8 grid gap-10">
       <UnitDetailsSection key={unit.updated_at} unit={unit} currentDriver={currentDriver} canEdit />
       <MonthlyAllowance blocks={blocks} />
+      <LastReplaced unitId={unit.id} rows={lastReplacedByCategory(replacedRows ?? [])} />
+      <MileageSection unitId={unit.id} currentMileage={unit.current_mileage} list={listView(pathname, query, mileageRequest, mileagePage, { search: false })} readings={mileagePage.rows} />
       <StatusHistory kind="unit" id={unit.id} />
       <div><SectionHeading title="Assignment history" description="Newest first." /><div className="mt-4"><DataTable list={listView(pathname, query, assignmentsRequest, assignmentsPage, { searchLabel: "Search assignment history" })} headers={["Date", "Driver", "Role"]} empty={<p className="p-6 text-muted">No assignments recorded yet.</p>}>
         {assignmentsPage.rows.map((a) => <tr key={a.id}><td className="whitespace-nowrap font-data">{formatShortDate(a.date)}, {a.date.slice(0, 4)}</td><td className="font-semibold"><Link className="muted-link" href={`/drivers/${a.driverId}`}>{a.driverName}</Link></td><td>{a.role}</td></tr>)}

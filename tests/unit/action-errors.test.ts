@@ -3,7 +3,6 @@ import { z } from "zod";
 import { ActionError, databaseFailure, runAction, toActionFailure, validationFailure } from "@/lib/actions/errors";
 import { parseCentavos, parsePositiveCentavos } from "@/lib/money/centavos";
 import { expenseSchema } from "@/lib/validation/expenses";
-import { tireSchema } from "@/lib/validation/maintenance";
 
 describe("databaseFailure", () => {
   it("maps unique indexes to plain messages", () => {
@@ -50,11 +49,16 @@ describe("databaseFailure", () => {
   it("maps known check constraints by name", () => {
     expect(databaseFailure({ code: "23514", message: 'new row for relation "documents" violates check constraint "document_holder_type_check"' }, "f").code).toBe("INVALID_HOLDER");
   });
+
+  it("maps the feature 011 expense checks to plain language", () => {
+    expect(databaseFailure({ code: "23514", message: 'new row for relation "expenses" violates check constraint "expenses_category_shape_check"' }, "f").message).toBe("Check the category, category name, and date replaced.");
+    expect(databaseFailure({ code: "23514", message: 'new row for relation "expenses" violates check constraint "expenses_amount_check"' }, "f").message).toBe("Enter an amount greater than ₱0.00.");
+  });
 });
 
 describe("validationFailure", () => {
   it("names fields instead of showing raw Zod output", () => {
-    const parsed = expenseSchema.safeParse({ unitId: "x", categoryId: "00000000-0000-4000-8000-000000000001", expenseDate: "2026-10-29", amountCentavos: 0, idempotencyKey: "00000000-0000-4000-8000-000000000002" });
+    const parsed = expenseSchema.safeParse({ unitId: "x", category: "battery", replacedDate: "2026-10-29", expenseDate: "2026-10-29", amountCentavos: 0, idempotencyKey: "00000000-0000-4000-8000-000000000002" });
     expect(parsed.success).toBe(false);
     const result = validationFailure(parsed.error!, { unitId: "unit", amountCentavos: "amount" });
     expect(result.message).toBe("Check the unit and amount.");
@@ -63,8 +67,9 @@ describe("validationFailure", () => {
   });
 
   it("uses refine messages as written", () => {
-    const parsed = tireSchema.safeParse({ unitId: "00000000-0000-4000-8000-000000000001", position: "front", brand: "IRC", installedOn: "2026-10-29", costCentavos: 0 });
-    expect(validationFailure(parsed.error!).message).toBe("Add a next due date or a next due mileage.");
+    const parsed = expenseSchema.safeParse({ unitId: "00000000-0000-4000-8000-000000000001", category: "others", expenseDate: "2026-10-29", amountCentavos: 100, idempotencyKey: "00000000-0000-4000-8000-000000000002" });
+    expect(validationFailure(parsed.error!).message).toBe("Enter a category name.");
+    expect(validationFailure(parsed.error!).fieldErrors?.customCategory).toEqual(["Enter a category name."]);
   });
 });
 
@@ -72,6 +77,7 @@ describe("runAction", () => {
   it("returns success and failure results instead of throwing", async () => {
     await expect(runAction({ fallback: "f" }, async () => 5)).resolves.toEqual({ ok: true, data: 5 });
     await expect(runAction({ fallback: "f" }, async () => { throw new ActionError("NOT_FOUND", "Gone."); })).resolves.toEqual({ ok: false, code: "NOT_FOUND", message: "Gone." });
+    await expect(runAction({ fallback: "f" }, async () => { throw new ActionError("ARCHIVED_UNIT", "Archived.", { unitId: "Choose another unit." }); })).resolves.toEqual({ ok: false, code: "ARCHIVED_UNIT", message: "Archived.", fieldErrors: { unitId: ["Choose another unit."] } });
   });
 
   it("lets Next.js control-flow errors through", async () => {

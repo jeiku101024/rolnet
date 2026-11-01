@@ -11,7 +11,7 @@ import { existsOn, isBlocked, statusOn, type StatusChange } from "@/lib/units/st
 export type DriverKind = "primary" | "backup";
 
 export interface AssignmentRows {
-  units: { id: string; name: string; body_number: string; plate_number: string; make_model: string; created_at: string }[];
+  units: { id: string; name: string; body_number: string; plate_number: string; make_model: string; created_at: string; current_mileage?: number }[];
   statusChanges: (StatusChange & { unit_id: string })[];
   assignments: { id: string; unit_id: string; driver_id: string; notes: string | null; updated_at: string; driverName: string; driverKind: DriverKind }[];
   /** Units with a saved remittance on the date: their assignment can no longer change. */
@@ -23,7 +23,8 @@ export interface AssignmentRows {
 
 export interface DriverOption { id: string; label: string }
 
-interface CardBase { key: string; unitId: string; unitName: string; subheader: string; options: DriverOption[] }
+/** `currentMileage` feeds the card's "Record mileage" dialog (feature 011). */
+interface CardBase { key: string; unitId: string; unitName: string; subheader: string; options: DriverOption[]; currentMileage: number }
 export type OpenCard = CardBase & { kind: "open"; prefillDriverId: string | null };
 export type SavedCard = CardBase & { kind: "saved" | "locked"; assignmentId: string; driverId: string; driverLabel: string; notes: string; updatedAt: string };
 export type BlockedCard = CardBase & { kind: "blocked"; status: Exclude<UnitStatus, "active"> };
@@ -68,7 +69,7 @@ export function buildAssignmentBoard({ date, today, rows }: { date: string; toda
   const cards: AssignmentCard[] = [];
   const units = rows.units.filter((unit) => existsOn(unit.created_at, date)).sort((a, b) => byName.compare(a.name, b.name));
   for (const unit of units) {
-    const base: CardBase = { key: `${date}:${unit.id}`, unitId: unit.id, unitName: unit.name, subheader: `${unit.body_number} · ${unit.plate_number} · ${unit.make_model}`, options: optionsFor(unit.id) };
+    const base: CardBase = { key: `${date}:${unit.id}`, unitId: unit.id, unitName: unit.name, subheader: `${unit.body_number} · ${unit.plate_number} · ${unit.make_model}`, options: optionsFor(unit.id), currentMileage: unit.current_mileage ?? 0 };
     const saved = savedOn.get(unit.id);
     if (saved) {
       cards.push({ ...base, kind: locked.has(unit.id) ? "locked" : "saved", assignmentId: saved.id, driverId: saved.driver_id, driverLabel: driverLabel(saved.driverName, saved.driverKind), notes: saved.notes ?? "", updatedAt: saved.updated_at });

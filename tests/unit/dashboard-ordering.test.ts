@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays } from "@/lib/dates/fleet-date";
-import { dueText, expiryText, orderDueMaintenance, orderExpiringDocuments, orderExtradors, orderInRepair, orderUnpaidBalances, repairText, toPanel } from "@/lib/dashboard/ordering";
+import { expiryText, orderExpiringDocuments, orderExtradors, orderInRepair, orderUnpaidBalances, repairText, toPanel } from "@/lib/dashboard/ordering";
 
 const today = "2026-10-30";
 
@@ -12,19 +12,6 @@ describe("dashboard attention ordering (feature 006)", () => {
     expect(ordered.map((item) => expiryText(item.daysUntil))).toEqual(["Expired 3 days ago", "Expires in 2 days", "Expires in 10 days", "Expires in 25 days"]);
     expect(expiryText(0)).toBe("Expires today");
     expect(expiryText(-1)).toBe("Expired 1 day ago");
-  });
-
-  it("ranks mileage-due and date-due maintenance together by how far past due they are", () => {
-    const base = { item_type: "part", unit_id: "u", item_name: "Part" };
-    const ordered = orderDueMaintenance([
-      { ...base, item_id: "date", body_number: "T-002", due_date: addDays(today, -3), due_mileage: null, current_mileage: 1000 },
-      { ...base, item_id: "km", body_number: "T-003", due_date: null, due_mileage: 1000, current_mileage: 1500 },
-      { ...base, item_id: "today", body_number: "T-001", due_date: today, due_mileage: null, current_mileage: 1000 },
-    ], today);
-    expect(ordered.map((item) => item.item_id)).toEqual(["km", "date", "today"]);
-    expect(dueText(ordered[0])).toBe("500 km past due");
-    expect(dueText(ordered[1])).toBe("3 days overdue");
-    expect(dueText(ordered[2])).toBe("Due today");
   });
 
   it("orders unpaid balances by amount, then by the oldest unpaid day, and drops zero balances", () => {

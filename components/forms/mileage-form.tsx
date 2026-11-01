@@ -9,8 +9,11 @@ import { FormFooter } from "@/components/forms/form-status";
 import { useActionForm } from "@/components/forms/use-action-form";
 import { text, wholeNumber } from "@/components/forms/form-values";
 
-/** Odometer reading for a date; saving the same date again corrects that reading (FR-008). */
-export function MileageForm({ unitId, currentMileage }: { unitId: string; currentMileage: number }) {
+/**
+ * Odometer reading for a date; saving the same date again corrects that reading (FR-008). Feature 011:
+ * used on the unit page and in the Daily view's "Record mileage" dialog (`onSaved`, no heading).
+ */
+export function MileageForm({ unitId, currentMileage, onSaved, heading = true }: { unitId: string; currentMileage: number; onSaved?: (updated: boolean) => void; heading?: boolean }) {
   const router = useRouter();
   const { pending, status, submit } = useActionForm();
   return <FormPanel className="space-y-5" onSubmit={submit(async ({ data }) => {
@@ -19,9 +22,10 @@ export function MileageForm({ unitId, currentMileage }: { unitId: string; curren
     const result = await upsertMileageReading({ unitId, readingDate: text(data, "readingDate"), mileage, notes: text(data, "notes") });
     if (!result.ok) return result;
     router.refresh();
+    onSaved?.(result.data.updated);
     return { ok: true, message: result.data.updated ? "Mileage reading for that date corrected." : "Mileage saved." };
   })}>
-    <h2 className="font-semibold">Record mileage</h2>
+    {heading ? <h2 className="font-semibold">Record mileage</h2> : null}
     <div className="grid gap-4 sm:grid-cols-2"><FormField label="Reading date" required><Input required name="readingDate" type="date" defaultValue={fleetToday()} /></FormField><FormField label="Odometer (km)" required hint={`Current reading: ${currentMileage.toLocaleString()} km. Readings cannot go down over time.`}><Input required name="mileage" inputMode="numeric" /></FormField></div>
     <FormField label="Notes"><Input name="notes" maxLength={500} /></FormField>
     <FormFooter pending={pending} status={status} label="Save mileage" />

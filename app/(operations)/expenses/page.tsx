@@ -3,63 +3,96 @@ import { requireApprovedSession } from "@/lib/auth/guards";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/embed";
 import { formatPesos } from "@/lib/money/centavos";
-import { getReceiptUrl, softDeleteExpense } from "@/app/actions/expenses";
-import { ExpenseForm, type EditableExpense } from "@/components/forms/expense-form";
-import { ArchiveButton, SignedFileButton } from "@/components/forms/record-buttons";
-import { demoCategories, demoExpenses, demoMode, demoUnits } from "@/lib/demo/mode";
+import { formatShortDate } from "@/lib/dates/fleet-date";
+import { demoExpenses, demoMode, demoUnits } from "@/lib/demo/mode";
+import { categoryText, type ExpenseCategory } from "@/lib/expenses/categories";
+import { loadExpenseTotal, sumAmounts, type AmountQuery } from "@/lib/expenses/list-total";
 import { DataTable } from "@/components/ui/data-table";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusBadge } from "@/components/ui/feedback";
-import { listHref, pageRows, parseListPage, type SearchParams } from "@/lib/pagination/list-page";
-import { loadListPage } from "@/lib/pagination/search-filter";
+import { EmptyState } from "@/components/ui/feedback";
+import { pageRows, parseListPage, fetchListPage, type SearchParams } from "@/lib/pagination/list-page";
+import { buildSearchFilter, findRelatedIds } from "@/lib/pagination/search-filter";
 import { applyFilters, applySort, controlRows, controlsView, parseControls, prepareSpec } from "@/lib/pagination/list-controls";
 import { listControlSpecs } from "@/lib/pagination/list-control-specs";
 import { searchSpecs } from "@/lib/pagination/search-specs";
 import { listView } from "@/components/ui/paged-list";
+import { AddExpenseDialog, type EditableExpense } from "@/components/expenses/expense-dialog";
+import { ExpenseRowMenu } from "@/components/expenses/expense-row-menu";
+import { CategoryCell, LastReplacedCell, NotesCell } from "@/components/expenses/expense-cells";
 
-const expenseColumns = "id, unit_id, category_id, expense_date, amount_centavos, notes, updated_at, receipt_object_path, units(body_number, plate_number), expense_categories(name)";
+const expenseColumns = "id, unit_id, category, custom_category, replaced_date, expense_date, amount_centavos, notes, needs_review, source_table, updated_at, receipt_object_path, units(body_number, plate_number, name)";
 
+type ExpenseRow = {
+  id: string; unit_id: string; category: ExpenseCategory; custom_category: string | null; replaced_date: string | null; expense_date: string;
+  amount_centavos: number; notes: string | null; needs_review: boolean; source_table: string | null; updated_at: string; receipt_object_path: string | null;
+  units: { body_number: string; plate_number: string; name: string } | { body_number: string; plate_number: string; name: string }[] | null;
+};
+
+/**
+ * Expenses (feature 011): one page for unit costs, including parts and tires (formerly Maintenance).
+ * Full-width table; Add expense opens a modal; each row's 3-dot menu edits or (owner) deletes.
+ */
 export default async function ExpensesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const profile = await requireApprovedSession();
   const isOwner = profile.role === "owner";
   const params = await searchParams;
-  const edit = typeof params.edit === "string" ? params.edit : undefined;
   const request = parseListPage(params);
   const supabase = demoMode ? null : await createSupabaseServerClient();
-  const [{ data: categories }, { data: units }] = supabase ? await Promise.all([
-    supabase.from("expense_categories").select("id, name").is("deleted_at", null).order("name"),
-    supabase.from("units").select("id, body_number, plate_number").eq("archived", false).is("deleted_at", null).order("body_number"),
-  ]) : [{ data: demoCategories }, { data: demoUnits }];
-  // Sort and filter (US8): date range, unit, category and receipt.
-  const controls = parseControls(params, prepareSpec(listControlSpecs.expenses, { options: { unit: (units ?? []).map((unit) => ({ value: unit.id, label: `Body ${unit.body_number}` })), category: (categories ?? []).map((category) => ({ value: category.id, label: category.name })) } }));
-  const [result, { data: editRow }] = supabase ? await Promise.all([
-    loadListPage(supabase, request, searchSpecs.expenses, (from, to, filter) => {
+  const { data: units } = supabase
+    ? await supabase.from("units").select("id, body_number, plate_number, archived").is("deleted_at", null).order("body_number")
+    : { data: demoUnits };
+  const allUnits = (units ?? []) as { id: string; body_number: string; plate_number: string; archived: boolean }[];
+  const activeUnits = allUnits.filter((unit) => !unit.archived).map(({ id, body_number, plate_number }) => ({ id, body_number, plate_number }));
+  // Filters: every unit (archived ones keep their history), the fixed categories, dates, receipt, review.
+  const controls = parseControls(params, prepareSpec(listControlSpecs.expenses, { options: { unit: allUnits.map((unit) => ({ value: unit.id, label: `Body ${unit.body_number}` })) } }));
+
+  let result: { rows: ExpenseRow[]; page: number; lastPage: number; total: number; rangeLabel: string };
+  let totalCentavos: number;
+  if (supabase) {
+    const searchFilter = buildSearchFilter(searchSpecs.expenses, request.q, await findRelatedIds(supabase, searchSpecs.expenses, request.q));
+    result = await fetchListPage<ExpenseRow>(request, (from, to) => {
       let query = supabase.from("expenses").select(expenseColumns, { count: "exact" }).is("deleted_at", null);
       query = applyFilters(query, controls);
-      if (filter) query = query.or(filter);
-      return applySort(query, controls).range(from, to);
-    }),
-    // The expense being edited may be on another page, so it is read on its own.
-    edit && /^[0-9a-f-]{36}$/i.test(edit) ? supabase.from("expenses").select(expenseColumns).eq("id", edit).is("deleted_at", null).maybeSingle() : Promise.resolve({ data: null }),
-  ]) : [pageRows(controlRows(demoExpenses, controls), request, (expense) => `${expense.expense_date} ${one(expense.expense_categories)?.name} ${one(expense.units)?.body_number} ${expense.notes}`), { data: null }];
+      if (searchFilter) query = query.or(searchFilter);
+      return applySort(query, controls).range(from, to) as unknown as PromiseLike<{ data: ExpenseRow[] | null; count: number | null }>;
+    });
+    totalCentavos = await loadExpenseTotal(() => supabase.from("expenses").select("amount_centavos") as unknown as AmountQuery, controls, searchFilter, result.total);
+  } else {
+    const textOf = (expense: (typeof demoExpenses)[number]) => `${expense.expense_date} ${categoryText(expense)} ${one(expense.units)?.body_number} ${expense.notes}`;
+    const needle = request.q.toLowerCase();
+    const matching = controlRows(demoExpenses, controls).filter((expense) => !needle || textOf(expense).toLowerCase().includes(needle));
+    result = pageRows(matching, { ...request, q: "" }, textOf) as typeof result;
+    totalCentavos = sumAmounts(matching);
+  }
   const expenses = result.rows;
-  const list = listView("/expenses", params, request, result, { searchLabel: "Search expenses", controls: controlsView(controls) });
-  const editing = (editRow ?? (edit ? expenses.find((expense) => expense.id === edit) : undefined)) as EditableExpense | undefined;
-  const editHref = (id: string) => listHref("/expenses", params, { edit: id });
-  const cancelHref = listHref("/expenses", params, { edit: null });
-  return <section className="workspace"><PageHeader eyebrow="Operating costs" title="Expenses" description="Save costs in Philippine pesos. Receipt photos are optional but missing receipts stay visible." />
-    <div className="mt-8 workspace-grid">
-      <div><DataTable list={list} headers={["Date", "Category / unit", "Amount", "Receipt", "Actions"]} empty={<p className="p-6 text-muted">No expenses recorded yet.</p>}>{expenses.map((expense) => <tr key={expense.id}>
-        <td className="font-data">{expense.expense_date}</td>
-        <td><p className="font-semibold">{one(expense.expense_categories)?.name ?? "Expense"}</p><p className="text-body-sm text-muted">Body {one(expense.units)?.body_number ?? "Unknown"}{expense.notes ? ` · ${expense.notes}` : ""}</p></td>
-        <td className="font-data">{formatPesos(expense.amount_centavos)}</td>
-        <td>{expense.receipt_object_path ? <SignedFileButton load={getReceiptUrl.bind(null, expense.id)} label="View receipt" /> : <StatusBadge label="Missing" tone="warning" />}</td>
-        <td><div className="flex flex-wrap gap-2"><Link className="muted-link inline-flex min-h-11 items-center" href={editHref(expense.id)}>Edit</Link>{isOwner ? <ArchiveButton action={softDeleteExpense.bind(null, expense.id)} confirmText="Archive this expense? It will be removed from totals and reports." /> : null}</div></td>
-      </tr>)}</DataTable></div>
-      <aside className="border-t border-rule pt-5">
-        {editing ? <><div className="flex flex-wrap items-baseline justify-between gap-3"><h2 className="text-section-title font-bold">Edit expense</h2><Link className="muted-link text-body-sm" href={cancelHref}>Cancel</Link></div><p className="mt-1 mb-4 text-body-sm text-muted">Change the details or attach a missing receipt.</p><ExpenseForm key={editing.id} categories={categories ?? []} units={units ?? []} expense={editing} /></>
-          : <><h2 className="text-section-title font-bold">Add an expense</h2><p className="mt-1 mb-4 text-body-sm text-muted">{edit ? "That expense was not found. It may have been archived; add a new one or reload." : "Missing receipts remain clearly flagged after saving."}</p><ExpenseForm categories={categories ?? []} units={units ?? []} /></>}
-      </aside>
+  const filtered = Boolean(request.q) || controls.count > 0;
+  const list = listView("/expenses", params, request, result, {
+    searchLabel: "Search expenses",
+    searchPlaceholder: "Search notes, unit, or category",
+    controls: controlsView(controls),
+    action: <AddExpenseDialog units={activeUnits} />,
+    hint: formatPesos(totalCentavos),
+    emptyText: "No expenses match these filters.",
+  });
+  return <section className="workspace">
+    <PageHeader eyebrow="Costs and upkeep" title="Expenses" description="Record fuel, parts, repairs and other unit costs." />
+    <div className="mt-8">
+      <DataTable list={list} headers={["Date", "Unit", "Category", "Amount", "Last Replaced", "Notes", "Options"]}
+        empty={filtered ? undefined : <EmptyState title="No expenses recorded yet." description="Add the first expense to start tracking unit costs." action={<AddExpenseDialog units={activeUnits} />} />}>
+        {expenses.map((expense) => {
+          const unit = one(expense.units);
+          const editable: EditableExpense = { ...expense, units: unit ? { body_number: unit.body_number, plate_number: unit.plate_number } : null };
+          return <tr key={expense.id}>
+            <td className="font-data whitespace-nowrap">{formatShortDate(expense.expense_date)}</td>
+            <td className="whitespace-nowrap">{unit ? (isOwner ? <Link className="muted-link font-semibold" href={`/units/${expense.unit_id}`}>Body {unit.body_number}</Link> : <span className="font-semibold">Body {unit.body_number}</span>) : "Unit"}</td>
+            <td><CategoryCell expense={expense} /></td>
+            <td className="text-right font-data whitespace-nowrap">{formatPesos(expense.amount_centavos)}</td>
+            <td className="whitespace-nowrap"><LastReplacedCell category={expense.category} replacedDate={expense.replaced_date} /></td>
+            <td><NotesCell expenseId={expense.id} notes={expense.notes || null} hasReceipt={Boolean(expense.receipt_object_path)} /></td>
+            <td><ExpenseRowMenu expense={editable} units={activeUnits} isOwner={isOwner} /></td>
+          </tr>;
+        })}
+      </DataTable>
     </div>
   </section>;
 }

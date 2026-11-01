@@ -11,8 +11,8 @@ where user_id = '00000000-0000-0000-0000-000000160002';
 
 insert into public.units (id, body_number, plate_number, make_model)
 values ('00000000-0000-0000-0000-000000160101', 'RCPT-160-A', 'RCP160A', 'Test Tricycle');
-insert into public.expenses (id, unit_id, category_id, expense_date, amount_centavos, idempotency_key)
-select x.id, '00000000-0000-0000-0000-000000160101', c.id, '2031-02-01', 50000, gen_random_uuid()
+insert into public.expenses (id, unit_id, category_id, category, custom_category, expense_date, amount_centavos, idempotency_key)
+select x.id, '00000000-0000-0000-0000-000000160101', c.id, 'others', 'Test', '2031-02-01', 50000, gen_random_uuid()
 from public.expense_categories c,
   (values ('00000000-0000-0000-0000-000000160401'::uuid), ('00000000-0000-0000-0000-000000160402'::uuid)) as x(id)
 where c.system_key = 'fuel' and c.deleted_at is null;

@@ -7,16 +7,16 @@ import { StatusBadge } from "@/components/ui/feedback";
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from "@/components/ui/card";
 import { PanelRow } from "@/components/dashboard/dashboard-panel";
 import type { RecentKind } from "@/lib/dashboard/queries";
+import { categoryText, type ExpenseCategory } from "@/lib/expenses/categories";
 
 type Item = Record<string, unknown>;
 const config: Record<RecentKind, { title: string; href: string; empty: string }> = {
   remittances: { title: "Recent remittances", href: "/remittances", empty: "No remittances recorded yet." },
   expenses: { title: "Recent expenses", href: "/expenses", empty: "No expenses recorded yet." },
-  maintenance: { title: "Recent maintenance work", href: "/maintenance", empty: "No part or tire work recorded yet." },
   documents: { title: "Recently added documents", href: "/documents", empty: "No documents uploaded yet." },
 };
-/** The four history panels, in the order they appear (US6, FR-025). Units and drivers have their own pages. */
-export const glimpseKinds: RecentKind[] = ["remittances", "expenses", "maintenance", "documents"];
+/** The history panels, in the order they appear (US6, FR-025). Units and drivers have their own pages. */
+export const glimpseKinds: RecentKind[] = ["remittances", "expenses", "documents"];
 export function getGlimpseConfig(kind: RecentKind) { return config[kind]; }
 function text(value: unknown, fallback = "—") { return typeof value === "string" || typeof value === "number" ? String(value) : fallback; }
 function nested(item: Item, key: string, field: string) { const value = item[key]; return Array.isArray(value) ? text((value[0] as Item | undefined)?.[field]) : value && typeof value === "object" ? text((value as Item)[field]) : "—"; }
@@ -28,8 +28,7 @@ function Row({ kind, item }: { kind: RecentKind; item: Item }) {
     const balance = due - paidOf(item);
     return <PanelRow href={`/remittances/${text(item.id)}`} title={<span className="font-data">{text(item.service_date)} · Body {nested(item, "units", "body_number")}</span>} detail={`${nested(item, "drivers", "full_name")}, ${dispositionLabels[text(item.disposition)] ?? text(item.disposition)}`} aside={<><p className="font-data text-data">{formatPesos(due)}</p>{balance > 0 ? <StatusBadge label={`${formatPesos(balance)} unpaid`} tone="warning" /> : <StatusBadge label="Paid" tone="success" />}</>} />;
   }
-  if (kind === "expenses") return <PanelRow title={nested(item, "expense_categories", "name")} detail={<span className="font-data">{text(item.expense_date)} · Body {nested(item, "units", "body_number")}</span>} aside={<><p className="font-data text-data">{formatPesos(Number(item.amount_centavos ?? 0))}</p><StatusBadge label={item.receipt_object_path ? "Receipt attached" : "Receipt missing"} tone={item.receipt_object_path ? "success" : "warning"} /></>} />;
-  if (kind === "maintenance") return <PanelRow href={`/maintenance/${text(item.unitId)}`} title={text(item.name)} detail={<span className="font-data">Body {text(item.bodyNumber)} · {text(item.date)}</span>} />;
+  if (kind === "expenses") return <PanelRow title={categoryText({ category: text(item.category) as ExpenseCategory, custom_category: typeof item.custom_category === "string" ? item.custom_category : null })} detail={<span className="font-data">{text(item.expense_date)} · Body {nested(item, "units", "body_number")}</span>} aside={<><p className="font-data text-data">{formatPesos(Number(item.amount_centavos ?? 0))}</p><StatusBadge label={item.receipt_object_path ? "Receipt attached" : "Receipt missing"} tone={item.receipt_object_path ? "success" : "warning"} /></>} />;
   return <PanelRow href={`/documents/${text(item.id)}`} title={documentTypeLabels[text(item.document_type)] ?? text(item.document_type)} detail={`${text(item.holderLabel, "")} · expires ${text(item.expires_on)}`} />;
 }
 

@@ -7,7 +7,8 @@ import { failure, success, type ActionFailure, type ActionResult } from "@/lib/a
 
 /** An expected failure with a message that is safe to show as is. */
 export class ActionError extends Error {
-  constructor(public readonly code: string, message: string) { super(message); }
+  /** `fieldErrors` names the form field to highlight (field name → message). */
+  constructor(public readonly code: string, message: string, public readonly fieldErrors?: Record<string, string>) { super(message); }
 }
 
 /** Plain-language messages for database constraints, by constraint or index name. */
@@ -40,6 +41,9 @@ const constraintMessages: Record<string, { code: string; message: string }> = {
   part_mileage_order_check: { code: "INVALID_MILEAGE", message: "The next due mileage must be higher than the replacement mileage." },
   receipt_object_path_owner_check: { code: "UPLOAD_MISMATCH", message: "The receipt must be uploaded for this expense. Try attaching it again." },
   receipt_metadata_check: { code: "UPLOAD_MISMATCH", message: "The receipt details are incomplete. Try attaching it again." },
+  // Feature 011: fixed expense categories.
+  expenses_category_shape_check: { code: "INVALID_CATEGORY", message: "Check the category, category name, and date replaced." },
+  expenses_amount_check: { code: "INVALID_AMOUNT", message: "Enter an amount greater than ₱0.00." },
 };
 
 type DatabaseError = { code?: string; message?: string; details?: string | null };
@@ -110,7 +114,10 @@ function joinLabels(labels: string[]) {
 }
 
 export function toActionFailure(reason: unknown, fallback: string, labels?: Record<string, string>): ActionFailure {
-  if (reason instanceof ActionError) return failure(reason.code, reason.message);
+  if (reason instanceof ActionError) {
+    const fields = reason.fieldErrors ? Object.fromEntries(Object.entries(reason.fieldErrors).map(([key, message]) => [key, [message]])) : undefined;
+    return failure(reason.code, reason.message, fields);
+  }
   if (reason instanceof ZodError) return validationFailure(reason, labels);
   if (isDatabaseError(reason)) return databaseFailure(reason, fallback);
   return failure("UNEXPECTED", fallback);

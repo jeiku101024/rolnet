@@ -1,6 +1,6 @@
 # ROLNET Development Guide
 
-ROLNET is a mobile-first tricycle fleet management application for one fleet owner and staff. It covers units, primary/backup drivers, daily remittances, expenses, parts, tires, documents, dashboard alerts, audit history, and Weekly, Monthly and Yearly Excel (.xlsx) reports.
+ROLNET is a mobile-first tricycle fleet management application for one fleet owner and staff. It covers units, daily driver assignments, daily remittances, expenses (including parts and tires), mileage, documents, dashboard alerts, audit history, and Weekly, Monthly and Yearly Excel (.xlsx) reports.
 
 ## Quick start
 
@@ -27,7 +27,7 @@ Start with:
 
 Open http://localhost:3000/login and use owner@demo.local / demo1234.
 
-Demo mode exposes owner navigation and sample records for units, drivers, expenses, remittances, maintenance, documents, dashboard, reports, and audit history. It is strictly for local UI review.
+Demo mode exposes owner navigation and sample records for units, drivers, expenses, remittances, documents, dashboard, reports, and audit history. It is strictly for local UI review.
 
 ## Dockerized development
 
@@ -166,6 +166,33 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   views, and pickers for new records; their history stays in remittance List view and reports.
 - Release day: migration `20261101000300` seeds today's assignments from the old model (the primary,
   or the backup covering the primary's day off). Apply it on the morning the app is deployed.
+- Expenses (feature 011): one **Expenses** page (`/expenses`) replaces Expenses and Maintenance.
+  Every expense has a fixed category (`expense_category` enum, in this order): Change Oil, Front
+  Tire, Rear Tire, Engine Sprocket, Chain, Rear Sprocket, Battery, or Others. Main categories carry
+  a **date replaced** (`replaced_date`); Others carries a typed **category name**
+  (`custom_category`, 1–80 characters, spaces tidied) and shows "N/A" in Last Replaced. The check
+  `expenses_category_shape_check` enforces this. Dates can't be in the future (checked by the app's
+  validation; the database accepts them so far-future pgTAP fixtures keep working). Staff add and
+  edit; only the owner deletes, through `soft_delete_record` with a stale check, and the delete is
+  audited with the full old values. There is no restore on any screen.
+- The maintenance move (migration `20261101000600`): every non-deleted part replacement and tire
+  installation was copied into expenses by `move_maintenance_into_expenses()`. Part names map to a
+  main category through a fixed variant list (`maintenance_category_for`, mirrored by
+  `mainCategoryFor` in `lib/expenses/categories.ts`), otherwise they become Others with the part
+  name. Tires map Front to Front Tire and Rear left/right to Rear Tire. Mileage and next-due values
+  go into the notes. ₱0 records are marked **Needs review** (`needs_review`; only migrations can set
+  it, and saving a real amount clears it), and every moved row keeps `source_table`/`source_id`
+  ("Moved from maintenance" filter). `verify_maintenance_move()` checks per unit that counts and
+  peso sums match, and the migration rolls back on any mismatch. **Back up `expenses`,
+  `part_replacements` and `tire_installations` before applying it to a database with real data.**
+- Retired maintenance writes (migration `20261101000700`): `part_replacements`,
+  `tire_installations` and the old `expense_categories` list are read-only (no write policies, not
+  soft-deletable, read-only in API v1). `replace_tire_installation` and `due_maintenance` are no
+  longer callable by the app, so next-due reminders and the dashboard's maintenance panel are gone.
+  `/maintenance` and `/maintenance/{unitId}` redirect to `/expenses` (filtered to the unit).
+- Mileage (feature 011): the owner records readings on the unit detail page, which lists them
+  newest first; staff use "Record mileage" on each unit card in the Units Daily view. The rules are
+  unchanged (`validate_mileage_reading`).
 
 ## Lists and dashboard (feature 006)
 
@@ -183,12 +210,11 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   applies it to the Supabase query, and does the same in memory for demo mode. Unknown values are
   ignored; changing a sort or filter drops the page. The dashboard's "View all" links use these
   filters: `/units?status=in_repair`, `/drivers?kind=backup`, `/documents?expiry=due`, and the
-  owner-only `/maintenance?due=1` and `/remittances?view=list&balance=unpaid`.
-- The dashboard has four bands, in this order on phones: Needs attention (expiring documents, due
-  maintenance, unpaid balances, most urgent first), Fleet status (extradors today, units in repair),
+  owner-only `/remittances?view=list&balance=unpaid`.
+- The dashboard has four bands, in this order on phones: Needs attention (expiring documents and
+  unpaid balances, most urgent first; the maintenance panel was retired in feature 011), Fleet status (extradors today, units in repair),
   This month (figures and charts from `dashboard_monthly_unit_summary`, matching the monthly
   report), and Recent activity. Panels show 3 rows on phones and up to 5 on wider screens.
-  Maintenance urgency counts 100 km past due as one day overdue (`kmPerDayEquivalent`).
 
 ## Validation and release
 

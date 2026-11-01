@@ -29,9 +29,11 @@ export interface ListView {
   aside?: ReactNode;
   /** Secondary text on its own line directly under the record count (feature 008, FR-038). */
   note?: ReactNode;
+  /** Message when a search or filter matches nothing, e.g. "No expenses match these filters." (feature 011). */
+  emptyText?: string;
 }
 
-export function listView(pathname: string, searchParams: SearchParams, request: { prefix: string; q: string }, state: ListPageState, options: Pick<ListView, "search" | "searchLabel" | "searchPlaceholder" | "controls" | "hint" | "note" | "action" | "aside"> = {}): ListView {
+export function listView(pathname: string, searchParams: SearchParams, request: { prefix: string; q: string }, state: ListPageState, options: Pick<ListView, "search" | "searchLabel" | "searchPlaceholder" | "controls" | "hint" | "note" | "action" | "aside" | "emptyText"> = {}): ListView {
   return { pathname, searchParams, prefix: request.prefix, q: request.q, state, ...options };
 }
 
@@ -54,7 +56,7 @@ export function ListToolbar({ list }: { list: ListView }) {
 export function SearchEmpty({ list }: { list: ListView }) {
   const prefix = list.prefix ?? "";
   const clear = listHref(list.pathname, list.searchParams, { [`${prefix}q`]: null });
-  return <div className="px-4 py-8 text-center"><p className="font-semibold text-ink">{list.q ? `No records match "${list.q}".` : "No records match this filter."}</p>{list.q ? <Link className="muted-link mt-3 inline-block text-body-sm" href={clear} scroll={prefix === ""}>Clear search</Link> : null}</div>;
+  return <div className="px-4 py-8 text-center"><p className="font-semibold text-ink">{list.emptyText ?? (list.q ? `No records match "${list.q}".` : "No records match this filter.")}</p>{list.q ? <Link className="muted-link mt-3 inline-block text-body-sm" href={clear} scroll={prefix === ""}>Clear search</Link> : null}</div>;
 }
 
 /** Toolbar, rows (or the right empty message) and pagination footer, shared by tables and lists. */

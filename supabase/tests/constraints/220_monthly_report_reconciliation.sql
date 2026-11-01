@@ -66,8 +66,8 @@ alter table public.remittance_payments enable trigger remittance_payments_valida
 update public.remittances set deleted_at = now() where id = '00000000-0000-0000-0000-000000220404';
 
 insert into public.expense_categories (id, name) values ('00000000-0000-0000-0000-000000220501', 'Report Misc 220');
-insert into public.expenses (unit_id, category_id, expense_date, amount_centavos, idempotency_key, deleted_at)
-select e.unit_id, coalesce(c.id, '00000000-0000-0000-0000-000000220501'), e.expense_date::date, e.amount, gen_random_uuid(), e.deleted_at::timestamptz
+insert into public.expenses (unit_id, category_id, category, custom_category, expense_date, amount_centavos, idempotency_key, deleted_at)
+select e.unit_id, coalesce(c.id, '00000000-0000-0000-0000-000000220501'), 'others', 'Test', e.expense_date::date, e.amount, gen_random_uuid(), e.deleted_at::timestamptz
 from (values
   ('00000000-0000-0000-0000-000000220101'::uuid, 'fuel', '2031-07-02', 50000::bigint, null),
   ('00000000-0000-0000-0000-000000220101'::uuid, 'repairs', '2031-07-10', 20000::bigint, null),
