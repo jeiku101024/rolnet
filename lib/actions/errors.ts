@@ -23,6 +23,9 @@ const constraintMessages: Record<string, { code: string; message: string }> = {
   backup_driver_date_unique: { code: "ASSIGNMENT_CONFLICT", message: "This backup driver is already covering a unit on this date. Choose another driver." },
   assignment_dates_check: { code: "INVALID_DATES", message: "The end date must be on or after the start date." },
   driver_days_off_unique: { code: "DUPLICATE_DAY_OFF", message: "A day off is already recorded for this date." },
+  // Feature 010: daily assignments (one driver per unit and one unit per driver per day).
+  unit_assignments_driver_date_unique: { code: "DRIVER_TAKEN", message: "Driver already assigned today" },
+  unit_assignments_unit_date_unique: { code: "UNIT_TAKEN", message: "This unit was just assigned by someone else. Reload to see it." },
   mileage_readings_unit_date_unique: { code: "DUPLICATE_MILEAGE", message: "This unit already has a mileage reading for this date." },
   remittances_unit_date_unique: { code: "DUPLICATE_REMITTANCE", message: "This unit already has a remittance for this date. Reload to see it." },
   remittances_driver_date_unique: { code: "DUPLICATE_REMITTANCE", message: "This driver already has a remittance on another unit for this date. Reload to see it." },
@@ -71,6 +74,7 @@ export function databaseFailure(error: DatabaseError, fallback: string): ActionF
     case "22008": return failure("INVALID_INPUT", "One of the values is not in the expected format. Check the dates and numbers.");
     case "42501": return failure("FORBIDDEN", ownMessage ? withPeriod(ownMessage) : "You do not have permission to do that. Ask the owner if you need this change.");
     case "P0002": return failure("NOT_FOUND", ownMessage ? `${withPeriod(ownMessage)} Reload the page and try again.` : "This record was not found. Reload the page and try again.");
+    case "P0001": return failure("STALE_RECORD", ownMessage ? withPeriod(ownMessage) : fallback);
     case "22023": return failure("INVALID_INPUT", ownMessage ? withPeriod(ownMessage) : fallback);
     case "PGRST116": return failure("NOT_FOUND", "This record was not found or you cannot change it. Reload the page and try again.");
     default: return failure("UNEXPECTED", fallback);

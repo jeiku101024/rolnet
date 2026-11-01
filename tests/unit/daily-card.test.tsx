@@ -4,20 +4,19 @@ import type { SavedCard, UnrecordedCard } from "@/lib/remittances/daily-board";
 
 const mocks = vi.hoisted(() => ({ save: vi.fn(), edit: vi.fn(), assign: vi.fn(), refresh: vi.fn(), push: vi.fn() }));
 vi.mock("@/app/actions/remittances", () => ({ saveDailyRemittance: mocks.save, editDailyRemittance: mocks.edit }));
-vi.mock("@/app/actions/assignments", () => ({ assignBackupDriver: mocks.assign }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh, push: mocks.push }) }));
 
 import { DailyCard, type CardView } from "@/components/remittances/daily-card";
 
 const date = "2026-10-30";
-const unrecorded: UnrecordedCard = { key: `${date}:u1`, unitId: "u1", unitName: "ROLNET-1", bodyNumber: "T-001", kind: "unrecorded", assignmentId: "00000000-0000-4000-8000-000000000031", driver: { driverId: "d1", name: "Juan Dela Cruz", role: "primary", coveringFor: null } };
+const unrecorded: UnrecordedCard = { key: `${date}:u1`, unitId: "u1", unitName: "ROLNET-1", bodyNumber: "T-001", kind: "unrecorded", driver: { driverId: "00000000-0000-4000-8000-000000000011", name: "Juan Dela Cruz", role: "primary" } };
 const saved: SavedCard = { ...unrecorded, kind: "saved", remittanceId: "00000000-0000-4000-8000-000000000051", updatedAt: "2026-10-30T08:00:00+00:00", disposition: "returned", dueCentavos: 18000, receivedCentavos: 10000, allowanceCentavos: 4000, depositCentavos: 6000, notes: "" };
 
 function renderCard(card: CardView, options: { isOwner?: boolean; isToday?: boolean } = {}) {
   const onSaved = vi.fn();
   const onDirty = vi.fn();
   const onReload = vi.fn();
-  render(<DailyCard card={card} date={date} isToday={options.isToday ?? true} isOwner={options.isOwner ?? false} freeDrivers={[]} onSaved={onSaved} onDirty={onDirty} onReload={onReload} />);
+  render(<DailyCard card={card} date={date} isToday={options.isToday ?? true} isOwner={options.isOwner ?? false} onSaved={onSaved} onDirty={onDirty} onReload={onReload} />);
   return { onSaved, onDirty, onReload };
 }
 
@@ -42,7 +41,7 @@ describe("DailyCard: recording (feature 008, User Story 1)", () => {
     fireEvent.change(disposition(), { target: { value: "overnight_overtime" } });
     fireEvent.change(payment(), { target: { value: "250" } });
     await press("Save remittance");
-    expect(mocks.save).toHaveBeenCalledWith(expect.objectContaining({ assignmentId: unrecorded.assignmentId, serviceDate: date, disposition: "overnight_overtime", paymentCentavos: 25000 }));
+    expect(mocks.save).toHaveBeenCalledWith(expect.objectContaining({ unitId: unrecorded.unitId, driverId: unrecorded.driver.driverId, serviceDate: date, disposition: "overnight_overtime", paymentCentavos: 25000 }));
     expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ kind: "saved", dueCentavos: 30000, receivedCentavos: 25000, allowanceCentavos: 4000, depositCentavos: 21000 }));
   });
 
@@ -99,21 +98,28 @@ describe("DailyCard: recording (feature 008, User Story 1)", () => {
     expect(second.paymentKey).toBe(first.paymentKey);
   });
 
-  it("marks a day off with no backup as not operating, with the picker for owners only (FR-014)", () => {
-    const card: CardView = { key: `${date}:u2`, unitId: "u2", unitName: "ROLNET-2", bodyNumber: "T-002", kind: "no-driver", dayOffId: "00000000-0000-4000-8000-000000000099", primaryDriverName: "Maria Reyes" };
-    renderCard(card);
-    expect(screen.getByText("Not operating")).toBeInTheDocument();
-    expect(screen.getByText("Ask the owner to assign a backup driver.")).toBeInTheDocument();
+  it("asks for a driver with a link to the Daily assignment view on that date (FR-044)", () => {
+    renderCard({ key: `${date}:u2`, unitId: "u2", unitName: "ROLNET-2", bodyNumber: "T-002", kind: "no-driver" });
+    expect(screen.getByText("No driver assigned for this date.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Assign driver" })).toHaveAttribute("href", `/units?view=daily&date=${date}`);
     expect(screen.queryByRole("button", { name: "Save remittance" })).not.toBeInTheDocument();
-    cleanup();
-    renderCard(card, { isOwner: true });
-    expect(screen.getByRole("button", { name: "Assign driver" })).toBeInTheDocument();
   });
 
-  it("shows a unit in repair with no fields (FR-014a)", () => {
-    renderCard({ key: `${date}:u3`, unitId: "u3", unitName: "ROLNET-3", bodyNumber: "T-003", kind: "in-repair" });
-    expect(screen.getByText("Not operating (in repair)")).toBeInTheDocument();
+  it("shows a blocked unit with its status and no fields (FR-046)", () => {
+    renderCard({ key: `${date}:u3`, unitId: "u3", unitName: "ROLNET-3", bodyNumber: "T-003", kind: "blocked", status: "in_repair" });
+    expect(screen.getByText("In repair")).toBeInTheDocument();
+    expect(screen.getByText("Unit is in repair. No remittance for this date.")).toBeInTheDocument();
     expect(screen.queryByLabelText("Payment received (₱)")).not.toBeInTheDocument();
+    expect(screen.queryByText("Rental")).not.toBeInTheDocument();
+    cleanup();
+    renderCard({ key: `${date}:u4`, unitId: "u4", unitName: "ROLNET-4", bodyNumber: "T-004", kind: "blocked", status: "retired" });
+    expect(screen.getByText("Unit is retired. No remittance for this date.")).toBeInTheDocument();
+  });
+
+  it("shows only the role tag, with no day-off tooltip (FR-043)", () => {
+    renderCard({ ...unrecorded, driver: { ...unrecorded.driver, role: "backup" } });
+    expect(screen.getByText("Backup")).toBeInTheDocument();
+    expect(screen.queryByText(/Covering for/)).not.toBeInTheDocument();
   });
 });
 

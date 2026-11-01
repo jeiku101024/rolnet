@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays } from "@/lib/dates/fleet-date";
-import { currentAssignment, dueText, expiryText, orderDueMaintenance, orderExpiringDocuments, orderExtradors, orderInRepair, orderUnpaidBalances, repairText, toPanel } from "@/lib/dashboard/ordering";
+import { dueText, expiryText, orderDueMaintenance, orderExpiringDocuments, orderExtradors, orderInRepair, orderUnpaidBalances, repairText, toPanel } from "@/lib/dashboard/ordering";
 
 const today = "2026-10-30";
 
@@ -45,16 +45,12 @@ describe("dashboard attention ordering (feature 006)", () => {
 });
 
 describe("dashboard fleet status ordering (feature 006)", () => {
-  it("puts assigned extradors first and prefers today's backup unit", () => {
+  it("puts assigned extradors first", () => {
     const ordered = orderExtradors([
       { driverId: "1", fullName: "Ana", phone: "", currentUnit: null, assignmentType: null },
       { driverId: "2", fullName: "Zed", phone: "", currentUnit: { unitId: "u", bodyNumber: "T-012" }, assignmentType: "backup" },
     ]);
     expect(ordered.map((item) => item.driverId)).toEqual(["2", "1"]);
-    const rows = [{ id: "p", assignment_type: "primary", starts_on: "2026-01-01", ends_on: null }, { id: "b", assignment_type: "backup", starts_on: today, ends_on: today }];
-    expect(currentAssignment(rows, today)?.id).toBe("b");
-    expect(currentAssignment(rows, "2026-10-29")?.id).toBe("p");
-    expect(currentAssignment([{ id: "old", assignment_type: "backup", starts_on: "2026-10-01", ends_on: "2026-10-01" }], today)).toBeNull();
   });
 
   it("lists the unit longest in repair first and unknown start times last", () => {

@@ -51,7 +51,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       if (filter) query = query.or(filter);
       return applySort(query, controls).range(from, to);
     }),
-    s.from("units").select("id, body_number, plate_number").is("deleted_at", null).order("body_number"),
+    s.from("units").select("id, body_number, plate_number").eq("archived", false).is("deleted_at", null).order("body_number"),
     s.from("drivers").select("id, full_name, license_expiry_date").is("deleted_at", null).order("full_name"),
   ]) : [pageRows(controlRows(demoDocs, controls), request, (d) => `${documentTypeLabels[d.document_type]} ${d.document_number} ${d.units?.body_number ?? ""} ${d.drivers?.full_name ?? ""} ${d.expires_on}`), { data: demoUnits }, { data: demoDrivers }];
   const current = result.rows as Doc[];

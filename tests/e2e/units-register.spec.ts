@@ -1,9 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 
-// Feature 007, in demo mode on a 360 px phone (the suite's device). Demo units are ROLNET-1 to
-// ROLNET-12 (body numbers T-001…); see demoUnitAssignments in lib/demo/mode.ts for who drives them.
+// Feature 007, updated by feature 010, in demo mode on a 360 px phone (the suite's device). Demo
+// units are ROLNET-1 to ROLNET-12 (body numbers T-001…; ROLNET-12 is archived); today's drivers
+// come from demoUnitAssignmentsDaily in lib/demo/mode.ts.
 
-const headers = ["Unit", "Body number", "Plate", "Motorcycle", "Current driver", "Mileage", "Status"];
+const headers = ["Unit", "Body number", "Plate", "Motorcycle", "Current driver", "Mileage", "Status", "Options"];
 const row = (page: Page, name: string) => page.locator("tbody tr").filter({ has: page.getByRole("link", { name, exact: true }) });
 
 test.describe("units register", () => {
@@ -15,8 +16,7 @@ test.describe("units register", () => {
     await expect(first.getByRole("link", { name: "ROLNET-1", exact: true })).toHaveAttribute("href", /\/units\//);
     await expect(first.locator("td").nth(1)).toHaveText("T-001");
     await expect(row(page, "ROLNET-2").locator("td").nth(3)).toHaveText("Yamaha YTX");
-    await expect(page.getByLabel("Unit name")).toBeVisible();
-    await expect(page.getByLabel("Motorcycle")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add a unit" })).toBeVisible();
   });
 
   test("searches and sorts by name", async ({ page }) => {
@@ -31,7 +31,7 @@ test.describe("units register", () => {
     await page.goto("/units?q=ROLNET");
     const driverCell = (name: string) => row(page, name).locator("td").nth(4);
     await expect(driverCell("ROLNET-1")).toHaveText("Juan Dela Cruz");
-    await expect(driverCell("ROLNET-2")).toHaveText("Day off · no backup");
+    await expect(driverCell("ROLNET-2")).toHaveText("Unassigned");
     await expect(driverCell("ROLNET-3")).toHaveText(/Pedro Santos\s*Backup/);
     await expect(driverCell("ROLNET-10")).toHaveText("Unassigned");
   });

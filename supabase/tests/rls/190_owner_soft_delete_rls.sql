@@ -39,8 +39,12 @@ insert into public.part_replacements (id, unit_id, part_name, cost_centavos, rep
 values ('00000000-0000-0000-0000-000000190306', '00000000-0000-0000-0000-000000190102', 'Air filter', 1000, '2031-08-01', '2031-12-01');
 insert into public.tire_installations (id, unit_id, position, brand, installed_on, cost_centavos, next_due_date)
 values ('00000000-0000-0000-0000-000000190307', '00000000-0000-0000-0000-000000190102', 'front', 'Test Tire', '2031-08-01', 120000, '2032-08-01');
-insert into public.remittances (id, assignment_id, unit_id, driver_id, service_date, disposition, idempotency_key)
-values ('00000000-0000-0000-0000-000000190308', '00000000-0000-0000-0000-000000190301', '00000000-0000-0000-0000-000000190102',
+-- Feature 010: remittances are recorded under the unit's daily assignment for the date.
+insert into public.unit_assignments (unit_id, driver_id, service_date)
+values ('00000000-0000-0000-0000-000000190102', '00000000-0000-0000-0000-000000190203', '2031-08-03')
+on conflict do nothing;
+insert into public.remittances (id, unit_id, driver_id, service_date, disposition, idempotency_key)
+values ('00000000-0000-0000-0000-000000190308', '00000000-0000-0000-0000-000000190102',
         '00000000-0000-0000-0000-000000190203', '2031-08-03', 'returned', gen_random_uuid());
 insert into public.remittance_payments (id, remittance_id, amount_centavos, idempotency_key)
 values ('00000000-0000-0000-0000-000000190309', '00000000-0000-0000-0000-000000190308', 5000, gen_random_uuid());
@@ -85,7 +89,7 @@ reset role;
 -- Approved owner.
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000190001","role":"authenticated"}', true);
 set local role authenticated;
-select ok(public.soft_delete_record('units', '00000000-0000-0000-0000-000000190101') is not null, 'the owner soft-deletes a unit');
+select throws_ok($$select public.soft_delete_record('units', '00000000-0000-0000-0000-000000190101')$$, '22023', 'Units are archived, not deleted. Use Archive.', 'the owner archives units instead of deleting them');
 select ok(public.soft_delete_record('drivers', '00000000-0000-0000-0000-000000190201') is not null, 'the owner soft-deletes a driver');
 select ok(public.soft_delete_record('driver_days_off', '00000000-0000-0000-0000-000000190302') is not null, 'the owner soft-deletes a day off');
 select ok(public.soft_delete_record('driver_assignments', '00000000-0000-0000-0000-000000190301') is not null, 'the owner soft-deletes an assignment');
@@ -94,7 +98,7 @@ select ok(public.soft_delete_record('expense_categories', '00000000-0000-0000-00
 select ok(public.soft_delete_record('expenses', '00000000-0000-0000-0000-000000190305') is not null, 'the owner soft-deletes an expense');
 select ok(public.soft_delete_record('part_replacements', '00000000-0000-0000-0000-000000190306') is not null, 'the owner soft-deletes a part');
 select ok(public.soft_delete_record('tire_installations', '00000000-0000-0000-0000-000000190307') is not null, 'the owner soft-deletes a tire');
-select is_empty($$select 1 from public.units where id = '00000000-0000-0000-0000-000000190101'$$, 'a deleted unit leaves current views');
+select isnt_empty($$select 1 from public.units where id = '00000000-0000-0000-0000-000000190101'$$, 'a unit is never deleted, so it stays in current views');
 select is_empty($$select 1 from public.drivers where id = '00000000-0000-0000-0000-000000190201'$$, 'a deleted driver leaves current views');
 select is_empty($$select 1 from public.driver_days_off where id = '00000000-0000-0000-0000-000000190302'$$, 'a deleted day off leaves current views');
 select is_empty($$select 1 from public.driver_assignments where id = '00000000-0000-0000-0000-000000190301'$$, 'a deleted assignment leaves current views');
@@ -103,7 +107,7 @@ select is_empty($$select 1 from public.expense_categories where id = '00000000-0
 select is_empty($$select 1 from public.expenses where id = '00000000-0000-0000-0000-000000190305'$$, 'a deleted expense leaves current views');
 select is_empty($$select 1 from public.part_replacements where id = '00000000-0000-0000-0000-000000190306'$$, 'a deleted part leaves current views');
 select is_empty($$select 1 from public.tire_installations where id = '00000000-0000-0000-0000-000000190307'$$, 'a deleted tire leaves current views');
-select isnt_empty($$select 1 from public.audit_events where entity_id = '00000000-0000-0000-0000-000000190101' and action = 'soft_delete'$$, 'the soft delete is audited');
+select isnt_empty($$select 1 from public.audit_events where entity_id = '00000000-0000-0000-0000-000000190201' and action = 'soft_delete'$$, 'the soft delete is audited');
 
 -- Records with their own correction functions, and built-in categories, are not deleted here.
 select throws_ok($$select public.soft_delete_record('remittances', '00000000-0000-0000-0000-000000190308')$$, '22023', null, 'remittances are reversed with reverse_remittance()');
@@ -113,8 +117,8 @@ select throws_ok($$select public.soft_delete_record('expense_categories', (selec
 
 -- Optimistic concurrency and restore.
 select is(public.soft_delete_record('drivers', '00000000-0000-0000-0000-000000190202', '2000-01-01T00:00:00Z'), null::jsonb, 'a stale expected update time deletes nothing');
-select ok(public.restore_record('units', '00000000-0000-0000-0000-000000190101') is not null, 'the owner restores a unit');
-select isnt_empty($$select 1 from public.units where id = '00000000-0000-0000-0000-000000190101'$$, 'a restored unit is current again');
+select ok(public.restore_record('drivers', '00000000-0000-0000-0000-000000190201') is not null, 'the owner restores a driver');
+select isnt_empty($$select 1 from public.drivers where id = '00000000-0000-0000-0000-000000190201'$$, 'a restored driver is current again');
 reset role;
 
 select finish();

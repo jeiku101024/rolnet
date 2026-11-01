@@ -81,12 +81,6 @@ export function orderExtradors(items: ExtradorItem[]) {
   return [...items].sort((a, b) => Number(Boolean(b.currentUnit)) - Number(Boolean(a.currentUnit)) || a.fullName.localeCompare(b.fullName));
 }
 
-/** Today's unit for a backup driver: today's backup assignment wins over an open primary one. */
-export function currentAssignment<T extends { assignment_type: string; starts_on: string; ends_on: string | null }>(rows: T[], today: string): T | null {
-  const covering = rows.filter((row) => row.starts_on <= today && (row.ends_on === null || row.ends_on >= today));
-  return covering.find((row) => row.assignment_type === "backup") ?? covering.find((row) => row.assignment_type === "primary") ?? null;
-}
-
 export interface InRepairUnitItem { unitId: string; bodyNumber: string; plateNumber: string; inRepairSince: string | null; daysInRepair: number | null }
 
 export function repairText(item: InRepairUnitItem) {

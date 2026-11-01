@@ -17,20 +17,19 @@ function revalidateRemittance(id?: string) {
 }
 
 export async function createRemittance(input: unknown) {
-  return run("Could not save the remittance. Check the assignment and date.", async () => {
+  return run("Could not save the remittance. Check the driver assignment for this date.", async () => {
     await requireApprovedSession();
     const value = remittanceSchema.parse(input);
     const supabase = await createSupabaseServerClient();
     const { data: existing } = await supabase.from("remittances").select("id").eq("idempotency_key", value.idempotencyKey).maybeSingle();
     if (existing) return { id: existing.id as string };
-    const { data: assignment } = await supabase.from("driver_assignments").select("id, unit_id, driver_id").eq("id", value.assignmentId).is("deleted_at", null).maybeSingle();
-    if (!assignment) throw new ActionError("NOT_FOUND", "Choose an active driver assignment for this date.");
-    // The database recalculates the due from the disposition; the value here only satisfies the column.
-    const { data, error } = await supabase.from("remittances").insert({ assignment_id: value.assignmentId, unit_id: assignment.unit_id, driver_id: assignment.driver_id, service_date: value.serviceDate, disposition: value.disposition, amount_due_centavos: value.disposition === "overnight_overtime" ? 30000 : 18000, notes: value.notes || null, idempotency_key: value.idempotencyKey }).select("id").single();
+    // The database links the unit's assignment for the date and recalculates the due from the
+    // disposition; the due here only satisfies the column.
+    const { data, error } = await supabase.from("remittances").insert({ unit_id: value.unitId, driver_id: value.driverId, service_date: value.serviceDate, disposition: value.disposition, amount_due_centavos: value.disposition === "overnight_overtime" ? 30000 : 18000, notes: value.notes || null, idempotency_key: value.idempotencyKey }).select("id").single();
     if (error) throw error;
     revalidateRemittance();
     return { id: data.id as string };
-  }, { assignmentId: "assignment", serviceDate: "service date", disposition: "unit disposition", notes: "notes" });
+  }, { unitId: "unit", driverId: "driver assignment for this date", serviceDate: "service date", disposition: "unit disposition", notes: "notes" });
 }
 
 export async function updateRemittanceNotes(input: unknown) {
@@ -95,10 +94,9 @@ export async function saveDailyRemittance(input: unknown) {
     const supabase = await createSupabaseServerClient();
     let saved = (await supabase.from("remittances").select("id, updated_at").eq("idempotency_key", value.remittanceKey).maybeSingle()).data;
     if (!saved) {
-      const { data: assignment } = await supabase.from("driver_assignments").select("id, unit_id, driver_id").eq("id", value.assignmentId).is("deleted_at", null).maybeSingle();
-      if (!assignment) throw new ActionError("NOT_FOUND", "The driver wasn't assigned to this unit on this date. Reload the page.");
-      // The database sets the due from the disposition; the value here only satisfies the column.
-      const { data, error } = await supabase.from("remittances").insert({ assignment_id: assignment.id, unit_id: assignment.unit_id, driver_id: assignment.driver_id, service_date: value.serviceDate, disposition: value.disposition, amount_due_centavos: value.disposition === "overnight_overtime" ? 30000 : 18000, notes: value.notes || null, idempotency_key: value.remittanceKey }).select("id, updated_at").single();
+      // The database checks the unit's assignment for the date (feature 010) and sets the due from
+      // the disposition; the due here only satisfies the column.
+      const { data, error } = await supabase.from("remittances").insert({ unit_id: value.unitId, driver_id: value.driverId, service_date: value.serviceDate, disposition: value.disposition, amount_due_centavos: value.disposition === "overnight_overtime" ? 30000 : 18000, notes: value.notes || null, idempotency_key: value.remittanceKey }).select("id, updated_at").single();
       if (error) throw error;
       saved = data;
     }
@@ -113,7 +111,7 @@ export async function saveDailyRemittance(input: unknown) {
       }
     }
     return { id: saved.id as string, ...(await savedFacts(supabase, saved.id)), receivedCentavos: payment, partial: null as string | null };
-  }, { assignmentId: "driver assignment", serviceDate: "date", disposition: "disposition", notes: "notes (1,000 characters at most)", paymentCentavos: "payment received" });
+  }, { unitId: "unit", driverId: "driver assignment for this date", serviceDate: "date", disposition: "disposition", notes: "notes (1,000 characters at most)", paymentCentavos: "payment received" });
 }
 
 /**

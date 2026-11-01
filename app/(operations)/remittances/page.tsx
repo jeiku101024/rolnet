@@ -21,7 +21,7 @@ export default async function RemittancesPage({ searchParams }: { searchParams: 
   const today = fleetToday();
   const { view, date } = parseRemittancesView(params, today);
   const isOwner = hasPermission(profile.role, "manage_master_data");
-  const board = view === "daily" ? buildDailyBoard({ date, today, rows: await loadDailyRows(demoMode ? null : await createSupabaseServerClient(), date, isOwner), isOwner }) : null;
+  const board = view === "daily" ? buildDailyBoard({ date, today, rows: await loadDailyRows(demoMode ? null : await createSupabaseServerClient(), date) }) : null;
   return <UnsavedGuardProvider>
     <section className="workspace">
       <PageHeader eyebrow="Daily income" title="Remittances" description="Returned units are ₱180. Bring-home/overtime days are ₱300 total." action={<ViewToggle view={view} />} />

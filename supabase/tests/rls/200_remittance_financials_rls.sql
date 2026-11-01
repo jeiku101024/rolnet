@@ -22,8 +22,12 @@ insert into public.drivers (id, full_name, license_number, license_expiry_date, 
 values ('00000000-0000-0000-0000-000000200201', 'Financials RLS Driver', 'FIN-200-L1', '2035-12-31', '09170000200');
 insert into public.driver_assignments (id, unit_id, driver_id, assignment_type, starts_on)
 values ('00000000-0000-0000-0000-000000200301', '00000000-0000-0000-0000-000000200101', '00000000-0000-0000-0000-000000200201', 'primary', '2031-09-01');
-insert into public.remittances (id, assignment_id, unit_id, driver_id, service_date, disposition, idempotency_key)
-values ('00000000-0000-0000-0000-000000200401', '00000000-0000-0000-0000-000000200301', '00000000-0000-0000-0000-000000200101',
+-- Feature 010: remittances are recorded under the unit's daily assignment for the date.
+insert into public.unit_assignments (unit_id, driver_id, service_date)
+values ('00000000-0000-0000-0000-000000200101', '00000000-0000-0000-0000-000000200201', '2031-09-01')
+on conflict do nothing;
+insert into public.remittances (id, unit_id, driver_id, service_date, disposition, idempotency_key)
+values ('00000000-0000-0000-0000-000000200401', '00000000-0000-0000-0000-000000200101',
         '00000000-0000-0000-0000-000000200201', '2031-09-01', 'returned', gen_random_uuid());
 
 -- Approved staff.

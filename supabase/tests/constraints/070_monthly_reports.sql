@@ -20,8 +20,12 @@ insert into public.drivers (id, full_name, license_number, license_expiry_date, 
 values ('00000000-0000-0000-0000-000000070201', 'Monthly Driver', 'MON-070-L1', '2035-12-31', '09170000701');
 insert into public.driver_assignments (id, unit_id, driver_id, assignment_type, starts_on)
 values ('00000000-0000-0000-0000-000000070301', '00000000-0000-0000-0000-000000070101', '00000000-0000-0000-0000-000000070201', 'primary', '2031-10-01');
-insert into public.remittances (id, assignment_id, unit_id, driver_id, service_date, disposition, idempotency_key)
-values ('00000000-0000-0000-0000-000000070401', '00000000-0000-0000-0000-000000070301', '00000000-0000-0000-0000-000000070101', '00000000-0000-0000-0000-000000070201', '2031-10-02', 'returned', gen_random_uuid());
+-- Feature 010: remittances are recorded under the unit's daily assignment for the date.
+insert into public.unit_assignments (unit_id, driver_id, service_date)
+values ('00000000-0000-0000-0000-000000070101', '00000000-0000-0000-0000-000000070201', '2031-10-02')
+on conflict do nothing;
+insert into public.remittances (id, unit_id, driver_id, service_date, disposition, idempotency_key)
+values ('00000000-0000-0000-0000-000000070401', '00000000-0000-0000-0000-000000070101', '00000000-0000-0000-0000-000000070201', '2031-10-02', 'returned', gen_random_uuid());
 insert into public.remittance_payments (remittance_id, paid_at, amount_centavos, idempotency_key)
 values ('00000000-0000-0000-0000-000000070401', '2031-10-02 18:00+08', 10000, gen_random_uuid());
 insert into public.expenses (unit_id, category_id, expense_date, amount_centavos, idempotency_key)

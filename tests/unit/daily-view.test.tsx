@@ -4,15 +4,14 @@ import type { DailyBoard } from "@/lib/remittances/daily-board";
 
 const mocks = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 vi.mock("@/app/actions/remittances", () => ({ saveDailyRemittance: vi.fn(), editDailyRemittance: vi.fn() }));
-vi.mock("@/app/actions/assignments", () => ({ assignBackupDriver: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => mocks }));
 
 import { DailyView } from "@/components/remittances/daily-view";
 
 const today = "2026-10-30";
 const board: DailyBoard = {
-  date: today, today, isToday: true, recorded: 0, countable: 1, receivedCentavos: 0, freeDrivers: [],
-  cards: [{ key: `${today}:u1`, unitId: "u1", unitName: "ROLNET-1", bodyNumber: "T-001", kind: "unrecorded", assignmentId: "00000000-0000-4000-8000-000000000031", driver: { driverId: "d1", name: "Juan", role: "primary", coveringFor: null } }],
+  date: today, today, isToday: true, recorded: 0, countable: 1, receivedCentavos: 0,
+  cards: [{ key: `${today}:u1`, unitId: "u1", unitName: "ROLNET-1", bodyNumber: "T-001", kind: "unrecorded", driver: { driverId: "d1", name: "Juan", role: "primary" } }],
 };
 
 beforeEach(() => {

@@ -61,17 +61,17 @@ export interface ReportUnit { id: string; name: string; label: string }
 
 const byName = new Intl.Collator("en", { numeric: true, sensitivity: "base" });
 
-/** Every unit that isn't deleted, retired ones labelled, for the One unit scope (FR-021). */
+/** Every unit that isn't deleted, retired and archived ones labelled, for the One unit scope (FR-021; feature 010 FR-036). */
 export async function loadReportUnits(supabase: Client | null): Promise<ReportUnit[]> {
-  let rows: { id: string; name: string; body_number: string; status: string }[];
+  let rows: { id: string; name: string; body_number: string; status: string; archived: boolean }[];
   if (supabase) {
-    const { data, error } = await supabase.from("units").select("id, name, body_number, status").is("deleted_at", null);
+    const { data, error } = await supabase.from("units").select("id, name, body_number, status, archived").is("deleted_at", null);
     if (error) throw error;
     rows = data ?? [];
   } else {
     rows = demoUnits;
   }
-  return rows.map((unit) => ({ id: unit.id, name: unit.name, label: `${unit.name} (${unit.body_number})${unit.status === "retired" ? " (retired)" : ""}` }))
+  return rows.map((unit) => ({ id: unit.id, name: unit.name, label: `${unit.name} (${unit.body_number})${unit.status === "retired" ? " (retired)" : ""}${unit.archived ? " (archived)" : ""}` }))
     .sort((a, b) => byName.compare(a.name, b.name));
 }
 

@@ -3,10 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/guards";
-import { unitDetailsSchema, unitSchema, unitStatusSchema } from "@/lib/validation/units";
+import { unitArchiveSchema, unitDetailsSchema, unitIdSchema, unitSchema, unitStatusSchema } from "@/lib/validation/units";
 import { unitStatusLabel, type UnitStatus } from "@/lib/status/record-status";
 import { ActionError } from "@/lib/actions/errors";
 import { run } from "@/lib/actions/run";
+import { fleetToday } from "@/lib/dates/fleet-date";
+import { demoMode } from "@/lib/demo/mode";
+import { loadArchiveSummary } from "@/lib/units/archive-summary";
 
 const labels = { name: "unit name", bodyNumber: "body number", plateNumber: "plate number", makeModel: "motorcycle", status: "status" };
 
@@ -65,19 +68,45 @@ export async function setUnitStatus(input: unknown) {
       }
       revalidatePath("/units");
       revalidatePath(`/units/${value.id}`);
+      revalidatePath("/remittances");
     }
     return { id: row.id, status: row.status, updatedAt: row.updated_at };
   });
 }
 
-export async function softDeleteUnit(id: string) {
-  return run("Could not archive the unit. Reload the page and try again.", async () => {
+/**
+ * Feature 010: archives a unit instead of deleting it (FR-032, FR-035). Nothing is removed; the
+ * database releases its assignments dated today or later that have no remittance (FR-029).
+ */
+export async function archiveUnit(input: unknown) {
+  return setArchived(input, true);
+}
+
+/** Feature 010: brings an archived unit back (FR-037). Released assignments are not restored. */
+export async function restoreUnit(input: unknown) {
+  return setArchived(input, false);
+}
+
+async function setArchived(input: unknown, archived: boolean) {
+  return run(`Could not ${archived ? "archive" : "restore"} the unit. Reload the page and try again.`, async () => {
     await requirePermission("manage_master_data");
+    const value = unitArchiveSchema.parse(input);
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.rpc("soft_delete_record", { p_table: "units", p_id: id });
+    const { data, error } = await supabase.from("units").update({ archived }).eq("id", value.id).eq("archived", !archived).eq("updated_at", value.expectedUpdatedAt).is("deleted_at", null).select("id").maybeSingle();
     if (error) throw error;
-    if (!data) throw new ActionError("STALE_RECORD", "This unit was already archived or changed. Reload the page.");
+    if (!data) throw new ActionError("STALE_RECORD", "This unit was changed by someone else. Reload the page.");
     revalidatePath("/units");
-    return null;
+    revalidatePath(`/units/${value.id}`);
+    revalidatePath("/remittances");
+    return { id: data.id as string };
+  });
+}
+
+/** Feature 010: what is tied to a unit, for the archive confirmation (FR-033). */
+export async function archiveSummary(input: unknown) {
+  return run("Could not load the unit's records. Reload the page and try again.", async () => {
+    await requirePermission("manage_master_data");
+    const { id } = unitIdSchema.parse(input);
+    return loadArchiveSummary(demoMode ? null : await createSupabaseServerClient(), id, fleetToday());
   });
 }

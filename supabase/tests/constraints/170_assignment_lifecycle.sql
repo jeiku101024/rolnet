@@ -1,6 +1,8 @@
 begin;
 select plan(14);
 
+-- Feature 010 made driver_assignments read-only for app users (migration 20261101000300), so these
+-- checks of the table's own constraints write as the database owner.
 -- T120 (FR-011, US1 scenario 3): a primary assignment can be ended and the unit reassigned.
 -- T125 (FR-012): a driver cannot be booked as backup on a date already covered by another of
 -- their assignments, nor given a primary range over a date they cover as backup elsewhere.
@@ -25,7 +27,6 @@ values
   ('00000000-0000-0000-0000-000000170204', 'Assign Driver W', 'ASG-170-LW', '2035-12-31', '09170000173');
 
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000170001","role":"authenticated"}', true);
-set local role authenticated;
 
 -- End a primary assignment and reassign the unit (T120).
 select lives_ok($$insert into public.driver_assignments (id, unit_id, driver_id, assignment_type, starts_on)
@@ -63,23 +64,16 @@ select lives_ok($$insert into public.driver_assignments (unit_id, driver_id, ass
 select throws_ok($$insert into public.driver_assignments (unit_id, driver_id, assignment_type, starts_on, ends_on, covered_primary_assignment_id)
   values ('00000000-0000-0000-0000-000000170101', '00000000-0000-0000-0000-000000170204', 'backup', '2031-04-12', '2031-04-13', '00000000-0000-0000-0000-000000170302')$$,
   '23514', null, 'backup coverage still spans exactly one day');
-reset role;
 
 -- An inactive driver's primary assignment can still be ended (no eligibility re-check on end).
 insert into public.driver_assignments (id, unit_id, driver_id, assignment_type, starts_on)
 values ('00000000-0000-0000-0000-000000170305', '00000000-0000-0000-0000-000000170104', '00000000-0000-0000-0000-000000170204', 'primary', '2031-03-01');
--- Since 20261030000100 a driver with an open assignment cannot be set inactive; data from before
--- that rule can still be in this state, so the setup bypasses the new check.
-alter table public.drivers disable trigger drivers_reject_deactivation_with_assignments;
 update public.drivers set is_active = false where id = '00000000-0000-0000-0000-000000170204';
-alter table public.drivers enable trigger drivers_reject_deactivation_with_assignments;
-set local role authenticated;
 select lives_ok($$update public.driver_assignments set ends_on = '2031-03-31' where id = '00000000-0000-0000-0000-000000170305'$$,
   'the owner can end the primary assignment of a driver who is no longer active');
 select throws_ok($$insert into public.driver_assignments (unit_id, driver_id, assignment_type, starts_on)
   values ('00000000-0000-0000-0000-000000170104', '00000000-0000-0000-0000-000000170204', 'primary', '2031-04-01')$$,
   '23514', null, 'an inactive driver still cannot receive a new assignment');
-reset role;
 
 select finish();
 rollback;

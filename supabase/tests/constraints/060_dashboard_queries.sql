@@ -30,11 +30,17 @@ insert into public.driver_assignments (id, unit_id, driver_id, assignment_type, 
 values
   ('00000000-0000-0000-0000-000000060301', '00000000-0000-0000-0000-000000060101', '00000000-0000-0000-0000-000000060201', 'primary', '2031-09-01'),
   ('00000000-0000-0000-0000-000000060302', '00000000-0000-0000-0000-000000060102', '00000000-0000-0000-0000-000000060202', 'primary', '2031-09-01');
-insert into public.remittances (assignment_id, unit_id, driver_id, service_date, disposition, idempotency_key, deleted_at)
+-- Feature 010: remittances are recorded under the unit's daily assignment for the date.
+insert into public.unit_assignments (unit_id, driver_id, service_date)
+values ('00000000-0000-0000-0000-000000060101', '00000000-0000-0000-0000-000000060201', '2031-09-02'),
+  ('00000000-0000-0000-0000-000000060101', '00000000-0000-0000-0000-000000060201', '2031-09-03'),
+  ('00000000-0000-0000-0000-000000060102', '00000000-0000-0000-0000-000000060202', '2031-09-02')
+on conflict do nothing;
+insert into public.remittances (unit_id, driver_id, service_date, disposition, idempotency_key, deleted_at)
 values
-  ('00000000-0000-0000-0000-000000060301', '00000000-0000-0000-0000-000000060101', '00000000-0000-0000-0000-000000060201', '2031-09-02', 'returned', gen_random_uuid(), null),
-  ('00000000-0000-0000-0000-000000060301', '00000000-0000-0000-0000-000000060101', '00000000-0000-0000-0000-000000060201', '2031-09-03', 'overnight_overtime', gen_random_uuid(), now()),
-  ('00000000-0000-0000-0000-000000060302', '00000000-0000-0000-0000-000000060102', '00000000-0000-0000-0000-000000060202', '2031-09-02', 'returned', gen_random_uuid(), null);
+  ('00000000-0000-0000-0000-000000060101', '00000000-0000-0000-0000-000000060201', '2031-09-02', 'returned', gen_random_uuid(), null),
+  ('00000000-0000-0000-0000-000000060101', '00000000-0000-0000-0000-000000060201', '2031-09-03', 'overnight_overtime', gen_random_uuid(), now()),
+  ('00000000-0000-0000-0000-000000060102', '00000000-0000-0000-0000-000000060202', '2031-09-02', 'returned', gen_random_uuid(), null);
 -- Unit B and driver D are archived after their remittance was recorded.
 update public.units set deleted_at = now() where id = '00000000-0000-0000-0000-000000060102';
 update public.drivers set deleted_at = now() where id = '00000000-0000-0000-0000-000000060202';

@@ -28,8 +28,12 @@ insert into public.driver_assignments (id, unit_id, driver_id, assignment_type, 
 values
   ('00000000-0000-0000-0000-000000140301', '00000000-0000-0000-0000-000000140101', '00000000-0000-0000-0000-000000140201', 'primary', '2031-01-01'),
   ('00000000-0000-0000-0000-000000140302', '00000000-0000-0000-0000-000000140102', '00000000-0000-0000-0000-000000140202', 'primary', '2031-01-01');
-insert into public.remittances (id, assignment_id, unit_id, driver_id, service_date, disposition, idempotency_key)
-values ('00000000-0000-0000-0000-000000140401', '00000000-0000-0000-0000-000000140301', '00000000-0000-0000-0000-000000140101',
+-- Feature 010: remittances are recorded under the unit's daily assignment for the date.
+insert into public.unit_assignments (unit_id, driver_id, service_date)
+values ('00000000-0000-0000-0000-000000140101', '00000000-0000-0000-0000-000000140201', '2031-01-05')
+on conflict do nothing;
+insert into public.remittances (id, unit_id, driver_id, service_date, disposition, idempotency_key)
+values ('00000000-0000-0000-0000-000000140401', '00000000-0000-0000-0000-000000140101',
         '00000000-0000-0000-0000-000000140201', '2031-01-05', 'returned', gen_random_uuid());
 
 -- Approved staff.
@@ -52,8 +56,12 @@ select throws_ok($$update public.remittances set disposition = 'overnight_overti
 select lives_ok($$update public.remittances set notes = 'owner note' where id = '00000000-0000-0000-0000-000000140401'$$, 'the owner can edit remittance notes');
 select is((select notes from public.remittances where id = '00000000-0000-0000-0000-000000140401'), 'owner note', 'the note edit is saved');
 select lives_ok($$select public.reverse_remittance('00000000-0000-0000-0000-000000140401', 'wrong disposition')$$, 'the owner can reverse the remittance');
-insert into public.remittances (assignment_id, unit_id, driver_id, service_date, disposition, idempotency_key)
-values ('00000000-0000-0000-0000-000000140301', '00000000-0000-0000-0000-000000140101', '00000000-0000-0000-0000-000000140201', '2031-01-05', 'overnight_overtime', gen_random_uuid());
+-- Feature 010: remittances are recorded under the unit's daily assignment for the date.
+insert into public.unit_assignments (unit_id, driver_id, service_date)
+values ('00000000-0000-0000-0000-000000140101', '00000000-0000-0000-0000-000000140201', '2031-01-05')
+on conflict do nothing;
+insert into public.remittances (unit_id, driver_id, service_date, disposition, idempotency_key)
+values ('00000000-0000-0000-0000-000000140101', '00000000-0000-0000-0000-000000140201', '2031-01-05', 'overnight_overtime', gen_random_uuid());
 select is(
   (select amount_due_centavos from public.remittances where unit_id = '00000000-0000-0000-0000-000000140101' and service_date = '2031-01-05' and deleted_at is null),
   30000::bigint,

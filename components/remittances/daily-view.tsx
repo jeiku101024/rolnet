@@ -7,12 +7,12 @@ import { Progress } from "@/components/ui/progress";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogClose, AlertDialogContent, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { DailyCard, type CardView } from "@/components/remittances/daily-card";
-import { DateControl } from "@/components/remittances/date-control";
+import { DateControl } from "@/components/ui/date-control";
 import { useUnsavedGuard } from "@/components/remittances/unsaved-guard";
 import { formatPesos } from "@/lib/money/centavos";
 import { fleetToday } from "@/lib/dates/fleet-date";
 import { dailyHref } from "@/lib/remittances/view-params";
-import type { DailyBoard, SavedCard } from "@/lib/remittances/daily-board";
+import { isCountable, type DailyBoard, type SavedCard } from "@/lib/remittances/daily-board";
 
 /** How often an open Daily view checks whether the fleet's calendar day has changed (FR-030). */
 const dayCheckInterval = 30_000;
@@ -30,7 +30,7 @@ export function DailyView({ board, isOwner }: { board: DailyBoard; isOwner: bool
 
   const cards = board.cards.map((card) => overrides[card.key] ?? card);
   const recorded = cards.filter((card) => card.kind === "saved").length;
-  const countable = cards.filter((card) => card.kind === "saved" || card.kind === "unrecorded").length;
+  const countable = cards.filter(isCountable).length;
   const received = cards.reduce((sum, card) => sum + (card.kind === "saved" ? card.receivedCentavos : 0), 0);
 
   const onDirty = useCallback((key: string, isDirty: boolean) => {
@@ -98,7 +98,7 @@ export function DailyView({ board, isOwner }: { board: DailyBoard; isOwner: bool
       </div> : null}
 
       {cards.length ? <div className="grid grid-cols-1 gap-4 md:grid-cols-2 desk:grid-cols-4">
-        {cards.map((card) => <DailyCard key={card.kind === "saved" ? `${card.key}:${card.updatedAt}:${card.receivedCentavos}` : card.key} card={card} date={board.date} isToday={board.isToday} isOwner={isOwner} freeDrivers={board.freeDrivers} onSaved={onSaved} onDirty={onDirty} onReload={onReload} />)}
+        {cards.map((card) => <DailyCard key={card.kind === "saved" ? `${card.key}:${card.updatedAt}:${card.receivedCentavos}` : card.key} card={card} date={board.date} isToday={board.isToday} isOwner={isOwner} onSaved={onSaved} onDirty={onDirty} onReload={onReload} />)}
       </div> : <p className="rounded-md border border-rule bg-surface px-4 py-8 text-center font-semibold text-ink">No units scheduled for this date.</p>}
     </div>
 
