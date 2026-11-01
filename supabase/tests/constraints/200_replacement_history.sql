@@ -29,9 +29,14 @@ values ('00000000-0000-0000-0000-000000200402', 'driver_license', '00000000-0000
 -- Staff replace a tire.
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000200002","role":"authenticated"}', true);
 set local role authenticated;
-select lives_ok($$select public.replace_tire_installation('00000000-0000-0000-0000-000000200301',
+select throws_ok($$select public.replace_tire_installation('00000000-0000-0000-0000-000000200301',
   '{"brand":"New Tire","installed_on":"2031-09-01","cost_centavos":"120000","next_due_date":"2032-09-01"}'::jsonb)$$,
-  'staff can replace a current tire');
+  '42501', null, 'staff can no longer replace tires (feature 011: tires are recorded as expenses)');
+reset role;
+-- The function is kept for history; it still works for the migration role.
+select public.replace_tire_installation('00000000-0000-0000-0000-000000200301',
+  '{"brand":"New Tire","installed_on":"2031-09-01","cost_centavos":"120000","next_due_date":"2032-09-01"}'::jsonb);
+set local role authenticated;
 select is((select count(*) from public.tire_installations where unit_id = '00000000-0000-0000-0000-000000200101' and position = 'rear_left' and replaced_by_id is null),
   1::bigint, 'exactly one tire is current in the position');
 select is((select brand from public.tire_installations where unit_id = '00000000-0000-0000-0000-000000200101' and position = 'rear_left' and replaced_by_id is null),

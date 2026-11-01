@@ -37,8 +37,8 @@ select '00000000-0000-0000-0000-000000300101', '00000000-0000-0000-0000-00000030
 insert into public.remittance_payments (remittance_id, amount_centavos, idempotency_key)
 select id, 10000, gen_random_uuid() from public.remittances where unit_id = '00000000-0000-0000-0000-000000300101';
 insert into public.expense_categories (id, name) values ('00000000-0000-0000-0000-000000300301', 'Release test category');
-insert into public.expenses (unit_id, category_id, expense_date, amount_centavos, notes, idempotency_key)
-values ('00000000-0000-0000-0000-000000300101', '00000000-0000-0000-0000-000000300301', '2026-01-15', 25000, 'Release test expense', gen_random_uuid());
+insert into public.expenses (unit_id, category_id, category, custom_category, expense_date, amount_centavos, notes, idempotency_key)
+values ('00000000-0000-0000-0000-000000300101', '00000000-0000-0000-0000-000000300301', 'others', 'Test', '2026-01-15', 25000, 'Release test expense', gen_random_uuid());
 
 create temp table money_before as
 select

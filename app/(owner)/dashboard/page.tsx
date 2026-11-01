@@ -36,8 +36,8 @@ async function DashboardContent() {
   return <section className="workspace">
     <PageHeader eyebrow="Fleet overview" title="Dashboard" description="What needs action first, then who is on the road, this month’s figures, and the latest records." />
     <div className="mt-8 grid gap-8">
-      <Band title={bands[0]} description="Expired documents, overdue maintenance and unpaid balances, most urgent first.">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"><AttentionPanels {...data.attention} /></div>
+      <Band title={bands[0]} description="Expired documents and unpaid balances, most urgent first.">
+        <div className="grid gap-4 md:grid-cols-2"><AttentionPanels {...data.attention} /></div>
       </Band>
       <Band title={bands[1]} description="Who is covering today and which tricycles are off the road.">
         <div className="grid gap-4 md:grid-cols-2"><ExtradorsPanel panel={data.status.extradors} /><InRepairPanel panel={data.status.inRepair} /></div>
@@ -47,7 +47,7 @@ async function DashboardContent() {
         <div className="mt-4"><PhoneFold label="charts" hint="Daily collections, and collected vs expenses by unit"><div className="grid items-start gap-4 lg:grid-cols-2"><DailyTrendChart days={data.daily} monthLabel={monthLabel} /><UnitIncomeChart bars={data.unitBars} monthLabel={monthLabel} /></div></PhoneFold></div>
       </Band>
       <Band title={bands[3]} description="The newest records of each kind. Open a list to see everything.">
-        <PhoneFold label="recent activity" hint="Remittances, expenses, maintenance work and documents"><div className="grid gap-4 md:grid-cols-2">{glimpseKinds.map((kind) => <RecentDataGlimpse key={kind} kind={kind} items={data.recent[kind]} />)}</div></PhoneFold>
+        <PhoneFold label="recent activity" hint="Remittances, expenses and documents"><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{glimpseKinds.map((kind) => <RecentDataGlimpse key={kind} kind={kind} items={data.recent[kind]} />)}</div></PhoneFold>
       </Band>
     </div>
   </section>;

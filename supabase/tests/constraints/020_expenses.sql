@@ -1,5 +1,5 @@
 begin;
-select plan(27);
+select plan(25);
 
 -- FR-017 / FR-018: expenses and expense categories accept valid rows and reject invalid ones.
 -- Receipt path ownership (T119) is covered in 160_receipt_path_ownership.sql and owner-only
@@ -25,36 +25,36 @@ select set_config('test.idem', gen_random_uuid()::text, true);
 
 -- Structure the queries rely on.
 select has_index('public', 'expenses', 'expenses_unit_date_idx', 'expenses are indexed by unit and date');
-select has_index('public', 'expenses', 'expenses_category_idx', 'expenses are indexed by category');
+select has_index('public', 'expenses', 'expenses_category_date_idx', 'expenses are indexed by fixed category and date');
 
 -- Approved staff record expenses (operational path).
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000020002","role":"authenticated"}', true);
 set local role authenticated;
-select lives_ok(format($$insert into public.expenses (id, unit_id, category_id, expense_date, amount_centavos, idempotency_key)
-  values ('00000000-0000-0000-0000-000000020301', '00000000-0000-0000-0000-000000020101', %L, '2031-03-01', 50000, %L)$$,
+select lives_ok(format($$insert into public.expenses (id, unit_id, category_id, category, custom_category, expense_date, amount_centavos, idempotency_key)
+  values ('00000000-0000-0000-0000-000000020301', '00000000-0000-0000-0000-000000020101', %L, 'others', 'Fuel', '2031-03-01', 50000, %L)$$,
   current_setting('test.fuel_id'), current_setting('test.idem')), 'staff record a valid expense');
 select is((select amount_centavos from public.expenses where id = '00000000-0000-0000-0000-000000020301'), 50000::bigint, 'the amount is stored in centavos');
 select is((select created_by from public.expenses where id = '00000000-0000-0000-0000-000000020301'), '00000000-0000-0000-0000-000000020002'::uuid, 'the creator is recorded');
-select throws_ok($$insert into public.expenses (unit_id, category_id, expense_date, amount_centavos, idempotency_key)
-  values ('00000000-0000-0000-0000-000000020101', '00000000-0000-0000-0000-000000020201', '2031-03-01', 0, gen_random_uuid())$$,
+select throws_ok($$insert into public.expenses (unit_id, category_id, category, custom_category, expense_date, amount_centavos, idempotency_key)
+  values ('00000000-0000-0000-0000-000000020101', '00000000-0000-0000-0000-000000020201', 'others', 'Misc', '2031-03-01', 0, gen_random_uuid())$$,
   '23514', null, 'a zero amount is rejected');
-select throws_ok($$insert into public.expenses (unit_id, category_id, expense_date, amount_centavos, idempotency_key)
-  values ('00000000-0000-0000-0000-000000020101', '00000000-0000-0000-0000-000000020201', '2031-03-01', -100, gen_random_uuid())$$,
+select throws_ok($$insert into public.expenses (unit_id, category_id, category, custom_category, expense_date, amount_centavos, idempotency_key)
+  values ('00000000-0000-0000-0000-000000020101', '00000000-0000-0000-0000-000000020201', 'others', 'Misc', '2031-03-01', -100, gen_random_uuid())$$,
   '23514', null, 'a negative amount is rejected');
-select throws_ok($$insert into public.expenses (unit_id, category_id, expense_date, amount_centavos, idempotency_key)
-  values ('00000000-0000-0000-0000-000000020101', '00000000-0000-0000-0000-000000020201', '2031-03-01', 100, null)$$,
+select throws_ok($$insert into public.expenses (unit_id, category_id, category, custom_category, expense_date, amount_centavos, idempotency_key)
+  values ('00000000-0000-0000-0000-000000020101', '00000000-0000-0000-0000-000000020201', 'others', 'Misc', '2031-03-01', 100, null)$$,
   '23502', null, 'an idempotency key is required');
-select throws_ok(format($$insert into public.expenses (unit_id, category_id, expense_date, amount_centavos, idempotency_key)
-  values ('00000000-0000-0000-0000-000000020101', '00000000-0000-0000-0000-000000020201', '2031-03-02', 100, %L)$$, current_setting('test.idem')),
+select throws_ok(format($$insert into public.expenses (unit_id, category_id, category, custom_category, expense_date, amount_centavos, idempotency_key)
+  values ('00000000-0000-0000-0000-000000020101', '00000000-0000-0000-0000-000000020201', 'others', 'Misc', '2031-03-02', 100, %L)$$, current_setting('test.idem')),
   '23505', null, 'a repeated idempotency key is rejected');
-select throws_ok($$insert into public.expenses (unit_id, category_id, expense_date, amount_centavos, idempotency_key)
-  values ('00000000-0000-0000-0000-000000020101', '00000000-0000-0000-0000-000000020201', null, 100, gen_random_uuid())$$,
+select throws_ok($$insert into public.expenses (unit_id, category_id, category, custom_category, expense_date, amount_centavos, idempotency_key)
+  values ('00000000-0000-0000-0000-000000020101', '00000000-0000-0000-0000-000000020201', 'others', 'Misc', null, 100, gen_random_uuid())$$,
   '23502', null, 'an expense date is required');
-select throws_ok($$insert into public.expenses (unit_id, category_id, expense_date, amount_centavos, idempotency_key)
-  values ('00000000-0000-0000-0000-000000020101', gen_random_uuid(), '2031-03-01', 100, gen_random_uuid())$$,
+select throws_ok($$insert into public.expenses (unit_id, category_id, category, custom_category, expense_date, amount_centavos, idempotency_key)
+  values ('00000000-0000-0000-0000-000000020101', gen_random_uuid(), 'others', 'Misc', '2031-03-01', 100, gen_random_uuid())$$,
   '23503', null, 'an unknown category is rejected');
-select throws_ok($$insert into public.expenses (unit_id, category_id, expense_date, amount_centavos, idempotency_key)
-  values (gen_random_uuid(), '00000000-0000-0000-0000-000000020201', '2031-03-01', 100, gen_random_uuid())$$,
+select throws_ok($$insert into public.expenses (unit_id, category_id, category, custom_category, expense_date, amount_centavos, idempotency_key)
+  values (gen_random_uuid(), '00000000-0000-0000-0000-000000020201', 'others', 'Misc', '2031-03-01', 100, gen_random_uuid())$$,
   '23503', null, 'an unknown unit is rejected');
 
 -- Receipt metadata is all-or-nothing and limited to small images.
@@ -78,13 +78,12 @@ select throws_ok($$delete from public.expense_categories where id = '00000000-00
 select throws_ok($$insert into public.expense_categories (name, is_system) values ('System Without Key 020', true)$$,
   '23514', null, 'a built-in category needs a system key');
 
--- The owner manages categories.
+-- Since feature 011 the old category list is read-only, even for the owner.
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000020001","role":"authenticated"}', true);
 set local role authenticated;
-select throws_ok($$insert into public.expense_categories (name) values ('  expense misc 020 ')$$, '23505', null, 'category names are unique ignoring case and spaces');
-select throws_ok($$insert into public.expense_categories (name) values ('   ')$$, '23514', null, 'a blank category name is rejected');
-select lives_ok($$update public.expense_categories set name = 'Expense Tolls 020' where id = '00000000-0000-0000-0000-000000020201'$$, 'the owner renames a custom category');
-select is((select name from public.expense_categories where id = '00000000-0000-0000-0000-000000020201'), 'Expense Tolls 020', 'the new name is saved');
+select throws_ok($$insert into public.expense_categories (name) values ('New Category 020')$$, '42501', null, 'the owner can no longer add expense categories');
+update public.expense_categories set name = 'Expense Tolls 020' where id = '00000000-0000-0000-0000-000000020201';
+select is((select name from public.expense_categories where id = '00000000-0000-0000-0000-000000020201'), 'Expense Misc 020', 'custom categories can no longer be renamed');
 update public.expense_categories set name = 'Gasoline' where id = current_setting('test.fuel_id')::uuid;
 select is((select name from public.expense_categories where id = current_setting('test.fuel_id')::uuid), 'Fuel', 'built-in categories cannot be renamed');
 reset role;

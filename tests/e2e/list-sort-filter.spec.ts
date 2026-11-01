@@ -17,8 +17,8 @@ async function setFilters(page: Page, choices: Record<string, string>) {
 test.describe("list sort and filter", () => {
   test("narrow expenses by unit, category and date, sorted by amount", async ({ page }) => {
     await page.goto("/expenses");
-    await setFilters(page, { Unit: "Body T-003", Category: "Fuel" });
-    await expect(page).toHaveURL(/unit=.*category=|category=.*unit=/);
+    await setFilters(page, { Unit: "Body T-003" });
+    await expect(page).toHaveURL(/unit=/);
     await expect(filtersPanel(page)).toBeHidden();
     await page.getByRole("button", { name: "Expense date: Any date" }).click();
     await page.getByRole("button", { name: "Custom…" }).click();
@@ -30,8 +30,14 @@ test.describe("list sort and filter", () => {
     await expect(rows).toHaveCount(2);
     await expect(rows.nth(0)).toContainText("₱550.00");
     await expect(rows.nth(1)).toContainText("₱350.00");
+    await expect(page.getByText("2 records · ₱900.00")).toBeVisible();
+    // Feature 011: the fixed categories.
+    await setFilters(page, { Category: "Battery" });
+    await expect(page).toHaveURL(/category=battery/);
+    await expect(rows).toHaveCount(1);
+    await expect(rows.nth(0)).toContainText("₱350.00");
     await expect(page.getByRole("button", { name: "Filters (2 on)" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Remove filter Category: Fuel" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Remove filter Category: Battery" })).toBeVisible();
   });
 
   test("pick a quick date range", async ({ page }) => {
@@ -57,12 +63,12 @@ test.describe("list sort and filter", () => {
   });
 
   test("remove one chip, then clear all but keep the search text and sort", async ({ page }) => {
-    await page.goto("/expenses?q=Gasoline&receipt=attached&category=00000000-0000-4000-8000-000000000021&sort=oldest");
+    await page.goto("/expenses?q=highway&receipt=attached&category=others&sort=oldest");
     await page.getByRole("button", { name: "Remove filter Receipt: Attached" }).click();
     await expect(page).not.toHaveURL(/receipt=/);
     await page.getByRole("button", { name: "Clear all" }).click();
-    await expect(page).toHaveURL(/\/expenses\?q=Gasoline&sort=oldest$/);
-    await expect(page.getByRole("searchbox", { name: "Search expenses" })).toHaveValue("Gasoline");
+    await expect(page).toHaveURL(/\/expenses\?q=highway&sort=oldest$/);
+    await expect(page.getByRole("searchbox", { name: "Search expenses" })).toHaveValue("highway");
   });
 
   test("keep the filter panel shut until asked and ignore values a list does not offer", async ({ page }) => {

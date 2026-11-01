@@ -30,9 +30,29 @@ describe("list sort and filter controls (feature 006, US8)", () => {
     expect(calls).toEqual(['gte("service_date","2026-10-01")', 'lte("service_date","2026-10-31")', 'eq("disposition","returned")', 'order("amount_due_centavos",{"ascending":false,"nullsFirst":false})', 'order("service_date",{"ascending":false,"nullsFirst":false})']);
   });
 
-  it("only accepts unit, driver and category ids the page offers", () => {
-    const spec = prepareSpec(listControlSpecs.expenses, { options: { unit: [{ value: "u1", label: "Body T-001" }], category: [{ value: "c1", label: "Fuel" }] } });
-    expect(parseControls({ unit: "u1", category: "c9" }, spec, today).values).toEqual({ unit: "u1" });
+  it("only accepts unit ids the page offers and the fixed expense categories", () => {
+    const spec = prepareSpec(listControlSpecs.expenses, { options: { unit: [{ value: "u1", label: "Body T-001" }] } });
+    expect(parseControls({ unit: "u1", category: "fuel" }, spec, today).values).toEqual({ unit: "u1" });
+    expect(parseControls({ category: "others" }, spec, today).values).toEqual({ category: "others" });
+  });
+
+  it("lists the 7 main categories in client order, then Others (feature 011)", () => {
+    const category = listControlSpecs.expenses.filters.find((def) => "param" in def && def.param === "category")!;
+    expect("options" in category ? (category.options ?? []).map((option) => option.label) : []).toEqual(["Change Oil", "Front Tire", "Rear Tire", "Engine Sprocket", "Chain", "Rear Sprocket", "Battery", "Others"]);
+    expect(listControlSpecs.expenses.sorts.map((sort) => sort.value)).toEqual(["newest", "oldest", "amount-desc", "amount"]);
+    expect(listControlSpecs).not.toHaveProperty("maintenanceUnits");
+  });
+
+  it("finds moved records and the ones that need review (FR-037)", () => {
+    const needs = recorder();
+    applyFilters(needs.q, parseControls({ review: "needs-review" }, listControlSpecs.expenses, today));
+    expect(needs.calls).toEqual(['eq("needs_review",true)']);
+    const moved = recorder();
+    applyFilters(moved.q, parseControls({ review: "moved" }, listControlSpecs.expenses, today));
+    expect(moved.calls).toEqual(['not("source_table","is",null)']);
+    const rows = [{ id: 1, needs_review: true, source_table: "part_replacements" }, { id: 2, needs_review: false, source_table: "tire_installations" }, { id: 3, needs_review: false, source_table: null }];
+    expect(controlRows(rows, parseControls({ review: "needs-review" }, listControlSpecs.expenses, today)).map((row) => row.id)).toEqual([1]);
+    expect(controlRows(rows, parseControls({ review: "moved" }, listControlSpecs.expenses, today)).map((row) => row.id)).toEqual([1, 2]);
   });
 
   it("hides owner-only filters from staff", () => {

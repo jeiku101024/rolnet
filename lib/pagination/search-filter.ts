@@ -8,7 +8,7 @@ import { fetchListPage, type ListPageRequest } from "@/lib/pagination/list-page"
  * use `ilike`, so their display labels are matched here and OR-ed in as `column.in.(…)`.
  */
 
-export interface RelatedSearch { table: "units" | "drivers" | "expense_categories"; column: string; foreignKey: string }
+export interface RelatedSearch { table: "units" | "drivers"; column: string; foreignKey: string }
 export interface EnumSearch { column: string; labels: Record<string, string> }
 
 export interface SearchSpec {

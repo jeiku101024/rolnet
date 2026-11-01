@@ -23,8 +23,6 @@ and service jobs have `auth.uid()` null.
 
 | Rule | Code | Message |
 |------|------|---------|
-| app session, `expense_date` new/changed and > fleet date | `23514` | "Dates can't be in the future." |
-| app session, `replaced_date` new/changed and > fleet date | `23514` | "Dates can't be in the future." |
 | shape check fails | `23514` (constraint `expenses_category_shape_check`) | mapped by the app: "Check the category, category name, and date replaced." |
 | amount check fails | `23514` (constraint `expenses_amount_check`) | mapped by the app: "Enter an amount greater than ₱0.00." |
 
@@ -40,7 +38,7 @@ and service jobs have `auth.uid()` null.
 |--------|------|----------|---------------|
 | `maintenance_category_for(p_name text) returns expense_category` | function, immutable SQL (research R3 table) | invoker | none |
 | `move_maintenance_into_expenses() returns integer` | plpgsql function. It runs the part insert (`insert into expenses (…) select … from part_replacements where deleted_at is null on conflict (source_table, source_id) where source_table is not null do nothing`) and the same insert from `tire_installations`, and returns the number of rows inserted | invoker | none |
-| `verify_maintenance_move() returns void` | plpgsql function. Compares the count and sum per unit, and raises `P0001` "Maintenance move check failed for unit {id}: {n} sources / {m} expenses, {a} / {b} centavos" | invoker | none |
+| `verify_maintenance_move(p_unit_id uuid default null) returns void` | plpgsql function. Compares the count and sum per unit (one unit when `p_unit_id` is given, so pgTAP can check its own fixtures), and raises `P0001` "Maintenance move check failed for unit {id}: {n} sources / {m} expenses, {a} / {b} centavos" | invoker | none |
 | migration body | `select public.move_maintenance_into_expenses(); select public.verify_maintenance_move();` | migration | |
 
 Calling `move_maintenance_into_expenses()` again on a database that already has the moved rows inserts

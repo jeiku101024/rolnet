@@ -1,5 +1,6 @@
 import type { SearchSpec } from "@/lib/pagination/search-filter";
 import { documentTypeLabels } from "@/lib/validation/documents";
+import { expenseCategoryLabels } from "@/lib/expenses/categories";
 
 /**
  * What each server-paged list's search box looks through (contracts/list-paging.md, "Search
@@ -20,8 +21,8 @@ export const searchSpecs = {
   units: { columns: ["name", "body_number", "plate_number", "make_model"], enums: [{ column: "status", labels: unitStatusLabels }] },
   drivers: { columns: ["full_name", "license_number", "phone"], enums: [{ column: "driver_kind", labels: driverKindLabels }] },
   remittances: { columns: ["notes"], related: [unitLink, driverLink], enums: [{ column: "disposition", labels: dispositionLabels }], dateColumn: "service_date", amountColumn: "amount_due_centavos" },
-  expenses: { columns: ["notes"], related: [unitLink, { table: "expense_categories", column: "name", foreignKey: "category_id" }], dateColumn: "expense_date", amountColumn: "amount_centavos" },
-  maintenanceUnits: { columns: ["body_number", "plate_number"] },
+  // Feature 011: typed Others names and the fixed category labels (matched through the enum).
+  expenses: { columns: ["notes", "custom_category"], related: [unitLink], enums: [{ column: "category", labels: expenseCategoryLabels }], dateColumn: "expense_date", amountColumn: "amount_centavos" },
   documents: { columns: ["document_number"], related: [unitLink, driverLink], enums: [{ column: "document_type", labels: documentTypeLabels }], dateColumn: "expires_on" },
   audit: { columns: ["entity_type"], enums: [{ column: "action", labels: auditActionLabels }] },
   staff: { columns: ["display_name"], enums: [{ column: "account_status", labels: accountStatusLabels }] },

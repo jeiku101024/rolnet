@@ -122,7 +122,7 @@ describe("UnitDetailsSection (feature 010, FR-039, FR-040)", () => {
   it("shows the six details, with mileage as a normal field", () => {
     render(<UnitDetailsSection unit={unit} currentDriver="Ana (Primary)" canEdit />);
     for (const text of ["ROLNET-1", "T-001", "ABC-1234", "Honda TMX", "18,240 km", "Ana (Primary)"]) expect(screen.getByText(text)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Maintenance and mileage" })).toHaveAttribute("href", `/maintenance/${unitId}`);
+    expect(screen.getByRole("link", { name: "Expenses" })).toHaveAttribute("href", `/expenses?unit=${unitId}`);
   });
 
   it("edits only the four fields inline, and Cancel reverts", async () => {

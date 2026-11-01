@@ -62,6 +62,6 @@ export function UnitDetailsSection({ unit, currentDriver, canEdit }: { unit: Uni
       <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save details"}</Button>
       <Button type="button" variant="outline" disabled={pending} onClick={() => { setError(undefined); setEditing(false); }}>Cancel</Button>
     </div> : null}
-    <Link className="muted-link w-fit text-body-sm font-semibold" href={`/maintenance/${unit.id}`}>Maintenance and mileage</Link>
+    <Link className="muted-link w-fit text-body-sm font-semibold" href={`/expenses?unit=${unit.id}`}>Expenses</Link>
   </form>;
 }

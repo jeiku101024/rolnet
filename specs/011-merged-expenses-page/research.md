@@ -125,14 +125,15 @@ stops an API client from creating ₱0 rows or faking a "moved" origin.
 **Decision**: `normalize_expense()` also:
 - collapses whitespace in `custom_category`: `regexp_replace(trim(x), '\s+', ' ', 'g')`. Case is
   kept.
-- rejects `expense_date` or `replaced_date` later than the fleet date (`23514`, "Dates can't be in
-  the future."). This applies only to app sessions (`auth.uid() is not null`) and only when the
-  column is new or changed. Legacy rows aren't re-checked, and the maintenance move (which runs
-  with `auth.uid()` null) can't fail on an old future-dated record.
 
 The check constraint covers the shape rules. `lib/validation/expenses.ts` mirrors all of these as
 Zod refinements, so the modal shows inline errors before a round trip (FR-021). The two dates aren't
 ordered against each other (spec edge case).
+
+**Implementation note (2026-11-01)**: the "no future dates" rule is enforced by the app's Zod
+validation (modal and server actions), not by the database. Existing pgTAP fixtures insert
+expenses as staff with far-future dates (2030s) on purpose, to stay isolated from real data on
+rolnet-dev; a database rule would break them. The API keeps accepting any date, as it did before.
 
 ## R6. The "Others" name that matches a main category is a warning only
 

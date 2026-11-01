@@ -27,9 +27,9 @@ The values are listed in display order. Both the declared order and the label or
 | `unit_id` | uuid → units | none | Required. New and edited rows must use a unit that isn't archived or deleted (enforced in the app and its picker). Existing rows on archived units stay. |
 | `category` | `expense_category` not null | **new** | Backfilled to `others` (R2) or set by the move (R3) |
 | `custom_category` | text | **new** | Required for `others`, trimmed, 1–80 characters, inner whitespace collapsed. Null otherwise. |
-| `replaced_date` | date | **new** | Required for main categories, null for `others`. No later than the fleet date (app sessions). |
+| `replaced_date` | date | **new** | Required for main categories, null for `others`. No later than the fleet date (app validation). |
 | `category_id` | uuid → expense_categories | **now nullable** | Legacy only. The app never writes it. |
-| `expense_date` | date not null | none | No later than the fleet date when set or changed (app sessions) |
+| `expense_date` | date not null | none | No later than the fleet date (app validation) |
 | `amount_centavos` | bigint | **check replaced** | `> 0`, or `= 0` only with `needs_review` |
 | `needs_review` | boolean not null default false | **new** | Set only by the move. Cleared when the amount becomes > 0. |
 | `source_table` | text | **new** | `'part_replacements'`, `'tire_installations'`, or null. Kept from the original row on update. |
@@ -71,9 +71,7 @@ The values are listed in display order. Both the declared order and the label or
    - On INSERT: force `needs_review = false`, `source_table = null`, `source_id = null`.
    - On UPDATE: copy `source_table` and `source_id` from OLD. If `amount_centavos > 0`, set
      `needs_review = false`.
-3. For app sessions only: if `expense_date` (or `replaced_date`) is new or changed and later than
-   the fleet date, raise
-   `23514` "Dates can't be in the future."
+3. No date rule here: "no future dates" is checked by the app's validation (research R5 note).
 
 **Lifecycle**
 

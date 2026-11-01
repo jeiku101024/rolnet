@@ -63,7 +63,8 @@ insert into public.tire_installations (id, unit_id, position, brand, installed_o
 values ('00000000-0000-0000-0000-000000060502', '00000000-0000-0000-0000-000000060101', 'rear_left', 'Replaced', '2031-01-01', 100, '2031-07-01', '00000000-0000-0000-0000-000000060501');
 
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000060001","role":"authenticated"}', true);
-set local role authenticated;
+-- Since feature 011 due_maintenance() is kept for history only and app users can't call it;
+-- its owner filter is still checked here as the migration role with the owner's claims.
 select set_eq(
   $$select item_id from public.due_maintenance('2031-09-01') where unit_id = '00000000-0000-0000-0000-000000060101'$$,
   array['00000000-0000-0000-0000-000000060401', '00000000-0000-0000-0000-000000060402', '00000000-0000-0000-0000-000000060404', '00000000-0000-0000-0000-000000060501']::uuid[],
@@ -78,6 +79,7 @@ select is((select due_mileage from public.due_maintenance('2031-09-01') where it
 insert into public.mileage_readings (unit_id, reading_date, mileage) values ('00000000-0000-0000-0000-000000060101', '2031-08-20', 1001);
 select isnt_empty($$select 1 from public.due_maintenance('2031-09-01') where item_id = '00000000-0000-0000-0000-000000060405'$$,
   'a new mileage reading makes a mileage-based item due');
+set local role authenticated;
 
 select is_empty($$select 1 from public.dashboard_monthly_unit_summary('2031-09-01') where unit_id = '00000000-0000-0000-0000-000000060102'$$,
   'a soft-deleted unit is left out of the monthly summary');
@@ -91,7 +93,7 @@ reset role;
 
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000060002","role":"authenticated"}', true);
 set local role authenticated;
-select is_empty($$select 1 from public.due_maintenance('2031-09-01')$$, 'staff see no due maintenance');
+select throws_ok($$select 1 from public.due_maintenance('2031-09-01')$$, '42501', null, 'app users can no longer call due_maintenance');
 reset role;
 
 select finish();

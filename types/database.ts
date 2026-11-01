@@ -67,6 +67,8 @@ export interface Database {
       app_role: AppRole;
       profile_status: ProfileStatus;
       audit_action: "insert" | "update" | "soft_delete" | "restore" | "reverse";
+      // Feature 011 (migration 20261101000500). Declared order is the display order.
+      expense_category: "change_oil" | "front_tire" | "rear_tire" | "engine_sprocket" | "chain" | "rear_sprocket" | "battery" | "others";
     };
     CompositeTypes: Record<string, never>;
   };

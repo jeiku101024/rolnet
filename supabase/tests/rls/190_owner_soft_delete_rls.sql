@@ -32,8 +32,8 @@ insert into public.mileage_readings (id, unit_id, reading_date, mileage)
 values ('00000000-0000-0000-0000-000000190303', '00000000-0000-0000-0000-000000190102', '2031-08-02', 100);
 insert into public.expense_categories (id, name)
 values ('00000000-0000-0000-0000-000000190304', 'Delete Category 190');
-insert into public.expenses (id, unit_id, category_id, expense_date, amount_centavos, idempotency_key)
-select '00000000-0000-0000-0000-000000190305', '00000000-0000-0000-0000-000000190102', id, '2031-08-02', 50000, gen_random_uuid()
+insert into public.expenses (id, unit_id, category_id, category, custom_category, expense_date, amount_centavos, idempotency_key)
+select '00000000-0000-0000-0000-000000190305', '00000000-0000-0000-0000-000000190102', id, 'others', 'Fuel', '2031-08-02', 50000, gen_random_uuid()
 from public.expense_categories where system_key = 'fuel' and deleted_at is null;
 insert into public.part_replacements (id, unit_id, part_name, cost_centavos, replaced_on, next_due_date)
 values ('00000000-0000-0000-0000-000000190306', '00000000-0000-0000-0000-000000190102', 'Air filter', 1000, '2031-08-01', '2031-12-01');
@@ -65,8 +65,6 @@ select throws_ok($$select public.soft_delete_record('tire_installations', '00000
 -- Direct updates on tables staff may otherwise edit are rejected by the owner-only rule.
 select throws_ok($$update public.mileage_readings set deleted_at = now() where id = '00000000-0000-0000-0000-000000190303'$$, '42501', null, 'staff cannot set deleted_at on a mileage reading');
 select throws_ok($$update public.expenses set deleted_at = now() where id = '00000000-0000-0000-0000-000000190305'$$, '42501', null, 'staff cannot set deleted_at on an expense');
-select throws_ok($$update public.part_replacements set deleted_at = now() where id = '00000000-0000-0000-0000-000000190306'$$, '42501', null, 'staff cannot set deleted_at on a part');
-select throws_ok($$update public.tire_installations set deleted_at = now() where id = '00000000-0000-0000-0000-000000190307'$$, '42501', null, 'staff cannot set deleted_at on a tire');
 select throws_ok($$update public.remittances set deleted_at = now() where id = '00000000-0000-0000-0000-000000190308'$$, '42501', null, 'staff cannot set deleted_at on a remittance');
 
 -- Owner-only tables: a staff update matches no rows, so the record stays current.
@@ -77,6 +75,11 @@ update public.driver_days_off set deleted_at = now() where id = '00000000-0000-0
 update public.expense_categories set deleted_at = now() where id = '00000000-0000-0000-0000-000000190304';
 update public.remittance_payments set deleted_at = now() where id = '00000000-0000-0000-0000-000000190309';
 update public.fleet_settings set deleted_at = now() where id = true;
+-- Feature 011: parts and tires have no update policy at all now.
+update public.part_replacements set deleted_at = now() where id = '00000000-0000-0000-0000-000000190306';
+update public.tire_installations set deleted_at = now() where id = '00000000-0000-0000-0000-000000190307';
+select isnt_empty($$select 1 from public.part_replacements where id = '00000000-0000-0000-0000-000000190306'$$, 'a staff update does not delete a part');
+select isnt_empty($$select 1 from public.tire_installations where id = '00000000-0000-0000-0000-000000190307'$$, 'a staff update does not delete a tire');
 select isnt_empty($$select 1 from public.units where id = '00000000-0000-0000-0000-000000190101'$$, 'a staff update does not delete a unit');
 select isnt_empty($$select 1 from public.drivers where id = '00000000-0000-0000-0000-000000190201'$$, 'a staff update does not delete a driver');
 select isnt_empty($$select 1 from public.driver_assignments where id = '00000000-0000-0000-0000-000000190301'$$, 'a staff update does not delete an assignment');
@@ -94,26 +97,26 @@ select ok(public.soft_delete_record('drivers', '00000000-0000-0000-0000-00000019
 select ok(public.soft_delete_record('driver_days_off', '00000000-0000-0000-0000-000000190302') is not null, 'the owner soft-deletes a day off');
 select ok(public.soft_delete_record('driver_assignments', '00000000-0000-0000-0000-000000190301') is not null, 'the owner soft-deletes an assignment');
 select ok(public.soft_delete_record('mileage_readings', '00000000-0000-0000-0000-000000190303') is not null, 'the owner soft-deletes a mileage reading');
-select ok(public.soft_delete_record('expense_categories', '00000000-0000-0000-0000-000000190304') is not null, 'the owner soft-deletes a custom category');
+select throws_ok($$select public.soft_delete_record('expense_categories', '00000000-0000-0000-0000-000000190304')$$, '22023', null, 'expense categories are read-only since feature 011');
 select ok(public.soft_delete_record('expenses', '00000000-0000-0000-0000-000000190305') is not null, 'the owner soft-deletes an expense');
-select ok(public.soft_delete_record('part_replacements', '00000000-0000-0000-0000-000000190306') is not null, 'the owner soft-deletes a part');
-select ok(public.soft_delete_record('tire_installations', '00000000-0000-0000-0000-000000190307') is not null, 'the owner soft-deletes a tire');
+select throws_ok($$select public.soft_delete_record('part_replacements', '00000000-0000-0000-0000-000000190306')$$, '22023', null, 'parts are read-only since feature 011');
+select throws_ok($$select public.soft_delete_record('tire_installations', '00000000-0000-0000-0000-000000190307')$$, '22023', null, 'tires are read-only since feature 011');
 select isnt_empty($$select 1 from public.units where id = '00000000-0000-0000-0000-000000190101'$$, 'a unit is never deleted, so it stays in current views');
 select is_empty($$select 1 from public.drivers where id = '00000000-0000-0000-0000-000000190201'$$, 'a deleted driver leaves current views');
 select is_empty($$select 1 from public.driver_days_off where id = '00000000-0000-0000-0000-000000190302'$$, 'a deleted day off leaves current views');
 select is_empty($$select 1 from public.driver_assignments where id = '00000000-0000-0000-0000-000000190301'$$, 'a deleted assignment leaves current views');
 select is_empty($$select 1 from public.mileage_readings where id = '00000000-0000-0000-0000-000000190303'$$, 'a deleted reading leaves current views');
-select is_empty($$select 1 from public.expense_categories where id = '00000000-0000-0000-0000-000000190304'$$, 'a deleted category leaves current views');
+select isnt_empty($$select 1 from public.expense_categories where id = '00000000-0000-0000-0000-000000190304'$$, 'the category stays current');
 select is_empty($$select 1 from public.expenses where id = '00000000-0000-0000-0000-000000190305'$$, 'a deleted expense leaves current views');
-select is_empty($$select 1 from public.part_replacements where id = '00000000-0000-0000-0000-000000190306'$$, 'a deleted part leaves current views');
-select is_empty($$select 1 from public.tire_installations where id = '00000000-0000-0000-0000-000000190307'$$, 'a deleted tire leaves current views');
+select isnt_empty($$select 1 from public.part_replacements where id = '00000000-0000-0000-0000-000000190306'$$, 'the part stays current');
+select isnt_empty($$select 1 from public.tire_installations where id = '00000000-0000-0000-0000-000000190307'$$, 'the tire stays current');
 select isnt_empty($$select 1 from public.audit_events where entity_id = '00000000-0000-0000-0000-000000190201' and action = 'soft_delete'$$, 'the soft delete is audited');
 
 -- Records with their own correction functions, and built-in categories, are not deleted here.
 select throws_ok($$select public.soft_delete_record('remittances', '00000000-0000-0000-0000-000000190308')$$, '22023', null, 'remittances are reversed with reverse_remittance()');
 select throws_ok($$select public.soft_delete_record('remittance_payments', '00000000-0000-0000-0000-000000190309')$$, '22023', null, 'payments are corrected with correct_remittance_payment()');
 select throws_ok($$select public.soft_delete_record('fleet_settings', gen_random_uuid())$$, '22023', null, 'fleet settings cannot be deleted');
-select throws_ok($$select public.soft_delete_record('expense_categories', (select id from public.expense_categories where system_key = 'fuel' and deleted_at is null))$$, '23514', null, 'built-in categories cannot be deleted');
+select throws_ok($$select public.soft_delete_record('expense_categories', (select id from public.expense_categories where system_key = 'fuel' and deleted_at is null))$$, '22023', null, 'built-in categories cannot be deleted');
 
 -- Optimistic concurrency and restore.
 select is(public.soft_delete_record('drivers', '00000000-0000-0000-0000-000000190202', '2000-01-01T00:00:00Z'), null::jsonb, 'a stale expected update time deletes nothing');

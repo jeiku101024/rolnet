@@ -15,7 +15,7 @@ type Embed<T> = T | T[] | null;
 export async function loadAssignmentRows(supabase: Supabase | null, date: string, today: string): Promise<AssignmentRows> {
   if (!supabase) return demoAssignmentRows(date, today);
   const [units, changes, assignments, remittances, drivers, prefill] = await Promise.all([
-    supabase.from("units").select("id, name, body_number, plate_number, make_model, created_at").eq("archived", false).is("deleted_at", null),
+    supabase.from("units").select("id, name, body_number, plate_number, make_model, created_at, current_mileage").eq("archived", false).is("deleted_at", null),
     supabase.from("unit_status_changes").select("unit_id, from_status, to_status, effective_on, changed_at").is("deleted_at", null),
     supabase.from("unit_assignments").select("id, unit_id, driver_id, notes, updated_at, drivers(full_name, driver_kind)").eq("service_date", date).is("deleted_at", null),
     supabase.from("remittances").select("unit_id").eq("service_date", date).is("deleted_at", null),
@@ -43,7 +43,7 @@ function demoAssignmentRows(date: string, today: string): AssignmentRows {
   const latest = new Map<string, { unit_id: string; driver_id: string; service_date: string }>();
   if (date > today) for (const row of demoUnitAssignmentsDaily) if (row.service_date < date && (latest.get(row.unit_id)?.service_date ?? "") < row.service_date) latest.set(row.unit_id, row);
   return {
-    units: demoUnits.filter((unit) => !unit.archived).map(({ id, name, body_number, plate_number, make_model, created_at }) => ({ id, name, body_number, plate_number, make_model, created_at })),
+    units: demoUnits.filter((unit) => !unit.archived).map(({ id, name, body_number, plate_number, make_model, created_at, current_mileage }) => ({ id, name, body_number, plate_number, make_model, created_at, current_mileage })),
     statusChanges: demoUnitStatusChanges.map((change) => ({ ...change })) as (StatusChange & { unit_id: string })[],
     assignments: saved.map(({ id, unit_id, driver_id, notes, updated_at, driverName, driverKind }) => ({ id, unit_id, driver_id, notes, updated_at, driverName, driverKind })),
     remittanceUnitIds: demoRemittances.filter((row) => row.service_date === date).map((row) => demoUnits[demoRemittances.indexOf(row) % 3].id),

@@ -3,6 +3,8 @@ import { apiFailure, created, ok, withEtag } from "@/lib/api/response";
 import { assertSameOrigin, readIdempotencyKey, readJsonObject, readUuid } from "@/lib/api/request";
 import { createRow, getRow, listRows, restoreRow, softDeleteRow, updateRow } from "@/lib/domain/crud";
 import { apiContext } from "@/lib/domain/context";
+import { ApiError } from "@/lib/api/errors";
+import { resources } from "@/lib/domain/resource-config";
 
 type Context = { params: Promise<{ segments: string[] }> };
 
@@ -102,12 +104,10 @@ export async function POST(request: Request, context: Context) {
         return ok(data);
       }
     }
+    // Feature 011: tires are recorded as Front Tire / Rear Tire expenses; the old replace call is closed.
     if (resource === "tire-installations" && id && action === "replace") {
-      const { supabase } = await apiContext("encode_operations");
-      const body = await readJsonObject(request);
-      const { data, error } = await supabase.rpc("replace_tire_installation", { p_current_id: id, p_replacement: body });
-      if (error) throw error;
-      return created(data);
+      await apiContext("encode_operations");
+      throw new ApiError(405, "FORBIDDEN", resources["tire-installations"].readOnlyMessage ?? "This resource is read only.");
     }
     return created(await createRow(resource, request));
   } catch (reason) { return apiFailure(reason); }

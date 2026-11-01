@@ -35,7 +35,7 @@ values ('00000000-0000-0000-0000-000000065401', '00000000-0000-0000-0000-0000000
 
 select ok(has_function_privilege('authenticated', 'public.dashboard_monthly_unit_summary(date)', 'execute'), 'signed-in users can call the monthly summary');
 select ok(has_function_privilege('authenticated', 'public.driver_outstanding_balances(date)', 'execute'), 'signed-in users can call the driver balances');
-select ok(has_function_privilege('authenticated', 'public.due_maintenance(date)', 'execute'), 'signed-in users can call due maintenance');
+select ok(not has_function_privilege('authenticated', 'public.due_maintenance(date)', 'execute'), 'signed-in users can no longer call due maintenance (feature 011)');
 select ok(has_function_privilege('authenticated', 'public.expiring_documents(date)', 'execute'), 'signed-in users can call expiring documents');
 
 -- Signed-out visitor.
@@ -50,7 +50,7 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 set local role authenticated;
 select is_empty($$select 1 from public.dashboard_monthly_unit_summary('2031-09-01')$$, 'a pending user gets no summary rows');
 select is_empty($$select 1 from public.driver_outstanding_balances('2031-09-30')$$, 'a pending user gets no balances');
-select is_empty($$select 1 from public.due_maintenance('2031-09-01')$$, 'a pending user gets no due maintenance');
+select throws_ok($$select 1 from public.due_maintenance('2031-09-01')$$, '42501', null, 'a pending user cannot call due maintenance');
 reset role;
 
 -- Deactivated staff member.
@@ -65,7 +65,7 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 set local role authenticated;
 select is((select remittance_due_centavos from public.dashboard_monthly_unit_summary('2031-09-01') where unit_id = '00000000-0000-0000-0000-000000065101'), 18000::bigint, 'the owner gets the unit''s summary');
 select is((select outstanding_centavos from public.driver_outstanding_balances('2031-09-30') where driver_id = '00000000-0000-0000-0000-000000065201'), 18000::bigint, 'the owner gets the driver''s balance');
-select isnt_empty($$select 1 from public.due_maintenance('2031-09-01') where item_id = '00000000-0000-0000-0000-000000065401'$$, 'the owner gets due maintenance');
+select throws_ok($$select 1 from public.due_maintenance('2031-09-01')$$, '42501', null, 'the owner can no longer call due maintenance');
 reset role;
 
 select finish();

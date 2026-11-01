@@ -24,8 +24,6 @@ export async function upsertMileageReading(input: unknown) {
       : await supabase.from("mileage_readings").insert({ ...row, unit_id: value.unitId, reading_date: value.readingDate }).select("id").single();
     if (error) throw error;
     revalidatePath(`/units/${value.unitId}`);
-    revalidatePath(`/maintenance/${value.unitId}`);
-    revalidatePath("/maintenance");
     revalidatePath("/units");
     revalidatePath("/dashboard");
     return { id: data.id as string, updated: Boolean(existing) };

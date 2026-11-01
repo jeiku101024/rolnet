@@ -9,13 +9,31 @@ import { expenseSchema, expenseUpdateSchema, receiptUploadSchema } from "@/lib/v
 import { ActionError } from "@/lib/actions/errors";
 import { run } from "@/lib/actions/run";
 import { receiptMimeTypes, receiptExtension } from "@/lib/uploads/rules";
+import type { ExpenseCategory } from "@/lib/expenses/categories";
 
-const labels = { unitId: "unit", categoryId: "category", expenseDate: "date", amountCentavos: "amount (more than ₱0.00)", notes: "notes" };
+const labels = { unitId: "unit", category: "category", customCategory: "category name", expenseDate: "expense date", replacedDate: "date replaced", amountCentavos: "amount (more than ₱0.00)", notes: "notes" };
+const staleMessage = "This expense was changed or deleted by someone else. Reload to see the latest.";
 
-function revalidateExpense(unitId?: string) {
+function revalidateExpense(...unitIds: (string | null | undefined)[]) {
   revalidatePath("/expenses");
   revalidatePath("/dashboard");
-  if (unitId) revalidatePath(`/units/${unitId}`);
+  for (const unitId of new Set(unitIds)) if (unitId) revalidatePath(`/units/${unitId}`);
+}
+
+/** The category columns for a validated input; the field that doesn't apply is null (data-model). */
+function categoryColumns(value: { category: string; customCategory?: string; replacedDate?: string }) {
+  const others = value.category === "others";
+  return {
+    category: value.category as ExpenseCategory,
+    custom_category: others ? value.customCategory ?? null : null,
+    replaced_date: others ? null : value.replacedDate ?? null,
+  };
+}
+
+/** New and edited expenses must use a unit that isn't archived or deleted (data-model `unit_id`). */
+async function requireActiveUnit(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, unitId: string) {
+  const { data } = await supabase.from("units").select("id").eq("id", unitId).eq("archived", false).is("deleted_at", null).maybeSingle();
+  if (!data) throw new ActionError("ARCHIVED_UNIT", "This unit is archived. Choose another unit.", { unitId: "This unit is archived. Choose another unit." });
 }
 
 export async function createExpense(input: unknown) {
@@ -23,12 +41,13 @@ export async function createExpense(input: unknown) {
     await requireApprovedSession();
     const value = expenseSchema.parse(input);
     const supabase = await createSupabaseServerClient();
-    const { data: existing } = await supabase.from("expenses").select("id").eq("idempotency_key", value.idempotencyKey).maybeSingle();
-    if (existing) return { id: existing.id as string };
-    const { data, error } = await supabase.from("expenses").insert({ unit_id: value.unitId, category_id: value.categoryId, expense_date: value.expenseDate, amount_centavos: value.amountCentavos, notes: value.notes || null, idempotency_key: value.idempotencyKey }).select("id").single();
+    const { data: existing } = await supabase.from("expenses").select("id, updated_at").eq("idempotency_key", value.idempotencyKey).maybeSingle();
+    if (existing) return { id: existing.id as string, updatedAt: existing.updated_at as string };
+    await requireActiveUnit(supabase, value.unitId);
+    const { data, error } = await supabase.from("expenses").insert({ unit_id: value.unitId, ...categoryColumns(value), expense_date: value.expenseDate, amount_centavos: value.amountCentavos, notes: value.notes || null, idempotency_key: value.idempotencyKey }).select("id, updated_at").single();
     if (error) throw error;
     revalidateExpense(value.unitId);
-    return { id: data.id as string };
+    return { id: data.id as string, updatedAt: data.updated_at as string };
   }, labels);
 }
 
@@ -37,22 +56,27 @@ export async function updateExpense(id: string, input: unknown) {
     await requireApprovedSession();
     const value = expenseUpdateSchema.parse(input);
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.from("expenses").update({ unit_id: value.unitId, category_id: value.categoryId, expense_date: value.expenseDate, amount_centavos: value.amountCentavos, notes: value.notes || null }).eq("id", id).eq("updated_at", value.expectedUpdatedAt).is("deleted_at", null).select("id").maybeSingle();
+    const { data: before } = await supabase.from("expenses").select("unit_id").eq("id", id).is("deleted_at", null).maybeSingle();
+    if (!before) throw new ActionError("STALE_RECORD", staleMessage);
+    await requireActiveUnit(supabase, value.unitId);
+    const { data, error } = await supabase.from("expenses").update({ unit_id: value.unitId, ...categoryColumns(value), expense_date: value.expenseDate, amount_centavos: value.amountCentavos, notes: value.notes || null }).eq("id", id).eq("updated_at", value.expectedUpdatedAt).is("deleted_at", null).select("id, updated_at").maybeSingle();
     if (error) throw error;
-    if (!data) throw new ActionError("STALE_RECORD", "Someone changed this expense after you opened it. Reload the page to see the latest values, then edit again.");
-    revalidateExpense(value.unitId);
-    return { id: data.id as string };
+    if (!data) throw new ActionError("STALE_RECORD", staleMessage);
+    revalidateExpense(value.unitId, before.unit_id as string);
+    return { id: data.id as string, updatedAt: data.updated_at as string };
   }, labels);
 }
 
-export async function softDeleteExpense(id: string) {
-  return run("Could not archive the expense. Reload the page and try again.", async () => {
+/** Owner-only delete (FR-028–FR-031): a soft delete with a stale check, audited by the database. */
+export async function deleteExpense(id: string, expectedUpdatedAt: string) {
+  return run("Could not delete the expense. Reload the page and try again.", async () => {
     await requirePermission("manage_master_data");
+    const value = z.object({ id: z.string().uuid(), expectedUpdatedAt: z.string().min(1) }).parse({ id, expectedUpdatedAt });
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.rpc("soft_delete_record", { p_table: "expenses", p_id: id });
+    const { data, error } = await supabase.rpc("soft_delete_record", { p_table: "expenses", p_id: value.id, p_expected_updated_at: value.expectedUpdatedAt });
     if (error) throw error;
-    if (!data) throw new ActionError("STALE_RECORD", "This expense was already archived. Reload the page.");
-    revalidateExpense();
+    if (!data) throw new ActionError("STALE_RECORD", staleMessage);
+    revalidateExpense((data as { unit_id?: string }).unit_id);
     return null;
   });
 }

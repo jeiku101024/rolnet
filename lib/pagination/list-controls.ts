@@ -13,8 +13,8 @@ export interface FilterOption { value: string; label: string }
 
 /** `eq`: one column equals the chosen value (`values` maps a URL value to a column value, e.g. "active" → true). */
 export interface EqFilter { kind: "eq"; param: string; label: string; column: string; options: FilterOption[]; values?: Record<string, string | boolean>; ownerOnly?: boolean }
-/** `presence`: each option checks that its column is filled in (or empty). */
-export interface PresenceFilter { kind: "presence"; param: string; label: string; options: (FilterOption & { column: string; present: boolean })[]; ownerOnly?: boolean }
+/** `presence`: each option checks that its column is filled in (or empty), or with `equals`, that it equals a value. */
+export interface PresenceFilter { kind: "presence"; param: string; label: string; options: (FilterOption & { column: string; present: boolean; equals?: string | boolean })[]; ownerOnly?: boolean }
 /** `range`: a from/to date pair on a date (or, with `timestamp`, a timestamp) column. Params are `from` and `to`. */
 export interface RangeFilter { kind: "range"; label: string; column: string; timestamp?: boolean; ownerOnly?: boolean }
 /** `bucket`: expired (before today), soon (today to +30 days), due (up to +30 days), later (after +30 days). */
@@ -137,7 +137,7 @@ export function applyFilters<T>(query: T, parsed: ParsedControls): T {
   for (const filter of parsed.active) {
     const def = filter.def;
     if (def.kind === "eq") q = q.eq(def.column, def.values?.[filter.value] ?? filter.value);
-    else if (def.kind === "presence") { const option = def.options.find((item) => item.value === filter.value)!; q = option.present ? q.not(option.column, "is", null) : q.is(option.column, null); }
+    else if (def.kind === "presence") { const option = def.options.find((item) => item.value === filter.value)!; q = option.equals !== undefined ? q.eq(option.column, option.equals) : option.present ? q.not(option.column, "is", null) : q.is(option.column, null); }
     else if (def.kind === "range") {
       if (filter.from) q = q.gte(def.column, def.timestamp ? fleetDayStart(filter.from) : filter.from);
       if (filter.to) q = def.timestamp ? q.lt(def.column, fleetDayStart(addDays(filter.to, 1))) : q.lte(def.column, filter.to);
@@ -167,7 +167,7 @@ export function matchesControls(row: Row, parsed: ParsedControls) {
   return parsed.active.every((filter) => {
     const def = filter.def;
     if (def.kind === "eq") return row[def.column] === (def.values?.[filter.value] ?? filter.value);
-    if (def.kind === "presence") { const option = def.options.find((item) => item.value === filter.value)!; const filled = row[option.column] !== null && row[option.column] !== undefined && row[option.column] !== ""; return option.present ? filled : !filled; }
+    if (def.kind === "presence") { const option = def.options.find((item) => item.value === filter.value)!; if (option.equals !== undefined) return row[option.column] === option.equals; const filled = row[option.column] !== null && row[option.column] !== undefined && row[option.column] !== ""; return option.present ? filled : !filled; }
     if (def.kind === "range") { const day = dayOf(row[def.column], def.timestamp); return Boolean(day) && (!filter.from || day >= filter.from) && (!filter.to || day <= filter.to); }
     if (def.kind === "bucket") {
       const day = dayOf(row[def.column]);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSearchFilter, cleanSearch, findRelatedIds, matchNothing } from "@/lib/pagination/search-filter";
-import { unitStatusLabels, driverKindLabels } from "@/lib/pagination/search-specs";
+import { unitStatusLabels, driverKindLabels, searchSpecs } from "@/lib/pagination/search-specs";
 
 describe("whole-list search filter (feature 006)", () => {
   it("strips characters that could break out of the or() filter", () => {
@@ -32,5 +32,10 @@ describe("whole-list search filter (feature 006)", () => {
     expect(ids).toEqual({ unit_id: ["units-1"] });
     expect(calls).toEqual(["units.body_number.%T-0%.deleted_at"]);
     expect(await findRelatedIds(client, { related: [] }, "x")).toEqual({});
+  });
+
+  it("searches typed Others names and the fixed category labels on expenses (feature 011)", () => {
+    expect(buildSearchFilter(searchSpecs.expenses, "brake")).toBe("notes.ilike.*brake*,custom_category.ilike.*brake*");
+    expect(buildSearchFilter(searchSpecs.expenses, "sprocket")).toBe("notes.ilike.*sprocket*,custom_category.ilike.*sprocket*,category.in.(engine_sprocket,rear_sprocket)");
   });
 });
