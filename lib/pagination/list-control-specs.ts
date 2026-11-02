@@ -1,6 +1,6 @@
 import type { ControlsSpec, FilterOption } from "@/lib/pagination/list-controls";
 import { bucketLabels } from "@/lib/pagination/list-controls";
-import { accountStatusLabels, auditActionLabels, dispositionLabels, driverKindLabels, unitStatusLabels } from "@/lib/pagination/search-specs";
+import { accountStatusLabels, auditActionLabels, dispositionLabels, unitStatusLabels } from "@/lib/pagination/search-specs";
 import { documentTypeLabels } from "@/lib/validation/documents";
 import { expenseCategoryLabels, expenseCategoryOptions } from "@/lib/expenses/categories";
 
@@ -8,12 +8,12 @@ import { expenseCategoryLabels, expenseCategoryOptions } from "@/lib/expenses/ca
 
 const optionsOf = (labels: Record<string, string>): FilterOption[] => Object.entries(labels).map(([value, label]) => ({ value, label }));
 const expiryBuckets = bucketLabels;
-const licenseBuckets = bucketLabels.filter((option) => option.value !== "due");
 
 export const auditEntityLabels: Record<string, string> = {
   units: "Units", drivers: "Drivers", driver_assignments: "Assignments", driver_days_off: "Days off", remittances: "Remittances", remittance_payments: "Payments",
   expenses: "Expenses", expense_categories: "Expense categories", documents: "Documents", part_replacements: "Part replacements", tire_installations: "Tires",
   mileage_readings: "Mileage readings", profiles: "Staff accounts", fleet_settings: "Fleet settings",
+  driver_absences: "Absences", driver_absence_confirmations: "Leave checks", driver_role_changes: "Role changes",
 };
 
 export const listControlSpecs = {
@@ -36,9 +36,9 @@ export const listControlSpecs = {
       { value: "license-desc", label: "License expiry, latest first", column: "license_expiry_date", ascending: false, then: [{ column: "full_name", ascending: true }] },
     ],
     filters: [
-      { kind: "eq", param: "kind", label: "Role", column: "driver_kind", options: optionsOf(driverKindLabels) },
-      { kind: "eq", param: "status", label: "Status", column: "is_active", options: [{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }], values: { active: true, inactive: false } },
-      { kind: "bucket", param: "license", label: "License expiry", column: "license_expiry_date", options: licenseBuckets },
+      { kind: "eq", param: "kind", label: "Role", column: "driver_kind", options: [{ value: "primary", label: "Primary" }, { value: "backup", label: "Backup" }] },
+      // Feature 012: Status today is derived from absences, so the Drivers list filters in memory (research R9).
+      { kind: "eq", param: "status", label: "Status today", column: "statusToday", options: [{ value: "active", label: "Active" }, { value: "day_off", label: "Day-off" }, { value: "on_leave", label: "On-leave" }, { value: "inactive", label: "Inactive" }] },
     ],
   },
   remittances: {

@@ -4,7 +4,8 @@ import { dashboardMonthSchema } from "@/lib/validation/dashboard";
 import { addDays, fleetToday } from "@/lib/dates/fleet-date";
 import { one } from "@/lib/supabase/embed";
 import { remittanceTotals } from "@/lib/remittances/totals";
-import { demoDocuments, demoDrivers, demoExpenses, demoInRepairSince, demoMode, demoRemittances, demoUnitAssignmentsDaily, demoUnits } from "@/lib/demo/mode";
+import { covers } from "@/lib/drivers/absences";
+import { demoDocuments, demoDriverAbsences, demoDrivers, demoExpenses, demoInRepairSince, demoMode, demoRemittances, demoUnitAssignmentsDaily, demoUnits } from "@/lib/demo/mode";
 import {
   dailyCollections, daysBetween, monthTotals, orderExpiringDocuments, orderExtradors, orderInRepair, orderUnpaidBalances, toPanel, unitIncomeBars,
   type ExtradorItem, type FleetStats, type InRepairUnitItem, type SummaryRow,
@@ -50,18 +51,21 @@ async function liveDashboard(m: string, today: string) {
   const expiryRows = (expiry.data ?? []) as { id: string; document_type: string; unit_id: string | null; driver_id: string | null; expires_on: string; bucket: string }[];
   const holderDriverIds = [...new Set(expiryRows.map((row) => row.driver_id).filter((id): id is string => Boolean(id)))];
 
-  const [repairEvents, assignments, holderDrivers] = await Promise.all([
+  const [repairEvents, assignments, holderDrivers, absences] = await Promise.all([
     inRepairUnits.length ? s.from("audit_events").select("entity_id, occurred_at").eq("entity_type", "units").in("entity_id", inRepairUnits.map((unit) => unit.id)).eq("changed_fields->after->>status", "in_repair").order("occurred_at", { ascending: false }) : Promise.resolve({ data: [] as { entity_id: string; occurred_at: string }[] }),
     // Feature 010: a backup driver's unit today is their saved daily assignment.
     backupIds.length ? s.from("unit_assignments").select("driver_id, unit_id, units(body_number)").in("driver_id", backupIds).eq("service_date", today).is("deleted_at", null) : Promise.resolve({ data: [] as { driver_id: string; unit_id: string; assignment_type: string; starts_on: string; ends_on: string | null; units: unknown }[] }),
     holderDriverIds.length ? s.from("drivers").select("id, full_name").in("id", holderDriverIds) : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+    // Feature 012 (FR-064): backup drivers absent today are left out.
+    backupIds.length ? s.from("driver_absences").select("driver_id, start_date, end_date, cancelled_at, ended_early_on").in("driver_id", backupIds).is("deleted_at", null).is("cancelled_at", null).lte("start_date", today).or(`end_date.is.null,end_date.gte.${today}`) : Promise.resolve({ data: [] as { driver_id: string; start_date: string; end_date: string | null; cancelled_at: string | null; ended_early_on: string | null }[] }),
   ]);
+  const absentToday = new Set((absences.data ?? []).filter((absence) => covers(absence, today)).map((absence) => absence.driver_id));
 
   const bodyOf = (unitId: string | null) => unitRows.find((unit) => unit.id === unitId)?.body_number;
   const holderLabel = (row: { unit_id: string | null; driver_id: string | null }) => row.unit_id ? `Body ${bodyOf(row.unit_id) ?? "?"}` : (holderDrivers.data ?? []).find((driver) => driver.id === row.driver_id)?.full_name ?? "Driver";
   const since = (unitId: string) => (repairEvents.data ?? []).find((event) => event.entity_id === unitId)?.occurred_at ?? null;
 
-  const extradors: ExtradorItem[] = (backups.data ?? []).map((driver) => {
+  const extradors: ExtradorItem[] = (backups.data ?? []).filter((driver) => !absentToday.has(driver.id)).map((driver) => {
     const assignment = (assignments.data ?? []).find((row) => row.driver_id === driver.id);
     return { driverId: driver.id, fullName: driver.full_name, phone: driver.phone, currentUnit: assignment ? { unitId: assignment.unit_id as string, bodyNumber: one(assignment.units as { body_number: string } | null)?.body_number ?? "?" } : null, assignmentType: assignment ? "backup" as const : null };
   });
@@ -126,7 +130,7 @@ function demoDashboard(m: string, today: string) {
     const unpaid = demoRemittances.filter((r) => r.driver_id === driver.id).map((r) => ({ r, balance: remittanceTotals(r.amount_due_centavos, r.remittance_payments).balance })).filter((x) => x.balance > 0);
     return { driver_id: driver.id, driver_name: driver.full_name, outstanding_centavos: unpaid.reduce((sum, x) => sum + x.balance, 0), unpaid_remittance_count: unpaid.length, first_unpaid_service_date: unpaid.map((x) => x.r.service_date).sort()[0] ?? null };
   });
-  const extradors: ExtradorItem[] = demoDrivers.filter((driver) => driver.driver_kind === "backup" && driver.is_active).map((driver) => {
+  const extradors: ExtradorItem[] = demoDrivers.filter((driver) => driver.driver_kind === "backup" && driver.is_active && !demoDriverAbsences.some((absence) => absence.driver_id === driver.id && covers(absence, today))).map((driver) => {
     const assignment = demoUnitAssignmentsDaily.find((row) => row.driver_id === driver.id && row.service_date === today);
     return { driverId: driver.id, fullName: driver.full_name, phone: driver.phone, currentUnit: assignment ? { unitId: assignment.unit_id, bodyNumber: demoUnits.find((unit) => unit.id === assignment.unit_id)?.body_number ?? "?" } : null, assignmentType: assignment ? "backup" : null };
   });

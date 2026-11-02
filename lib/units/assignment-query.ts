@@ -1,6 +1,6 @@
 import type { createSupabaseServerClient } from "@/lib/supabase/server";
 import { one } from "@/lib/supabase/embed";
-import { demoDrivers, demoRemittances, demoUnitAssignmentsDaily, demoUnitStatusChanges, demoUnits } from "@/lib/demo/mode";
+import { demoDriverAbsences, demoDrivers, demoRemittances, demoUnitAssignmentsDaily, demoUnitStatusChanges, demoUnits } from "@/lib/demo/mode";
 import type { AssignmentRows, DriverKind } from "@/lib/units/assignment-board";
 import type { StatusChange } from "@/lib/units/status-on";
 
@@ -14,15 +14,17 @@ type Embed<T> = T | T[] | null;
  */
 export async function loadAssignmentRows(supabase: Supabase | null, date: string, today: string): Promise<AssignmentRows> {
   if (!supabase) return demoAssignmentRows(date, today);
-  const [units, changes, assignments, remittances, drivers, prefill] = await Promise.all([
+  const [units, changes, assignments, remittances, drivers, prefill, absences] = await Promise.all([
     supabase.from("units").select("id, name, body_number, plate_number, make_model, created_at, current_mileage").eq("archived", false).is("deleted_at", null),
     supabase.from("unit_status_changes").select("unit_id, from_status, to_status, effective_on, changed_at").is("deleted_at", null),
     supabase.from("unit_assignments").select("id, unit_id, driver_id, notes, updated_at, drivers(full_name, driver_kind)").eq("service_date", date).is("deleted_at", null),
     supabase.from("remittances").select("unit_id").eq("service_date", date).is("deleted_at", null),
     supabase.from("drivers").select("id, full_name, driver_kind, is_active, license_expiry_date").is("deleted_at", null).eq("is_active", true).gte("license_expiry_date", date),
     date > today ? supabase.rpc("latest_unit_assignments_before", { p_date: date }) : Promise.resolve({ data: [], error: null }),
+    // Feature 012: absences that may cover the date (cancelled ones never do).
+    supabase.from("driver_absences").select("driver_id, start_date, end_date, cancelled_at, ended_early_on").is("deleted_at", null).is("cancelled_at", null).lte("start_date", date).or(`end_date.is.null,end_date.gte.${date}`),
   ]);
-  for (const result of [units, changes, assignments, remittances, drivers, prefill]) if (result.error) throw result.error;
+  for (const result of [units, changes, assignments, remittances, drivers, prefill, absences]) if (result.error) throw result.error;
   return {
     units: units.data ?? [],
     statusChanges: (changes.data ?? []) as AssignmentRows["statusChanges"],
@@ -34,6 +36,7 @@ export async function loadAssignmentRows(supabase: Supabase | null, date: string
     remittanceUnitIds: (remittances.data ?? []).map((row) => row.unit_id as string),
     drivers: (drivers.data ?? []) as AssignmentRows["drivers"],
     prefill: ((prefill.data ?? []) as { unit_id: string; driver_id: string }[]).map(({ unit_id, driver_id }) => ({ unit_id, driver_id })),
+    absences: (absences.data ?? []) as AssignmentRows["absences"],
   };
 }
 
@@ -49,5 +52,6 @@ function demoAssignmentRows(date: string, today: string): AssignmentRows {
     remittanceUnitIds: demoRemittances.filter((row) => row.service_date === date).map((row) => demoUnits[demoRemittances.indexOf(row) % 3].id),
     drivers: demoDrivers.filter((driver) => driver.is_active && driver.license_expiry_date >= date).map(({ id, full_name, driver_kind, is_active, license_expiry_date }) => ({ id, full_name, driver_kind: driver_kind as DriverKind, is_active, license_expiry_date })),
     prefill: [...latest.values()].map(({ unit_id, driver_id }) => ({ unit_id, driver_id })),
+    absences: demoDriverAbsences,
   };
 }

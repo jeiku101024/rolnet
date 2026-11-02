@@ -21,8 +21,11 @@ export function EmptyState({ title, description, action }: { title: string; desc
   return <div className="border-y border-rule px-4 py-10 text-center"><p className="font-semibold text-ink">{title}</p>{description ? <p className="mx-auto mt-2 max-w-lg text-body-sm text-muted">{description}</p> : null}{action ? <div className="mt-5">{action}</div> : null}</div>;
 }
 
-export function StatusBadge({ label, tone = "muted" }: { label: string; tone?: "success" | "warning" | "danger" | "muted" }) {
-  const Icon = tone === "success" ? CircleCheck : tone === "warning" ? TriangleAlert : tone === "danger" ? CircleX : Info;
-  const styles = tone === "success" ? "bg-ok-soft text-ok" : tone === "warning" ? "bg-warn-soft text-warn" : tone === "danger" ? "bg-danger-soft text-danger" : "bg-canvas text-muted";
+export type StatusBadgeTone = "success" | "warning" | "danger" | "muted" | "info";
+
+/** `icon` replaces the tone's default icon (feature 012: moon for Day-off, calendar for On-leave). */
+export function StatusBadge({ label, tone = "muted", icon }: { label: string; tone?: StatusBadgeTone; icon?: typeof Info }) {
+  const Icon = icon ?? (tone === "success" ? CircleCheck : tone === "warning" ? TriangleAlert : tone === "danger" ? CircleX : Info);
+  const styles = tone === "success" ? "bg-ok-soft text-ok" : tone === "warning" ? "bg-warn-soft text-warn" : tone === "danger" ? "bg-danger-soft text-danger" : tone === "info" ? "bg-info-soft text-info" : "bg-canvas text-muted";
   return <span className={`status-badge ${styles}`}><Icon aria-hidden="true" size={14} />{label}</span>;
 }

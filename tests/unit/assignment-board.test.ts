@@ -132,3 +132,24 @@ describe("blocked cards (feature 010, US4)", () => {
     expect(board.cards[0]).toMatchObject({ kind: "blocked", status: "retired" });
   });
 });
+
+describe("absences (feature 012, FR-040, FR-041)", () => {
+  const units = [unit("u1", "A"), unit("u2", "B")];
+  const leave = (driver_id: string, start_date: string, end_date: string | null) => ({ driver_id, start_date, end_date, cancelled_at: null, ended_early_on: null });
+
+  it("leaves a driver out of every dropdown on dates his absence covers", () => {
+    const board = build({ units, drivers, absences: [leave("d1", today, today)] });
+    expect(board.cards.every((card) => !optionIds(card).includes("d1"))).toBe(true);
+    expect(optionIds(build({ units, drivers, absences: [leave("d1", today, today)] }, "2026-11-02").cards[0])).toContain("d1");
+  });
+
+  it("doesn't pre-fill the previous day's driver when he is absent on the date", () => {
+    const board = build({ units, drivers, prefill: [{ unit_id: "u1", driver_id: "d1" }], absences: [leave("d1", "2026-11-02", null)] }, "2026-11-02");
+    expect(board.cards[0]).toMatchObject({ kind: "open", prefillDriverId: null });
+  });
+
+  it("ignores cancelled absences", () => {
+    const board = build({ units, drivers, absences: [{ ...leave("d1", today, today), cancelled_at: "2026-10-31T00:00:00Z" }] });
+    expect(optionIds(board.cards[0])).toContain("d1");
+  });
+});

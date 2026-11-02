@@ -1,12 +1,15 @@
 import type { UnitStatus } from "@/lib/status/record-status";
 import { existsOn, isBlocked, statusOn, type StatusChange } from "@/lib/units/status-on";
+import { unavailableReason } from "@/lib/drivers/availability";
+import type { Absence } from "@/lib/drivers/absences";
 
 // Feature 010: turns one date's rows into Daily assignment cards (data-model.md "Assignment board
 // card"). Pure, so every rule is unit tested: one card per non-archived unit that exists on the date
 // (FR-011, FR-011a); a saved assignment locks the card, and a remittance on that day locks it for
 // good (FR-019, FR-019a); a unit In repair or Retired on the date is blocked (FR-026); dropdowns
 // list only eligible drivers not saved on another unit that date (FR-014, FR-015); future dates
-// pre-fill each open card with the unit's latest earlier driver (FR-021).
+// pre-fill each open card with the unit's latest earlier driver (FR-021). Feature 012: a driver with an
+// absence covering the date is not offered and is never pre-filled (FR-040, FR-041).
 
 export type DriverKind = "primary" | "backup";
 
@@ -19,6 +22,8 @@ export interface AssignmentRows {
   drivers: { id: string; full_name: string; driver_kind: DriverKind; is_active: boolean; license_expiry_date: string }[];
   /** Each unit's latest saved assignment before the date (future dates only). */
   prefill: { unit_id: string; driver_id: string }[];
+  /** Feature 012: absences that may cover the date. */
+  absences?: Pick<Absence, "driver_id" | "start_date" | "end_date" | "cancelled_at" | "ended_early_on">[];
 }
 
 export interface DriverOption { id: string; label: string }
@@ -55,7 +60,7 @@ export function driverLabel(name: string, kind: DriverKind) {
 export function buildAssignmentBoard({ date, today, rows }: { date: string; today: string; rows: AssignmentRows }): AssignmentBoard {
   const isFuture = date > today;
   const eligible = rows.drivers
-    .filter((driver) => driver.is_active && driver.license_expiry_date >= date)
+    .filter((driver) => !unavailableReason(driver, rows.absences ?? [], new Set(), date))
     .sort((a, b) => byName.compare(a.full_name, b.full_name));
   const savedOn = new Map(rows.assignments.map((row) => [row.unit_id, row]));
   const takenBy = new Map(rows.assignments.map((row) => [row.driver_id, row.unit_id]));

@@ -62,10 +62,14 @@ describe("list sort and filter controls (feature 006, US8)", () => {
   });
 
   it("maps status words to column values and receipts to empty or filled", () => {
-    const drivers = parseControls({ status: "inactive", license: "soon" }, listControlSpecs.drivers, today);
+    const documents = parseControls({ holder: "unit" }, listControlSpecs.documents, today);
     const { q, calls } = recorder();
-    applyFilters(q, drivers);
-    expect(calls).toEqual(['eq("is_active",false)', 'gte("license_expiry_date","2026-10-30")', 'lte("license_expiry_date","2026-11-29")']);
+    applyFilters(q, documents);
+    expect(calls.length).toBe(1);
+    // Feature 012: the Drivers list filters Status today in memory.
+    const drivers = parseControls({ status: "on_leave", kind: "backup" }, listControlSpecs.drivers, today);
+    const rows = [{ id: 1, full_name: "A", driver_kind: "backup", statusToday: "on_leave" }, { id: 2, full_name: "B", driver_kind: "backup", statusToday: "active" }, { id: 3, full_name: "C", driver_kind: "primary", statusToday: "on_leave" }];
+    expect(controlRows(rows, drivers).map((row) => row.id)).toEqual([1]);
     const expenses = parseControls({ receipt: "missing" }, listControlSpecs.expenses, today);
     const second = recorder();
     applyFilters(second.q, expenses);

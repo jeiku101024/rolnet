@@ -3,6 +3,7 @@ import { one } from "@/lib/supabase/embed";
 import { demoDrivers, demoRemittances, demoUnitAssignmentsDaily, demoUnitStatusChanges, demoUnits } from "@/lib/demo/mode";
 import type { DailyRows, Disposition, DriverRole } from "@/lib/remittances/daily-board";
 import type { StatusChange } from "@/lib/units/status-on";
+import { loadRoleChanges, roleLookup } from "@/lib/drivers/role-on";
 
 type Supabase = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type Embed<T> = T | T[] | null;
@@ -11,10 +12,21 @@ type DriverEmbed = Embed<{ full_name: string; driver_kind: DriverRole }>;
 /**
  * One date's rows for Daily view (feature 008, updated by feature 010): units with their status
  * history, the date's saved daily assignments, and the date's remittances with their payments and
- * the driver each was saved under. `null` reads the demo data.
+ * the driver each was saved under. `null` reads the demo data. Feature 012: each driver's tag is the
+ * role he had on the date, from the role history (FR-029).
  */
 export async function loadDailyRows(supabase: Supabase | null, date: string): Promise<DailyRows> {
-  if (!supabase) return demoDailyRows(date);
+  const rows = supabase ? await loadLiveRows(supabase, date) : demoDailyRows(date);
+  const driverIds = [...rows.assignments.map((row) => row.driver_id), ...rows.remittances.map((row) => row.driver_id as string)];
+  const role = roleLookup(await loadRoleChanges(supabase, driverIds));
+  return {
+    ...rows,
+    assignments: rows.assignments.map((row) => ({ ...row, driverRole: role(row.driver_id, row.driverRole, date) })),
+    remittances: rows.remittances.map((row) => ({ ...row, driverRole: role(row.driver_id as string, row.driverRole, date) })),
+  };
+}
+
+async function loadLiveRows(supabase: Supabase, date: string): Promise<DailyRows> {
   const [units, changes, assignments, remittances] = await Promise.all([
     supabase.from("units").select("id, name, body_number, created_at, archived").is("deleted_at", null),
     supabase.from("unit_status_changes").select("unit_id, from_status, to_status, effective_on, changed_at").is("deleted_at", null),

@@ -1,5 +1,5 @@
 begin;
-select plan(14);
+select plan(16);
 
 -- No project function in public is callable by signed-out visitors.
 select is_empty(
@@ -37,6 +37,16 @@ select ok(not has_function_privilege('authenticated', 'public.normalize_expense(
 select ok(not has_function_privilege('authenticated', 'public.maintenance_category_for(text)', 'execute'), 'maintenance_category_for is migration-only');
 select ok(not has_function_privilege('authenticated', 'public.move_maintenance_into_expenses()', 'execute')
   and not has_function_privilege('authenticated', 'public.verify_maintenance_move(uuid)', 'execute'), 'the maintenance move functions are migration-only');
+
+-- Feature 012: the absence and role functions the app calls are granted; the helpers are not.
+select ok(has_function_privilege('authenticated', 'public.save_driver_absence(uuid, uuid, public.driver_absence_type, date, date, public.driver_absence_reason, text, uuid[], timestamptz)', 'execute')
+  and has_function_privilege('authenticated', 'public.cancel_driver_absence(uuid, timestamptz)', 'execute')
+  and has_function_privilege('authenticated', 'public.end_driver_absence(uuid, timestamptz, boolean)', 'execute')
+  and has_function_privilege('authenticated', 'public.confirm_driver_leave(uuid)', 'execute')
+  and has_function_privilege('authenticated', 'public.set_driver_role(uuid, public.driver_kind, timestamptz)', 'execute')
+  and has_function_privilege('authenticated', 'public.undo_driver_role_change(uuid)', 'execute'), 'signed-in users can call the absence and role functions');
+select ok(not has_function_privilege('authenticated', 'public.driver_absent_on(uuid, date)', 'execute')
+  and not has_function_privilege('authenticated', 'public.validate_driver_absence()', 'execute'), 'the absence helpers are internal');
 
 select finish();
 rollback;

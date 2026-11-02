@@ -2,76 +2,93 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireApprovedSession } from "@/lib/auth/guards";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { one } from "@/lib/supabase/embed";
-import { PageHeader, SectionHeading } from "@/components/ui/page-header";
-import { DataTable } from "@/components/ui/data-table";
-import { StatusBadge } from "@/components/ui/feedback";
+import { demoMode } from "@/lib/demo/mode";
+import { fleetToday, formatShortDate } from "@/lib/dates/fleet-date";
+import { formatPesos } from "@/lib/money/centavos";
+import { coveringAbsence, statusToday, statusTodayLabels, upcomingAbsences } from "@/lib/drivers/absences";
+import { loadDriverProfile } from "@/lib/drivers/profile-query";
+import { loadMoreHref, parseTabParams, tabHref, visibleTabs } from "@/lib/drivers/tab-params";
+import type { SearchParams } from "@/lib/pagination/list-page";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DocumentList } from "@/components/documents/document-list";
-import { StatusSelect } from "@/components/forms/status-select";
-import { DriverDetailsForm } from "@/components/forms/driver-details-form";
-import { LockedNotice } from "@/components/records/locked-notice";
 import { StatusHistory } from "@/components/records/status-history";
-import { driverStatusOf, isDriverLocked } from "@/lib/status/record-status";
-import { pageRows, parseListPage, type SearchParams } from "@/lib/pagination/list-page";
-import { PagedList, listView } from "@/components/ui/paged-list";
-import { driverKindLabels } from "@/lib/pagination/search-specs";
-import { documentTypeLabels } from "@/lib/validation/documents";
+import { RoleTag } from "@/components/remittances/driver-tag";
+import { ProfileHeader } from "@/components/drivers/profile-header";
+import { RoleSwitch } from "@/components/drivers/role-switch";
+import { DriverStatusControl } from "@/components/drivers/driver-status-control";
+import { DriverNotices } from "@/components/drivers/driver-notices";
+import { SummaryStrip } from "@/components/drivers/summary-strip";
+import { DriverDetailsSection } from "@/components/drivers/driver-details-section";
+import { ProfileTabs } from "@/components/drivers/profile-tabs";
+import { AbsencesTable } from "@/components/drivers/absences-table";
 
+function SimpleTable({ headers, children, empty, hasRows }: { headers: string[]; children: React.ReactNode; empty: string; hasRows: boolean }) {
+  if (!hasRows) return <p className="border-y border-rule py-6 text-body-sm text-muted">{empty}</p>;
+  return <Table className="data-table"><TableHeader><TableRow>{headers.map((header) => <TableHead scope="col" key={header}>{header}</TableHead>)}</TableRow></TableHeader><TableBody>{children}</TableBody></Table>;
+}
+
+const longDate = (date: string) => `${formatShortDate(date)}, ${date.slice(0, 4)}`;
+
+/**
+ * Driver profile (feature 012, US5): one column with the header (role switch, Status dropdown),
+ * notices, a summary strip, an inline-edit details grid, and history tabs that show 8 rows at a time.
+ */
 export default async function DriverDetailPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<SearchParams> }) {
   const profile = await requireApprovedSession();
   const isOwner = profile.role === "owner";
   const { id } = await params;
   const query = await searchParams;
-  const supabase = await createSupabaseServerClient();
-  const { data: driver } = await supabase.from("drivers").select("id, full_name, driver_kind, license_number, license_expiry_date, phone, address, is_active, updated_at").eq("id", id).is("deleted_at", null).maybeSingle();
-  if (!driver) notFound();
-  const locked = isDriverLocked(driver.is_active);
-  const [{ data: dailyRows }, { data: assignmentRows }, { data: documents }] = await Promise.all([
-    // Feature 010: daily assignments; the older primary, day-off and backup records stay read-only below.
-    supabase.from("unit_assignments").select("id, service_date, unit_id, units(name, body_number)").eq("driver_id", id).is("deleted_at", null).order("service_date", { ascending: false }),
-    supabase.from("driver_assignments").select("id, unit_id, assignment_type, starts_on, ends_on, covered_primary_assignment_id, units(body_number, plate_number)").eq("driver_id", id).is("deleted_at", null).order("starts_on", { ascending: false }),
-    isOwner ? supabase.from("documents").select("id, document_type, expires_on, lifecycle_status, document_number").eq("driver_id", id).is("deleted_at", null).order("lifecycle_status").order("expires_on", { ascending: false }) : Promise.resolve({ data: [] }),
-  ]);
-  const assignments = (assignmentRows ?? []).map((a) => ({ ...a, bodyNumber: one(a.units)?.body_number ?? "Unknown" }));
-  const primaries = assignments.filter((a) => a.assignment_type === "primary");
-  const backups = assignments.filter((a) => a.assignment_type === "backup");
-  // Days off belong to this driver's primary assignments; the covering backups are on other drivers' rows.
-  const [{ data: daysOff }, { data: coverage }] = primaries.length
-    ? await Promise.all([
-      supabase.from("driver_days_off").select("id, primary_assignment_id, day_off_date, notes").in("primary_assignment_id", primaries.map((a) => a.id)).is("deleted_at", null).order("day_off_date", { ascending: false }),
-      supabase.from("driver_assignments").select("id, covered_primary_assignment_id, starts_on, drivers(full_name)").eq("assignment_type", "backup").in("covered_primary_assignment_id", primaries.map((a) => a.id)).is("deleted_at", null),
-    ])
-    : [{ data: [] }, { data: [] }];
-  const coveredBy = (dayOff: { primary_assignment_id: string; day_off_date: string }) => one((coverage ?? []).find((c) => c.covered_primary_assignment_id === dayOff.primary_assignment_id && c.starts_on === dayOff.day_off_date)?.drivers)?.full_name;
-  const bodyOf = (assignmentId: string | null) => assignments.find((a) => a.id === assignmentId)?.bodyNumber;
+  const today = fleetToday();
+  const { tab, rows } = parseTabParams(query, isOwner);
+  const supabase = demoMode ? null : await createSupabaseServerClient();
+  const data = await loadDriverProfile(supabase, id, today, tab, rows);
+  if (!data) notFound();
+  const { driver, absences, settings, tabRows } = data;
+  const status = statusToday(driver.is_active, absences, today);
+  const covering = coveringAbsence(absences, today);
+  const upcoming = upcomingAbsences(absences, today);
   const pathname = `/drivers/${driver.id}`;
-  // Each list keeps its own page and search in the URL (contracts/list-paging.md prefixes).
-  const daily = (dailyRows ?? []).map((row) => { const unit = one(row.units as { name: string; body_number: string } | { name: string; body_number: string }[] | null); return { id: row.id as string, date: row.service_date as string, unitId: row.unit_id as string, unitName: unit?.name ?? "Unknown unit", bodyNumber: unit?.body_number ?? "" }; });
-  const dailyRequest = parseListPage(query, "daily_");
-  const dailyPage = pageRows(daily, dailyRequest, (a) => `${a.date} ${a.unitName} ${a.bodyNumber}`);
-  const primariesRequest = parseListPage(query, "assignments_");
-  const primariesPage = pageRows(primaries, primariesRequest, (a) => `Body ${a.bodyNumber} ${a.starts_on} ${a.ends_on ?? "current"}`);
-  const backupsRequest = parseListPage(query, "backup_");
-  const backupsPage = pageRows(backups, backupsRequest, (a) => `${a.starts_on} Body ${a.bodyNumber}`);
-  const daysOffRequest = parseListPage(query, "daysoff_");
-  const daysOffPage = pageRows(daysOff ?? [], daysOffRequest, () => "");
-  const documentsRequest = parseListPage(query, "documents_");
-  const documentsPage = pageRows(documents ?? [], documentsRequest, (d) => `${documentTypeLabels[d.document_type] ?? d.document_type} ${d.document_number ?? ""} ${d.expires_on} ${d.lifecycle_status}`);
+  const who = { id: driver.id, name: driver.full_name };
 
-  return <section className="workspace">
-    <PageHeader eyebrow="Driver profile" title={driver.full_name} description={`${driverKindLabels[driver.driver_kind] ?? driver.driver_kind} · ${driver.phone}`} />
-    <div className="mt-8 workspace-grid">
-      <div className="border-t border-rule pt-5"><p className="text-label font-bold uppercase text-muted">License</p><p className="mt-2 font-data text-body font-bold">{driver.license_number}</p><p className="mt-1 text-body-sm text-muted">Expires {driver.license_expiry_date}</p>{driver.address ? <p className="mt-1 text-body-sm text-muted">{driver.address}</p> : null}<div className="mt-4">{isOwner ? <StatusSelect kind="driver" id={driver.id} value={driverStatusOf(driver.is_active)} label={`Status for ${driver.full_name}`} align="start" releaseName={driver.full_name} /> : <StatusBadge label={driver.is_active ? "Active" : "Inactive"} tone={driver.is_active ? "success" : "danger"} />}</div>{locked ? <div className="mt-4"><LockedNotice kind="driver" status="inactive" /></div> : null}</div>
-      <div className="space-y-8">
-        {isOwner && !locked ? <DriverDetailsForm key={driver.updated_at} driver={driver} /> : null}
-        {isOwner ? <StatusHistory kind="driver" id={driver.id} /> : null}
-        <div><SectionHeading title="Assignment history" description="Daily assignments, newest first." /><div className="mt-4"><DataTable list={listView(pathname, query, dailyRequest, dailyPage, { searchLabel: "Search assignment history" })} headers={["Date", "Unit"]} empty={<p className="p-6 text-muted">No daily assignments recorded yet.</p>}>{dailyPage.rows.map((a) => <tr key={a.id}><td className="whitespace-nowrap font-data">{a.date}</td><td className="font-semibold"><Link className="muted-link" href={`/units/${a.unitId}`}>{a.unitName}</Link></td></tr>)}</DataTable></div></div>
-        <SectionHeading title="Before daily assignments" description="Primary assignments, days off and backup coverage recorded before daily assignments. Read-only." />
-        <div><SectionHeading title="Primary assignments" /><div className="mt-4"><DataTable list={listView(pathname, query, primariesRequest, primariesPage, { searchLabel: "Search primary assignments" })} headers={["Unit", "Period"]} empty={<p className="p-6 text-muted">No primary assignments recorded yet.</p>}>{primariesPage.rows.map((a) => <tr key={a.id}><td className="font-semibold"><Link className="muted-link" href={`/units/${a.unit_id}`}>Body {a.bodyNumber}</Link></td><td className="font-data">{a.starts_on} → {a.ends_on ?? "current"}</td></tr>)}</DataTable></div></div>
-        <div><SectionHeading title="Days off" description="Newest first, with who covered each day." /><div className="mt-4"><PagedList list={listView(pathname, query, daysOffRequest, daysOffPage, { search: false })} hasRows={daysOffPage.rows.length > 0} empty={<p className="py-6 text-body-sm text-muted">No days off recorded.</p>}><ul className="divide-y divide-rule">{daysOffPage.rows.map((dayOff) => { const backup = coveredBy(dayOff); return <li key={dayOff.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="font-data font-semibold">{dayOff.day_off_date}</p><p className="text-body-sm text-muted">Body {bodyOf(dayOff.primary_assignment_id) ?? "?"}{dayOff.notes ? ` · ${dayOff.notes}` : ""}</p></div><StatusBadge label={backup ? `Covered by ${backup}` : "No backup"} tone={backup ? "success" : "warning"} /></li>; })}</ul></PagedList></div></div>
-        <div><SectionHeading title="Backup coverage" description="Days this driver covered another driver's unit." /><div className="mt-4"><DataTable list={listView(pathname, query, backupsRequest, backupsPage, { searchLabel: "Search backup coverage" })} headers={["Date", "Unit"]} empty={<p className="p-6 text-muted">No backup coverage recorded.</p>}>{backupsPage.rows.map((a) => <tr key={a.id}><td className="font-data">{a.starts_on}</td><td><Link className="muted-link" href={`/units/${a.unit_id}`}>Body {a.bodyNumber}</Link></td></tr>)}</DataTable></div></div>
-        {isOwner ? <div><SectionHeading title="License documents" /><div className="mt-4"><PagedList list={listView(pathname, query, documentsRequest, documentsPage, { searchLabel: "Search license documents" })} hasRows={documentsPage.rows.length > 0} empty={<p className="py-6 text-body-sm text-muted">No license document uploaded yet. Upload it on the Documents page.</p>}><DocumentList documents={documentsPage.rows} emptyText="" /></PagedList></div></div> : null}
-      </div>
-    </div>
+  let panel: React.ReactNode;
+  if (tabRows.tab === "assignments") {
+    panel = <SimpleTable headers={["Date", "Unit", "Role that day"]} hasRows={tabRows.rows.length > 0} empty="No daily assignments recorded yet.">
+      {tabRows.rows.map((row) => <tr key={row.id}><td className="whitespace-nowrap font-data">{longDate(row.date)}</td><td className="font-semibold">{isOwner ? <Link className="muted-link" href={`/units/${row.unitId}`}>{row.unitName}</Link> : row.unitName}</td><td><RoleTag role={row.role} /></td></tr>)}
+    </SimpleTable>;
+  } else if (tabRows.tab === "remittances") {
+    panel = <SimpleTable headers={["Date", "Unit", "Rental", "Paid", "Balance", "Role that day"]} hasRows={tabRows.rows.length > 0} empty="No remittances recorded yet.">
+      {tabRows.rows.map((row) => <tr key={row.id} className={row.balanceCentavos > 0 ? "bg-danger-soft" : undefined}>
+        <td className="whitespace-nowrap font-data">{longDate(row.date)}</td>
+        <td>{row.unitName}</td>
+        <td className="font-data">{formatPesos(row.rentalCentavos)}</td>
+        <td className="font-data">{formatPesos(row.paidCentavos)}</td>
+        <td className="font-data">{row.balanceCentavos > 0 ? <span className="font-semibold text-danger">Owes {formatPesos(row.balanceCentavos)}</span> : formatPesos(0)}</td>
+        <td><RoleTag role={row.role} /></td>
+      </tr>)}
+    </SimpleTable>;
+  } else if (tabRows.tab === "roles") {
+    panel = <div className="grid gap-6">
+      <SimpleTable headers={["Date", "Change", "By", "Time"]} hasRows={tabRows.rows.length > 0} empty="No role changes recorded yet. The current role applies to all past records.">
+        {tabRows.rows.map((row) => <tr key={row.id}><td className="whitespace-nowrap font-data">{longDate(row.date)}</td><td className="font-semibold">{row.change}</td><td>{row.by}</td><td className="whitespace-nowrap font-data">{row.at}</td></tr>)}
+      </SimpleTable>
+      {isOwner && supabase ? <StatusHistory kind="driver" id={driver.id} /> : null}
+    </div>;
+  } else if (tabRows.tab === "absences") {
+    panel = <AbsencesTable driver={who} absences={tabRows.rows} isActive={driver.is_active} settings={settings} today={today} disabled={demoMode} />;
+  } else {
+    panel = <DocumentList documents={tabRows.rows} emptyText="No licence document uploaded yet. Upload it on the Documents page." />;
+  }
+
+  return <section className="workspace grid gap-6">
+    <ProfileHeader name={driver.full_name} phone={driver.phone} licenseNumber={driver.license_number} controls={<>
+      <RoleSwitch driver={{ id: driver.id, name: driver.full_name, role: driver.driver_kind, updatedAt: driver.updated_at }} disabled={demoMode} />
+      <DriverStatusControl driver={who} status={status} isOwner={isOwner} covering={covering} upcoming={upcoming} disabled={demoMode} />
+    </>} />
+    <DriverNotices driver={who} isActive={driver.is_active} covering={covering} upcoming={upcoming} settings={settings} today={today} disabled={demoMode} />
+    <SummaryStrip todayUnit={data.todayUnit} absentOrInactive={status !== "active"} remittances30={data.remittances30} balanceCentavos={data.balanceCentavos} nextAbsence={upcoming[0]} lastAssignmentDate={data.lastAssignmentDate} />
+    <DriverDetailsSection driver={driver} role={driver.driver_kind === "backup" ? "Backup" : "Primary"} status={statusTodayLabels[status]} canEdit={isOwner && driver.is_active && !demoMode} />
+    <ProfileTabs tabs={visibleTabs(isOwner).map((option) => ({ value: option.value, label: option.label, href: tabHref(pathname, query, option.value) }))} active={tab} loadMoreHref={data.hasMore ? loadMoreHref(pathname, query, rows) : undefined}>
+      {panel}
+    </ProfileTabs>
   </section>;
 }

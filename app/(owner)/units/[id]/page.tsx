@@ -18,6 +18,7 @@ import { pageRows, parseListPage, type SearchParams } from "@/lib/pagination/lis
 import { PagedList, listView } from "@/components/ui/paged-list";
 import { documentTypeLabels } from "@/lib/validation/documents";
 import { driverLabel, roleLabel, type DriverKind } from "@/lib/units/assignment-board";
+import { loadRoleChanges, roleLookup } from "@/lib/drivers/role-on";
 import { monthlyAllowanceBlocks, windowStart } from "@/lib/units/monthly-allowance";
 import { lastReplacedByCategory } from "@/lib/expenses/last-replaced";
 import { LastReplaced } from "@/components/units/last-replaced";
@@ -52,9 +53,11 @@ export default async function UnitDetailPage({ params, searchParams }: { params:
   for (const error of [assignmentsError, remittancesError, expensesError, replacedError, readingsError]) if (error) throw error;
   const todayDriver = drivers.get(id);
   const currentDriver = todayDriver ? driverLabel(todayDriver.driverName, todayDriver.role) : "No driver assigned today";
+  // Feature 012 (FR-029): each row shows the role the driver had on that date.
+  const roleThen = roleLookup(await loadRoleChanges(supabase, (assignmentRows ?? []).map((row) => row.driver_id as string)));
   const assignments = (assignmentRows ?? []).map((row) => {
     const driver = one(row.drivers as Embed<{ full_name: string; driver_kind: DriverKind }>);
-    return { id: row.id as string, date: row.service_date as string, driverId: row.driver_id as string, driverName: driver?.full_name ?? "Archived driver", role: roleLabel(driver?.driver_kind ?? "primary") };
+    return { id: row.id as string, date: row.service_date as string, driverId: row.driver_id as string, driverName: driver?.full_name ?? "Archived driver", role: roleLabel(roleThen(row.driver_id as string, driver?.driver_kind ?? "primary", row.service_date as string)) };
   });
   const pathname = `/units/${unit.id}`;
   // Each list keeps its own page and search in the URL (contracts/list-paging.md prefixes).

@@ -25,11 +25,20 @@ export const demoUnits = demoUnitRows.map((unit) => ({
 }));
 
 const extraDriverNames = ["Maria Reyes", "Jose Garcia", "Ana Bautista", "Ramon Cruz", "Liza Mendoza", "Carlo Villanueva", "Nestor Aquino", "Rosa Lim", "Danilo Ramos", "Grace Torres", "Arnel Flores", "Vilma Castro", "Rey Navarro"];
-export const demoDrivers = [
+const demoDriverRows = [
   { id: "00000000-0000-4000-8000-000000000011", full_name: "Juan Dela Cruz", driver_kind: "primary", license_number: "N01-23-456789", license_expiry_date: "2027-06-30", phone: "09171234567", is_active: true },
   { id: "00000000-0000-4000-8000-000000000012", full_name: "Pedro Santos", driver_kind: "backup", license_number: "N01-23-456790", license_expiry_date: "2027-03-15", phone: "09181234567", is_active: true },
   ...extraDriverNames.map((full_name, index) => ({ id: demoId(2, index + 13), full_name, driver_kind: index < 2 ? "backup" : "primary", license_number: `N01-23-${456791 + index}`, license_expiry_date: addDays(today, 90 + index * 30), phone: `0917${pad(2000000 + index, 7)}`, is_active: index !== 12 })),
 ];
+// Feature 012: profile details (notes, date joined) and a timestamp for optimistic edits.
+const demoDriverNotes: Record<string, string> = { "Juan Dela Cruz": "Prefers the morning shift.", "Pedro Santos": "Lives near the terminal; available on short notice." };
+export const demoDrivers = demoDriverRows.map((driver, index) => ({
+  ...driver,
+  address: null as string | null,
+  notes: demoDriverNotes[driver.full_name] ?? null as string | null,
+  created_at: `${addDays(today, -120 + index)}T08:00:00Z`,
+  updated_at: `${addDays(today, -30)}T08:00:00Z`,
+}));
 
 // Feature 007: the eight active primary drivers, one per unit ROLNET-1 to ROLNET-8.
 const demoPrimaryDrivers = demoDrivers.filter((driver) => driver.driver_kind === "primary" && driver.is_active).slice(0, 8);
@@ -45,6 +54,35 @@ export const demoUnitAssignmentsDaily = Array.from({ length: 8 }, (_, back) => a
     const driver = coveredToday ? demoDrivers[1] : demoPrimaryDrivers[unitIndex];
     return { id: demoId(8, dayIndex * 10 + slot + 1), unit_id: demoUnits[unitIndex].id, driver_id: driver.id, service_date: date, notes: coveredToday ? "Covering today" : null as string | null, updated_at: `${date}T07:00:00Z`, driverName: driver.full_name, driverKind: driver.driver_kind as "primary" | "backup" };
   }));
+
+// Feature 012: absences relative to today. Absent drivers have no assignment on covered dates.
+// Ramon Cruz: day-off today. Rosa Lim: leave with an end date covering today. Danilo Ramos: open-ended
+// for 16 days (amber). Arnel Flores: open-ended for 31 days, checked 4 days ago (snoozed). Juan Dela
+// Cruz: day-off in 2 days. Maria Reyes: leave in 4 to 8 days. Ana Bautista: a cancelled day-off.
+// Grace Torres: a completed leave.
+const demoDriverByName = (name: string) => demoDrivers.find((driver) => driver.full_name === name)!;
+type DemoAbsence = { id: string; driver_id: string; absence_type: "day_off" | "on_leave"; start_date: string; end_date: string | null; reason: "sick" | "vacation" | "family_emergency" | "personal" | "other"; note: string | null; cancelled_at: string | null; ended_early_on: string | null; snoozed_until: string | null; updated_at: string };
+const demoAbsence = (index: number, name: string, row: Omit<DemoAbsence, "id" | "driver_id" | "note" | "cancelled_at" | "ended_early_on" | "snoozed_until" | "updated_at"> & Partial<DemoAbsence>): DemoAbsence =>
+  ({ id: demoId(12, index), driver_id: demoDriverByName(name).id, note: null, cancelled_at: null, ended_early_on: null, snoozed_until: null, updated_at: `${addDays(today, -1)}T08:00:00Z`, ...row });
+export const demoDriverAbsences: DemoAbsence[] = [
+  demoAbsence(1, "Ramon Cruz", { absence_type: "day_off", start_date: today, end_date: today, reason: "sick", note: "Fever, texted at 6 AM" }),
+  demoAbsence(2, "Rosa Lim", { absence_type: "on_leave", start_date: addDays(today, -2), end_date: addDays(today, 3), reason: "vacation" }),
+  demoAbsence(3, "Danilo Ramos", { absence_type: "on_leave", start_date: addDays(today, -16), end_date: null, reason: "family_emergency" }),
+  demoAbsence(4, "Arnel Flores", { absence_type: "on_leave", start_date: addDays(today, -31), end_date: null, reason: "personal", snoozed_until: addDays(today, 3) }),
+  demoAbsence(5, "Juan Dela Cruz", { absence_type: "day_off", start_date: addDays(today, 2), end_date: addDays(today, 2), reason: "personal" }),
+  demoAbsence(6, "Maria Reyes", { absence_type: "on_leave", start_date: addDays(today, 4), end_date: addDays(today, 8), reason: "vacation", note: "Going home to the province" }),
+  demoAbsence(7, "Ana Bautista", { absence_type: "day_off", start_date: addDays(today, 5), end_date: addDays(today, 5), reason: "other", cancelled_at: `${addDays(today, -1)}T09:00:00Z` }),
+  demoAbsence(8, "Grace Torres", { absence_type: "on_leave", start_date: addDays(today, -10), end_date: addDays(today, -8), reason: "sick" }),
+];
+export const demoAbsenceConfirmations = [
+  { id: demoId(13, 1), absence_id: demoDriverAbsences[3].id, confirmed_by: "demo-owner", confirmed_at: `${addDays(today, -4)}T09:00:00Z` },
+];
+/** Feature 012: role history. Pedro Santos moved to Backup 10 days ago; Carlo Villanueva to Primary 20 days ago. */
+export const demoRoleChanges = [
+  { id: demoId(14, 1), driver_id: demoDriverByName("Pedro Santos").id, from_role: "primary" as const, to_role: "backup" as const, changed_by: "demo-owner", changed_at: `${addDays(today, -10)}T01:00:00Z` },
+  { id: demoId(14, 2), driver_id: demoDriverByName("Carlo Villanueva").id, from_role: "backup" as const, to_role: "primary" as const, changed_by: "demo-owner", changed_at: `${addDays(today, -20)}T01:00:00Z` },
+];
+export const demoStaleSettings = { amber: 14, red: 30, snooze: 7 };
 
 /** Feature 010: status history. ROLNET-2 went into repair 9 days ago, ROLNET-7 3 days ago, ROLNET-12 retired 20 days ago. */
 export const demoUnitStatusChanges = [
