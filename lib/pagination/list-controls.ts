@@ -17,7 +17,7 @@ export interface EqFilter { kind: "eq"; param: string; label: string; column: st
 export interface PresenceFilter { kind: "presence"; param: string; label: string; options: (FilterOption & { column: string; present: boolean; equals?: string | boolean })[]; ownerOnly?: boolean }
 /** `range`: a from/to date pair on a date (or, with `timestamp`, a timestamp) column. Params are `from` and `to`. */
 export interface RangeFilter { kind: "range"; label: string; column: string; timestamp?: boolean; ownerOnly?: boolean }
-/** `bucket`: expired (before today), soon (today to +30 days), due (up to +30 days), later (after +30 days). */
+/** `bucket`: expired (before today), soon (today to +7 days), due (up to +7 days), later (after +7 days). Feature 013 moved the window from 30 to 7 days (FR-011a). */
 export interface BucketFilter { kind: "bucket"; param: string; label: string; column: string; options: FilterOption[]; ownerOnly?: boolean }
 /** `page`: shown and validated here, applied by the page itself (it needs ids from an RPC). */
 export interface PageFilter { kind: "page"; param: string; label: string; options: FilterOption[]; ownerOnly?: boolean }
@@ -25,11 +25,11 @@ export interface PageFilter { kind: "page"; param: string; label: string; option
 export type FilterDef = EqFilter | PresenceFilter | RangeFilter | BucketFilter | PageFilter;
 export interface ControlsSpec { sorts: SortOption[]; filters: FilterDef[] }
 
-export const soonDays = 30;
+export const soonDays = 7;
 export const bucketLabels: FilterOption[] = [
   { value: "expired", label: "Expired" },
-  { value: "soon", label: "Within 30 days" },
-  { value: "due", label: "Expired or within 30 days" },
+  { value: "soon", label: "Within 7 days" },
+  { value: "due", label: "Expired or within 7 days" },
   { value: "later", label: "Later" },
 ];
 

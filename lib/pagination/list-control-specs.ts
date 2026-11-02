@@ -14,6 +14,7 @@ export const auditEntityLabels: Record<string, string> = {
   expenses: "Expenses", expense_categories: "Expense categories", documents: "Documents", part_replacements: "Part replacements", tire_installations: "Tires",
   mileage_readings: "Mileage readings", profiles: "Staff accounts", fleet_settings: "Fleet settings",
   driver_absences: "Absences", driver_absence_confirmations: "Leave checks", driver_role_changes: "Role changes",
+  document_events: "Document activity",
 };
 
 export const listControlSpecs = {
@@ -82,7 +83,6 @@ export const listControlSpecs = {
     ],
     filters: [
       { kind: "eq", param: "type", label: "Type", column: "document_type", options: optionsOf(documentTypeLabels) },
-      { kind: "presence", param: "holder", label: "Holder", options: [{ value: "unit", label: "Units", column: "unit_id", present: true }, { value: "driver", label: "Drivers", column: "driver_id", present: true }] },
       { kind: "bucket", param: "expiry", label: "Expiry", column: "expires_on", options: expiryBuckets },
     ],
   },

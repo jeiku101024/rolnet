@@ -135,9 +135,13 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   (no spreadsheet package). The old monthly CSV download is gone; the `monthly_report` SQL function
   and its pgTAP tests remain in the database but the app no longer calls it.
 - Business rows have timestamps, actor IDs, and soft deletion.
-- Driver profile license expiry is authoritative and must match uploaded license documents.
+- Driver profile license expiry must match the current license document. Uploading, renewing,
+  reverting, restoring or bringing back a license sets the profile date in the same transaction
+  (feature 013); removing the only license keeps the profile date.
 - Receipts target 300 KB and hard-limit at 500 KB; documents hard-limit at 5 MB.
-- Expiry buckets use the fleet timezone: expired, due within 7 days, due within 30 days, valid.
+- Document status uses the fleet timezone and three tiers everywhere (feature 013): Expired (before
+  today), Due within 7 days (today through 7 days ahead), Valid (`lib/documents/status.ts`). The
+  dashboard's expiring-documents panel and `expiring_documents()` cover 7 days.
 - Drivers are Active or Inactive; units are Active, In repair or Retired. Only the owner changes a
   status. Inactive drivers and In repair or Retired units have locked details (enforced in the
   database); daily operations, mileage, documents and license renewals still work for them.
@@ -227,6 +231,27 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   check date plus `stale_leave_snooze_days` (7). The thresholds are `fleet_settings` columns (no
   screen yet). Flags are informational only: they never change availability or end a leave, and no
   notification is sent. The Drivers list banner's dismiss lasts for the browser session.
+- Documents (feature 013): a document is every `documents` row with one type and holder; the one
+  `current` row is the current version, `superseded` rows are History (newest `superseded_at`
+  first), and `reverted` rows are Reverted uploads. A document whose only version was reverted has no
+  current row and counts as removed. Every action is one security definer function that starts with
+  `require_owner()`, takes an advisory lock, and checks the current version the caller saw:
+  `save_compliance_document` (first upload or renewal), `revert_document_upload` (modal and toast
+  Undo; refused right after a Restore), `restore_document_version`, and
+  `bring_back_document_version` (only while the file is kept). Each writes a `document_events` row
+  (Activity, also in the audit log). No row is ever deleted.
+- Document retention (feature 013): a reverted file is kept 30 days (`purge_after`). The app hides
+  it once that date passes. `POST /api/cron/purge-document-files` (Bearer `CRON_SECRET`) deletes due
+  Storage objects with the server-only service-role client (`lib/supabase/service.ts`, importable
+  only from `app/api/cron/**`) and stamps `file_deleted_at` through `mark_document_files_deleted`
+  (service_role only). `.github/workflows/purge-document-files.yml` calls it daily at 02:00 Manila
+  using the repository secrets `PURGE_URL` and `CRON_SECRET`. GitHub turns scheduled workflows off
+  after 60 days without commits in a public repository; the Documents page then shows "File cleanup
+  is overdue". Turn it back on from the repository's Actions tab ("Enable workflow").
+- Documents page URL (feature 013): `sort` (`expiry`, `expiry-desc`, `name`, `type`), `usearch`,
+  `utype`, `ustatus`, `dsearch`, `dstatus` (comma lists) and `doc` (the open details modal). The
+  old `?expiry=due` maps to Expired and Due in both panes, and `/documents/<id>` redirects to the
+  current version's modal.
 
 ## Lists and dashboard (feature 006)
 
@@ -243,7 +268,7 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   `lib/pagination/list-control-specs.ts`; `lib/pagination/list-controls.ts` validates the URL,
   applies it to the Supabase query, and does the same in memory for demo mode. Unknown values are
   ignored; changing a sort or filter drops the page. The dashboard's "View all" links use these
-  filters: `/units?status=in_repair`, `/drivers?kind=backup`, `/documents?expiry=due`, and the
+  filters: `/units?status=in_repair`, `/drivers?kind=backup`, `/documents?ustatus=expired,due&dstatus=expired,due` (feature 013), and the
   owner-only `/remittances?view=list&balance=unpaid`.
 - The dashboard has four bands, in this order on phones: Needs attention (expiring documents and
   unpaid balances, most urgent first; the maintenance panel was retired in feature 011), Fleet status (extradors today, units in repair),

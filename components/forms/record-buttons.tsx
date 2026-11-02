@@ -10,11 +10,11 @@ import { clientErrorMessage } from "@/components/forms/use-action-form";
  * Opens a private file through a short-lived signed URL. The window is opened before the request
  * so mobile browsers do not treat it as an unrequested pop-up.
  */
-export function SignedFileButton({ load, label = "View file" }: { load: () => Promise<ActionResult<{ url: string }>>; label?: string }) {
+export function SignedFileButton({ load, label = "View file", ariaLabel }: { load: () => Promise<ActionResult<{ url: string }>>; label?: string; ariaLabel?: string }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   return <span className="inline-flex flex-col gap-1">
-    <Button type="button" variant="outline" disabled={pending} onClick={async () => {
+    <Button type="button" variant="outline" aria-label={ariaLabel} disabled={pending} onClick={async () => {
       setPending(true); setError("");
       const opened = window.open("", "_blank");
       try {

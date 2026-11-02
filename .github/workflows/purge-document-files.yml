@@ -1,0 +1,32 @@
+name: purge-document-files
+
+# Feature 013 (FR-047, research R10): once a day, delete the stored files of reverted document
+# uploads whose 30 days have passed. The app route does the work; this only calls it.
+# Repository secrets: PURGE_URL (https://<app>/api/cron/purge-document-files) and CRON_SECRET (the
+# same value as the app's CRON_SECRET). GitHub turns scheduled workflows off after 60 days without
+# commits in a public repository; the Documents page warns the owner when cleanup is overdue, and
+# "Enable workflow" in the Actions tab turns it back on (docs/DEVELOPMENT.md).
+
+on:
+  schedule:
+    - cron: "0 18 * * *" # 02:00 Asia/Manila
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  purge:
+    name: Purge reverted document files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call the purge route
+        env:
+          PURGE_URL: ${{ secrets.PURGE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$PURGE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "PURGE_URL and CRON_SECRET repository secrets are required." >&2
+            exit 1
+          fi
+          curl --fail --silent --show-error -X POST -H "Authorization: Bearer $CRON_SECRET" "$PURGE_URL"

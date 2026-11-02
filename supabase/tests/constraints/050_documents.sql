@@ -81,15 +81,16 @@ select throws_ok(format($$insert into public.documents (document_type, unit_id, 
   values ('or_cr', '00000000-0000-0000-0000-000000050101', '2030-01-31', 'superseded', 'documents/a/or3.jpg', 'image/jpeg', 1000, 'abc', %L)$$, current_setting('test.idem')),
   '23505', null, 'a repeated idempotency key is rejected');
 
--- Expiry buckets as of 2031-05-01: expired, within 7 days, within 30 days, in expiry order.
+-- Expiry buckets as of 2031-05-01: expired, then within 7 days, in expiry order (feature 013: the
+-- 30-day tier is gone, FR-011a).
 select is(
   (select array_agg(e.bucket) from public.expiring_documents('2031-05-01') e
    where e.unit_id in ('00000000-0000-0000-0000-000000050103', '00000000-0000-0000-0000-000000050104')),
-  array['expired', 'due_7', 'due_30'],
+  array['expired', 'due_7'],
   'expiring documents are bucketed and ordered by expiry');
 select is_empty($$select 1 from public.expiring_documents('2031-05-01') where id in
-  ('00000000-0000-0000-0000-000000050304', '00000000-0000-0000-0000-000000050305', '00000000-0000-0000-0000-000000050306')$$,
-  'documents beyond 30 days, superseded or soft-deleted are not listed');
+  ('00000000-0000-0000-0000-000000050303', '00000000-0000-0000-0000-000000050304', '00000000-0000-0000-0000-000000050305', '00000000-0000-0000-0000-000000050306')$$,
+  'documents beyond 7 days, superseded or soft-deleted are not listed');
 reset role;
 
 select has_index('public', 'documents', 'documents_expiry_idx', 'current documents are indexed by expiry');

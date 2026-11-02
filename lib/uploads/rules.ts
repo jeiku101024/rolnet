@@ -23,8 +23,8 @@ export function receiptFileProblem(file: { type: string; size: number }) {
 
 /** Returns a plain-language problem with a chosen document file, or null when it can be used. */
 export function documentFileProblem(file: { type: string; size: number }) {
-  if (!documentMimeTypes.includes(file.type)) return "The document must be a JPG, PNG, WebP or PDF file.";
-  if (file.size > documentMaxBytes) return "The document file must be 5 MB or smaller.";
+  if (!documentMimeTypes.includes(file.type)) return "Use a JPG, PNG, WebP or PDF file.";
+  if (file.size > documentMaxBytes) return "File is larger than 5 MB.";
   if (file.size === 0) return "The chosen file is empty. Choose the document file again.";
   return null;
 }

@@ -124,13 +124,44 @@ export const demoRemittances = Array.from({ length: 30 }, (_, index) => {
   return { id: index === 0 ? "00000000-0000-4000-8000-000000000051" : demoId(5, index + 1), service_date: addDays(today, -index), disposition: due === 30000 ? "overnight_overtime" : "returned", amount_due_centavos: due, notes: "", updated_at: `${addDays(today, -index)}T08:00:00Z`, units: [{ body_number: unit.body_number }], drivers: [{ full_name: driver.full_name }], allowance_centavos: 4000, deposit_centavos: paid - 4000, remittance_payments: paid ? [{ amount_centavos: paid }] : [], unit_id: unit.id, driver_id: driver.id };
 });
 
-export const demoDocuments = [
-  { id: "00000000-0000-4000-8000-000000000061", document_type: "insurance", document_number: "INS-0001", expires_on: addDays(today, 10), object_path: "demo", lifecycle_status: "current", unit_id: demoUnits[0].id, driver_id: null as string | null, created_at: `${addDays(today, -40)}T08:00:00Z` },
-  { id: demoId(6, 2), document_type: "or_cr", document_number: "ORCR-0002", expires_on: addDays(today, -3), object_path: "demo", lifecycle_status: "current", unit_id: demoUnits[1].id, driver_id: null as string | null, created_at: `${addDays(today, -30)}T08:00:00Z` },
-  { id: demoId(6, 3), document_type: "mtop_franchise", document_number: "MTOP-0003", expires_on: addDays(today, 2), object_path: "demo", lifecycle_status: "current", unit_id: demoUnits[2].id, driver_id: null as string | null, created_at: `${addDays(today, -20)}T08:00:00Z` },
-  { id: demoId(6, 4), document_type: "driver_license", document_number: "N01-23-456790", expires_on: addDays(today, 25), object_path: "demo", lifecycle_status: "current", unit_id: null as string | null, driver_id: demoDrivers[1].id, created_at: `${addDays(today, -10)}T08:00:00Z` },
-  ...Array.from({ length: 8 }, (_, index) => ({ id: demoId(6, index + 5), document_type: index % 2 ? "insurance" : "or_cr", document_number: `DOC-${pad(index + 5, 4)}`, expires_on: addDays(today, 120 + index * 15), object_path: "demo", lifecycle_status: "current", unit_id: demoUnits[(index % 8) + 3].id as string | null, driver_id: null as string | null, created_at: `${addDays(today, -60 - index)}T08:00:00Z` })),
+// Feature 013: current versions (the shape the dashboard and profile pages read). ROLNET-11 has no
+// documents (an empty folder); an inactive driver (Rey Navarro) keeps a license.
+export type DemoDocument = { id: string; document_type: string; document_number: string | null; issued_on: string | null; expires_on: string; object_path: string; mime_type: string; file_name: string | null; lifecycle_status: string; unit_id: string | null; driver_id: string | null; created_at: string; superseded_at: string | null; reverted_at: string | null; reverted_by: string | null; purge_after: string | null; file_deleted_at: string | null };
+const demoDoc = (row: Pick<DemoDocument, "id" | "document_type" | "document_number" | "expires_on" | "unit_id" | "driver_id" | "created_at"> & Partial<DemoDocument>): DemoDocument => ({
+  issued_on: null, object_path: "demo", mime_type: "application/pdf", file_name: null, lifecycle_status: "current", superseded_at: null, reverted_at: null, reverted_by: null, purge_after: null, file_deleted_at: null, ...row,
+});
+const demoRey = demoDrivers[demoDrivers.length - 1];
+export const demoDocuments: DemoDocument[] = [
+  demoDoc({ id: "00000000-0000-4000-8000-000000000061", document_type: "insurance", document_number: "INS-0001", expires_on: addDays(today, 10), unit_id: demoUnits[0].id, driver_id: null, created_at: `${addDays(today, -40)}T08:00:00Z`, file_name: "insurance-rolnet-1-2025.pdf" }),
+  demoDoc({ id: demoId(6, 2), document_type: "or_cr", document_number: "ORCR-0002", expires_on: addDays(today, -3), unit_id: demoUnits[1].id, driver_id: null, created_at: `${addDays(today, -30)}T08:00:00Z`, file_name: "orcr-rolnet-2.jpg", mime_type: "image/jpeg" }),
+  demoDoc({ id: demoId(6, 3), document_type: "mtop_franchise", document_number: "MTOP-0003", expires_on: addDays(today, 2), unit_id: demoUnits[2].id, driver_id: null, created_at: `${addDays(today, -20)}T08:00:00Z`, file_name: "mtop-rolnet-3.pdf" }),
+  demoDoc({ id: demoId(6, 4), document_type: "driver_license", document_number: "N01-23-456790", expires_on: addDays(today, 25), unit_id: null, driver_id: demoDrivers[1].id, created_at: `${addDays(today, -10)}T08:00:00Z`, file_name: "license-pedro.jpg", mime_type: "image/jpeg" }),
+  ...Array.from({ length: 7 }, (_, index) => demoDoc({ id: demoId(6, index + 5), document_type: index % 2 ? "insurance" : "or_cr", document_number: `DOC-${pad(index + 5, 4)}`, expires_on: addDays(today, 120 + index * 15), unit_id: demoUnits[index + 3].id, driver_id: null, created_at: `${addDays(today, -60 - index)}T08:00:00Z` })),
+  demoDoc({ id: demoId(6, 12), document_type: "driver_license", document_number: "N01-23-456789", expires_on: "2027-06-30", unit_id: null, driver_id: demoDrivers[0].id, created_at: `${addDays(today, -90)}T08:00:00Z`, file_name: "license-juan.pdf" }),
+  demoDoc({ id: demoId(6, 13), document_type: "driver_license", document_number: demoRey.license_number, expires_on: demoRey.license_expiry_date, unit_id: null, driver_id: demoRey.id, created_at: `${addDays(today, -80)}T08:00:00Z`, file_name: "license-rey.pdf" }),
 ];
+
+// Feature 013: older versions. ROLNET-2's OR/CR has two History entries and an old revert whose file
+// is deleted; ROLNET-3's MTOP has a reverted renewal still kept; ROLNET-5's MTOP was a first upload
+// that was removed (kept); ROLNET-1's insurance was just restored (Revert upload is hidden).
+export const demoDocumentVersions: DemoDocument[] = [
+  demoDoc({ id: demoId(6, 31), document_type: "or_cr", document_number: "ORCR-0001", expires_on: addDays(today, -368), unit_id: demoUnits[1].id, driver_id: null, created_at: `${addDays(today, -400)}T08:00:00Z`, lifecycle_status: "superseded", superseded_at: `${addDays(today, -30)}T08:00:00Z`, file_name: "orcr-rolnet-2-2024.jpg", mime_type: "image/jpeg" }),
+  demoDoc({ id: demoId(6, 32), document_type: "or_cr", document_number: "ORCR-0000", expires_on: addDays(today, -733), unit_id: demoUnits[1].id, driver_id: null, created_at: `${addDays(today, -760)}T08:00:00Z`, lifecycle_status: "superseded", superseded_at: `${addDays(today, -400)}T08:00:00Z`, file_name: "orcr-rolnet-2-2023.jpg", mime_type: "image/jpeg" }),
+  demoDoc({ id: demoId(6, 33), document_type: "or_cr", document_number: "ORCR-WRONG", expires_on: addDays(today, 300), unit_id: demoUnits[1].id, driver_id: null, created_at: `${addDays(today, -41)}T08:00:00Z`, lifecycle_status: "reverted", reverted_at: `${addDays(today, -40)}T08:00:00Z`, reverted_by: "demo-owner", purge_after: `${addDays(today, -10)}T08:00:00Z`, file_deleted_at: `${addDays(today, -9)}T18:00:00Z`, file_name: "scan-0042.pdf" }),
+  demoDoc({ id: demoId(6, 34), document_type: "mtop_franchise", document_number: "MTOP-9999", expires_on: addDays(today, 360), unit_id: demoUnits[2].id, driver_id: null, created_at: `${addDays(today, -4)}T08:00:00Z`, lifecycle_status: "reverted", reverted_at: `${addDays(today, -3)}T08:00:00Z`, reverted_by: "demo-owner", purge_after: `${addDays(today, 27)}T08:00:00Z`, file_name: "mtop-wrong-unit.pdf" }),
+  demoDoc({ id: demoId(6, 35), document_type: "mtop_franchise", document_number: "MTOP-0005", expires_on: addDays(today, 200), unit_id: demoUnits[4].id, driver_id: null, created_at: `${addDays(today, -6)}T08:00:00Z`, lifecycle_status: "reverted", reverted_at: `${addDays(today, -5)}T08:00:00Z`, reverted_by: "demo-owner", purge_after: `${addDays(today, 25)}T08:00:00Z`, file_name: "mtop-rolnet-5.pdf" }),
+  demoDoc({ id: demoId(6, 36), document_type: "insurance", document_number: "INS-0002", expires_on: addDays(today, 375), unit_id: demoUnits[0].id, driver_id: null, created_at: `${addDays(today, -2)}T08:00:00Z`, lifecycle_status: "superseded", superseded_at: `${addDays(today, -1)}T08:00:00Z`, file_name: "insurance-rolnet-1-2026.pdf" }),
+];
+
+export const demoDocumentEvents = [
+  { id: demoId(7, 1), document_type: "insurance", unit_id: demoUnits[0].id as string | null, driver_id: null as string | null, kind: "renewed", version_id: demoId(6, 36), summary: "Renewed with insurance-rolnet-1-2026.pdf. insurance-rolnet-1-2025.pdf moved to history.", occurred_at: `${addDays(today, -2)}T08:00:00Z` },
+  { id: demoId(7, 2), document_type: "insurance", unit_id: demoUnits[0].id as string | null, driver_id: null as string | null, kind: "restored", version_id: "00000000-0000-4000-8000-000000000061", summary: "Restored insurance-rolnet-1-2025.pdf. insurance-rolnet-1-2026.pdf moved to history.", occurred_at: `${addDays(today, -1)}T08:00:00Z` },
+  { id: demoId(7, 3), document_type: "or_cr", unit_id: demoUnits[1].id as string | null, driver_id: null as string | null, kind: "reverted", version_id: demoId(6, 33), summary: "Reverted scan-0042.pdf. orcr-rolnet-2-2024.jpg restored.", occurred_at: `${addDays(today, -40)}T08:00:00Z` },
+  { id: demoId(7, 4), document_type: "or_cr", unit_id: demoUnits[1].id as string | null, driver_id: null as string | null, kind: "renewed", version_id: demoId(6, 2), summary: "Renewed with orcr-rolnet-2.jpg. orcr-rolnet-2-2024.jpg moved to history.", occurred_at: `${addDays(today, -30)}T08:00:00Z` },
+  { id: demoId(7, 5), document_type: "mtop_franchise", unit_id: demoUnits[2].id as string | null, driver_id: null as string | null, kind: "reverted", version_id: demoId(6, 34), summary: "Reverted mtop-wrong-unit.pdf. mtop-rolnet-3.pdf restored.", occurred_at: `${addDays(today, -3)}T08:00:00Z` },
+  { id: demoId(7, 6), document_type: "mtop_franchise", unit_id: demoUnits[4].id as string | null, driver_id: null as string | null, kind: "removed", version_id: demoId(6, 35), summary: "Reverted mtop-rolnet-5.pdf. Document removed.", occurred_at: `${addDays(today, -5)}T08:00:00Z` },
+];
+export const demoOwnerName = "Demo Owner";
 
 /** When each demo unit in repair went into repair. T-007 has no recorded time. */
 export const demoInRepairSince: Record<string, string> = { [demoUnits[1].id]: `${addDays(today, -9)}T02:00:00Z` };

@@ -1,5 +1,5 @@
 begin;
-select plan(16);
+select plan(19);
 
 -- No project function in public is callable by signed-out visitors.
 select is_empty(
@@ -47,6 +47,19 @@ select ok(has_function_privilege('authenticated', 'public.save_driver_absence(uu
   and has_function_privilege('authenticated', 'public.undo_driver_role_change(uuid)', 'execute'), 'signed-in users can call the absence and role functions');
 select ok(not has_function_privilege('authenticated', 'public.driver_absent_on(uuid, date)', 'execute')
   and not has_function_privilege('authenticated', 'public.validate_driver_absence()', 'execute'), 'the absence helpers are internal');
+
+-- Feature 013: the four document functions the app calls are granted; the helpers and the purge
+-- bookkeeping are not (service_role only).
+select ok(has_function_privilege('authenticated', 'public.save_compliance_document(jsonb)', 'execute')
+  and has_function_privilege('authenticated', 'public.revert_document_upload(uuid)', 'execute')
+  and has_function_privilege('authenticated', 'public.restore_document_version(uuid, uuid)', 'execute')
+  and has_function_privilege('authenticated', 'public.bring_back_document_version(uuid, uuid)', 'execute'), 'signed-in users can call the document version functions');
+select ok(not has_function_privilege('authenticated', 'public.document_lock(public.document_type, uuid, uuid)', 'execute')
+  and not has_function_privilege('authenticated', 'public.document_shown_name(public.documents)', 'execute')
+  and not has_function_privilege('authenticated', 'public.document_set_license_date(uuid, date)', 'execute')
+  and not has_function_privilege('authenticated', 'public.document_log_event(public.document_event_kind, public.documents, public.documents, text)', 'execute'), 'the document helpers are internal');
+select ok(not has_function_privilege('authenticated', 'public.mark_document_files_deleted(uuid[])', 'execute')
+  and has_function_privilege('service_role', 'public.mark_document_files_deleted(uuid[])', 'execute'), 'only the service role can mark purged files');
 
 select finish();
 rollback;

@@ -48,6 +48,8 @@ const constraintMessages: Record<string, { code: string; message: string }> = {
   driver_absences_no_overlap: { code: "CONFLICT", message: "This driver already has an absence on these dates. Reload to see it." },
   driver_absences_date_order: { code: "INVALID_DATES", message: "The To date must be on or after the From date." },
   driver_absences_day_off_one_date: { code: "INVALID_DATES", message: "A day-off covers one date." },
+  // Feature 013: document versions.
+  documents_file_name_check: { code: "INVALID_INPUT", message: "Rename the file to 200 characters or fewer and try again." },
 };
 
 type DatabaseError = { code?: string; message?: string; details?: string | null };
@@ -81,7 +83,9 @@ export function databaseFailure(error: DatabaseError, fallback: string): ActionF
     case "22007":
     case "22008": return failure("INVALID_INPUT", "One of the values is not in the expected format. Check the dates and numbers.");
     case "42501": return failure("FORBIDDEN", ownMessage ? withPeriod(ownMessage) : "You do not have permission to do that. Ask the owner if you need this change.");
-    case "P0002": return failure("NOT_FOUND", ownMessage ? `${withPeriod(ownMessage)} Reload the page and try again.` : "This record was not found. Reload the page and try again.");
+    case "P0002": return failure("NOT_FOUND", ownMessage ? (/reload/i.test(ownMessage) ? withPeriod(ownMessage) : `${withPeriod(ownMessage)} Reload the page and try again.`) : "This record was not found. Reload the page and try again.");
+    // Feature 013: the document functions raise 40001 when the document changed since the user saw it.
+    case "40001": return failure("STALE_RECORD", ownMessage ? withPeriod(ownMessage) : "This record changed since you opened it. Reload and try again.");
     case "P0001": return failure("STALE_RECORD", ownMessage ? withPeriod(ownMessage) : fallback);
     case "22023": return failure("INVALID_INPUT", ownMessage ? withPeriod(ownMessage) : fallback);
     case "PGRST116": return failure("NOT_FOUND", "This record was not found or you cannot change it. Reload the page and try again.");
