@@ -249,7 +249,8 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   after 60 days without commits in a public repository; the Documents page then shows "File cleanup
   is overdue". Turn it back on from the repository's Actions tab ("Enable workflow").
 - Documents page URL (feature 013): `sort` (`expiry`, `expiry-desc`, `name`, `type`), `usearch`,
-  `utype`, `ustatus`, `dsearch`, `dstatus` (comma lists) and `doc` (the open details modal). The
+  `utype`, `ustatus`, `dsearch`, `dstatus` (comma lists), `upage` (10 folders per page) and `doc` (the
+  open details modal). The
   old `?expiry=due` maps to Expired and Due in both panes, and `/documents/<id>` redirects to the
   current version's modal.
 

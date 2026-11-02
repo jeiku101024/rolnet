@@ -18,7 +18,8 @@ import { ConfirmVersionDialog, type ConfirmFile, type ConfirmVariant } from "@/c
 import { RecentlyRevertedDialog } from "@/components/documents/recently-reverted-dialog";
 import type { DocumentsPageData, RevertedEntry } from "@/lib/documents/page-query";
 import type { DetailsReverted, DetailsVersion, DocumentDetails } from "@/lib/documents/details-query";
-import { buildUnitFolders, filterAndSortFolders, filterLicenses, licensePaneCount, unitPaneCount } from "@/lib/documents/tree";
+import { buildUnitFolders, filterAndSortFolders, filterLicenses, licensePaneCount, pageFolders, pageOfFolder, unitPaneCount } from "@/lib/documents/tree";
+import { FolderPager } from "@/components/documents/folder-pager";
 import { serializeDocumentsParams, unitDocumentTypes, type DocumentsUrlState } from "@/lib/documents/url-state";
 import { documentStatusLabels, documentStatuses, type DocumentStatus } from "@/lib/documents/status";
 import { documentTypeLabels } from "@/lib/validation/documents";
@@ -64,7 +65,11 @@ export function DocumentsWorkspace({ data, initial }: { data: DocumentsPageData;
     return () => window.clearTimeout(timer);
   }, [query]);
 
-  const update = useCallback((changes: Partial<DocumentsUrlState>) => setState((previous) => ({ ...previous, ...changes })), []);
+  // A new search, filter or sort starts the folder list again at page 1.
+  const update = useCallback((changes: Partial<DocumentsUrlState>) => setState((previous) => {
+    const restart = ["usearch", "utype", "ustatus", "sort"].some((key) => key in changes) && !("upage" in changes);
+    return { ...previous, ...changes, ...(restart ? { upage: 1 } : {}) };
+  }), []);
 
   // Unit search forces matching folders open; clearing it restores the folders open before (FR-021).
   const searching = Boolean(state.usearch.trim());
@@ -75,6 +80,7 @@ export function DocumentsWorkspace({ data, initial }: { data: DocumentsPageData;
 
   const folders = useMemo(() => buildUnitFolders(data.units, data.unitDocs), [data.units, data.unitDocs]);
   const tree = useMemo(() => filterAndSortFolders({ folders, query: state.usearch, types: state.utype, statuses: state.ustatus, sort: state.sort }), [folders, state.usearch, state.utype, state.ustatus, state.sort]);
+  const paged = pageFolders(tree.folders, state.upage);
   const licenses = useMemo(() => filterLicenses(data.licenses, state.dsearch, state.dstatus, state.sort), [data.licenses, state.dsearch, state.dstatus, state.sort]);
   const currentByKey = useMemo(() => Object.fromEntries([...data.unitDocs, ...data.licenses].map((doc) => [`${doc.documentType}:${doc.unitId ?? doc.driverId}`, doc.id])), [data.unitDocs, data.licenses]);
   const currentById = useMemo(() => new Map([...data.unitDocs, ...data.licenses].map((doc) => [doc.id, doc])), [data.unitDocs, data.licenses]);
@@ -84,7 +90,11 @@ export function DocumentsWorkspace({ data, initial }: { data: DocumentsPageData;
     if (tree.searching) return;
     setExpanded((previous) => { const next = new Set(previous); if (open) next.add(unitId); else next.delete(unitId); return next; });
   };
-  const expand = (unitId: string) => setExpanded((previous) => new Set(previous).add(unitId));
+  // Opens a folder and shows the page it is on (after an upload or a bring back).
+  const expand = (unitId: string) => {
+    setExpanded((previous) => new Set(previous).add(unitId));
+    update({ upage: pageOfFolder(tree.folders, unitId) });
+  };
 
   // The details modal follows `doc` in the address.
   useEffect(() => {
@@ -212,7 +222,8 @@ export function DocumentsWorkspace({ data, initial }: { data: DocumentsPageData;
             <Tooltip><TooltipTrigger render={<button type="button" className={iconButton} aria-label="Collapse all folders" onClick={() => setExpanded(new Set())} />}><ChevronsDownUp aria-hidden="true" size={18} /></TooltipTrigger><TooltipContent>Collapse all</TooltipContent></Tooltip>
           </>}>
           {tree.folders.length
-            ? <UnitTree folders={tree.folders} isOpen={isOpen} onToggle={toggle} onOpenDocument={openDocument} onUpload={(unitId) => setUpload({ scope: "unit", preset: { unitId } })} query={state.usearch} today={data.today} />
+            ? <><UnitTree folders={paged.folders} isOpen={isOpen} onToggle={toggle} onOpenDocument={openDocument} onUpload={(unitId) => setUpload({ scope: "unit", preset: { unitId } })} query={state.usearch} today={data.today} />
+              <FolderPager page={paged.page} lastPage={paged.lastPage} label={paged.label} onPage={(upage) => update({ upage })} /></>
             : <p className="px-2 py-6 text-center text-body-sm text-muted">{folders.length ? "No documents match." : "No units yet. Add a unit first."}</p>}
         </Pane>
       </div>

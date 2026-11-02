@@ -114,7 +114,7 @@ test.describe("document modals", () => {
   });
 
   test("opens the upload modal from an empty folder with the unit chosen", async ({ page }) => {
-    await open(page);
+    await open(page, "/documents?upage=2");
     await folder(page, "ROLNET-11").click();
     await page.getByRole("button", { name: "upload a document" }).click();
     await expect(page.getByRole("dialog").locator("select[name=holder]")).toHaveValue(/.+/);

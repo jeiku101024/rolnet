@@ -51,6 +51,12 @@ back, and restore; the audit log is the safeguard.
   A: Yes, they are kept in the page address. Folder expand state and modals reset on reload, except a
   link to one document opens its modal. (FR-009a)
 
+### Session 2026-11-03
+
+- Q: The folder list is too long. How many folders should show at once? → A: Up to 10 folders per
+  page, with First, Previous, Next and Last controls under the tree, like the other lists.
+  (FR-012a)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Browse unit documents as a folder tree (Priority: P1)
@@ -407,6 +413,11 @@ filter, and empty states.
 
 - **FR-012**: The tree MUST show one folder per non-archived unit, named with the unit name, collapsed
   by default, including units with no documents. Folders are a display grouping only.
+- **FR-012a**: The tree MUST show at most 10 folders per page, after search, filters and sort, with
+  "1–10 of N folders" and First, Previous, Next and Last controls under it (hidden when one page is
+  enough). The page MUST be kept in the page address (`upage`) and MUST go back to page 1 when the
+  search, filters or sort change. After an upload or a bring back opens a folder, the tree MUST show
+  the page that holds it.
 - **FR-013**: A folder row MUST show a chevron, a folder icon (open-folder when expanded), the unit
   name in bold, a red "N expired" pill and an amber "N due" pill when those counts are above zero, and
   the document count at the right. Clicking anywhere on the row MUST toggle it.
@@ -583,8 +594,8 @@ filter, and empty states.
   secondary text if needed to tell units apart.
 - **Detail page**: the separate document detail page is replaced by the modal; its Archive action is
   replaced by Revert upload. Old links open the page with the modal (see Edge Cases).
-- **No paging**: both panes load all current documents for active units and drivers; the small fleet
-  makes paging unnecessary.
+- **Loading**: both panes load all current documents for active units and drivers at once; the tree
+  pages its folders in the browser (FR-012a), 10 at a time.
 - **File name**: the original file name is stored at upload. For existing documents uploaded before
   this feature, a readable name is derived from the type, holder, and upload date.
 - **Activity history**: Activity shows events recorded from this feature onward; existing documents
