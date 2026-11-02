@@ -62,7 +62,7 @@ describe("list sort and filter controls (feature 006, US8)", () => {
   });
 
   it("maps status words to column values and receipts to empty or filled", () => {
-    const documents = parseControls({ holder: "unit" }, listControlSpecs.documents, today);
+    const documents = parseControls({ type: "or_cr" }, listControlSpecs.documents, today);
     const { q, calls } = recorder();
     applyFilters(q, documents);
     expect(calls.length).toBe(1);
@@ -95,7 +95,6 @@ describe("list sort and filter controls (feature 006, US8)", () => {
     expect(ids({ expiry: "soon" })).toEqual(["b"]);
     expect(ids({ expiry: "due" })).toEqual(["a", "b"]);
     expect(ids({ expiry: "later" })).toEqual(["c"]);
-    expect(ids({ holder: "driver" })).toEqual(["b"]);
     expect(ids({ type: "insurance", sort: "expiry-desc" })).toEqual(["c", "b"]);
     expect(ids({ sort: "newest" })).toEqual(["c", "b", "a"]);
   });

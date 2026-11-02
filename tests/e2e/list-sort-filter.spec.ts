@@ -81,9 +81,10 @@ test.describe("list sort and filter", () => {
   });
 
   test("open dashboard View all links with the filter selected", async ({ page }) => {
+    // Feature 013: the old dashboard link opens both Documents panes on Expired and Due within 7 days.
     await page.goto("/documents?expiry=due");
-    await expect(page.getByRole("button", { name: "Filters (1 on)" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Remove filter Expiry: Expired or within 30 days" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Filters (2 on)" })).toHaveCount(2);
+    await expect(page.getByRole("button", { name: "Remove filter Status: Due within 7 days" })).toHaveCount(2);
     await page.goto("/units?status=in_repair");
     await expect(page.locator("tbody tr")).toHaveCount(2);
   });

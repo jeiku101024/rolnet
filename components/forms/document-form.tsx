@@ -1,64 +1,152 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRef, useState, type FormEvent } from "react";
+import { Info, X } from "lucide-react";
 import { finalizeDocumentUpload, prepareDocumentUpload } from "@/app/actions/documents";
 import { removeDocumentObject, uploadDocument } from "@/lib/uploads/documents";
 import { sha256File } from "@/lib/uploads/hash-file";
 import { documentFileProblem } from "@/lib/uploads/rules";
-import { documentTypeLabels, documentTypes } from "@/lib/validation/documents";
-import { FormPanel } from "@/components/ui/form-panel";
-import { FormField, Input, Select } from "@/components/ui/form-field";
-import { FormFooter } from "@/components/forms/form-status";
-import { useActionForm } from "@/components/forms/use-action-form";
-import { file, text } from "@/components/forms/form-values";
+import { documentTypeLabels } from "@/lib/validation/documents";
+import { unitDocumentTypes } from "@/lib/documents/url-state";
+import type { PageDriver, PageUnit } from "@/lib/documents/page-query";
+import { Button } from "@/components/ui/button";
+import { Input as FileInput } from "@/components/ui/input";
+import { FormField, Input, Select, ValidationSummary } from "@/components/ui/form-field";
+import { clientErrorMessage } from "@/components/forms/use-action-form";
 
-type Unit = { id: string; body_number: string; plate_number: string };
-type Driver = { id: string; full_name: string; license_expiry_date: string };
-/** Set when renewing an existing document: type and holder are fixed. */
-type Renewal = { documentType: string; unitId: string | null; driverId: string | null; holderLabel: string };
+// Feature 013 (FR-030–FR-034): the one upload form, scoped by the pane that opened it. Uploading a
+// type the holder already has renews it; the previous file stays in History.
 
-export function DocumentForm({ units, drivers, renewal }: { units: Unit[]; drivers: Driver[]; renewal?: Renewal }) {
-  const router = useRouter();
-  const { pending, status, submit } = useActionForm();
-  const [documentType, setDocumentType] = useState(renewal?.documentType ?? "or_cr");
-  const [driverId, setDriverId] = useState(renewal?.driverId ?? "");
-  const isLicense = documentType === "driver_license";
-  const profileExpiry = drivers.find((driver) => driver.id === driverId)?.license_expiry_date;
-  return <FormPanel className="space-y-5" onSubmit={submit(async ({ data, key }) => {
-    const chosen = file(data, "file");
-    if (!chosen) return { ok: false, message: "Choose the document file before uploading." };
-    const problem = documentFileProblem(chosen);
-    if (problem) return { ok: false, message: problem };
-    const holder = renewal
-      ? { unitId: renewal.unitId ?? undefined, driverId: renewal.driverId ?? undefined }
-      : isLicense ? { driverId: text(data, "driverId") } : { unitId: text(data, "unitId") };
-    if (!holder.unitId && !holder.driverId) return { ok: false, message: isLicense ? "Choose the driver this license belongs to." : "Choose the unit this document belongs to." };
-    const metadata = { documentType, ...holder, expiresOn: text(data, "expiresOn"), issuedOn: text(data, "issuedOn"), documentNumber: text(data, "documentNumber") };
-    const sha256 = await sha256File(chosen);
-    const prepared = await prepareDocumentUpload({ documentType, ...holder, mimeType: chosen.type, sizeBytes: chosen.size });
-    if (!prepared.ok) return prepared;
-    await uploadDocument(chosen, prepared.data.objectPath);
-    const saved = await finalizeDocumentUpload({ ...metadata, mimeType: chosen.type, sizeBytes: chosen.size, sha256, objectPath: prepared.data.objectPath, idempotencyKey: key("document") });
-    // The record was definitely not saved, so the uploaded file would be orphaned (T134).
-    if (!saved.ok) { await removeDocumentObject(prepared.data.objectPath); return saved; }
-    if (renewal) { router.push(`/documents/${saved.data.id}`); return { ok: true, message: "Document renewed." }; }
-    router.refresh();
-    return { ok: true, message: saved.data.renewed ? "Document saved. It replaces the previous current document, which is kept as history." : "Document saved." };
-  })}>
-    <h2 className="font-semibold">{renewal ? `Renew for ${renewal.holderLabel}` : "Upload document"}</h2>
-    {renewal ? null : <>
-      <FormField label="Document type" required><Select required name="documentType" value={documentType} onChange={(event) => setDocumentType(event.target.value)}>{documentTypes.map((type) => <option key={type} value={type}>{documentTypeLabels[type]}</option>)}</Select></FormField>
-      {isLicense
-        ? <FormField label="Driver" required><Select required name="driverId" value={driverId} onChange={(event) => setDriverId(event.target.value)}><option value="">Choose a driver</option>{drivers.map((driver) => <option key={driver.id} value={driver.id}>{driver.full_name}</option>)}</Select></FormField>
-        : <FormField label="Unit" required><Select required name="unitId" defaultValue=""><option value="">Choose a unit</option>{units.map((unit) => <option key={unit.id} value={unit.id}>Body {unit.body_number} · {unit.plate_number}</option>)}</Select></FormField>}
-    </>}
+export type UploadScope = "unit" | "driver";
+export interface UploadPreset { documentType?: string; unitId?: string; driverId?: string }
+export interface UploadSaved { id: string; renewed: boolean; documentType: string; unitId: string | null; driverId: string | null; holderName: string }
+type Field = "documentType" | "holder" | "expiresOn" | "file";
+
+function FieldError({ message }: { message?: string }) {
+  return message ? <span className="text-xs font-normal text-danger">{message}</span> : null;
+}
+
+export function DocumentForm({ scope, units, drivers, preset, currentByKey, onSaved, onCancel }: {
+  scope: UploadScope;
+  units: PageUnit[];
+  drivers: PageDriver[];
+  preset?: UploadPreset;
+  /** `${documentType}:${holderId}` → the current version's id, for the renewal banner and stale check. */
+  currentByKey: Record<string, string>;
+  onSaved: (saved: UploadSaved) => void;
+  onCancel: () => void;
+}) {
+  const isDriver = scope === "driver";
+  const fixed = Boolean(preset?.documentType && (preset.unitId || preset.driverId));
+  const [documentType, setDocumentType] = useState(isDriver ? "driver_license" : preset?.documentType ?? "");
+  const [holderId, setHolderId] = useState((isDriver ? preset?.driverId : preset?.unitId) ?? "");
+  const [file, setFile] = useState<File | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
+  const [failure, setFailure] = useState<string | undefined>();
+  const [pending, setPending] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const idempotencyKey = useRef(crypto.randomUUID());
+
+  const holders = isDriver ? drivers.map((driver) => ({ id: driver.id, name: driver.name })) : units.map((unit) => ({ id: unit.id, name: unit.name }));
+  const holderName = holders.find((holder) => holder.id === holderId)?.name ?? "";
+  const currentId = documentType && holderId ? currentByKey[`${documentType}:${holderId}`] : undefined;
+  const typeLabel = documentTypeLabels[documentType] ?? documentType;
+
+  function chooseFile(chosen: File | null) {
+    setFile(chosen);
+    const problem = chosen ? documentFileProblem(chosen) : null;
+    setErrors((previous) => ({ ...previous, file: problem ?? undefined }));
+  }
+
+  function removeFile() {
+    setFile(null);
+    if (fileInput.current) fileInput.current.value = "";
+    setErrors((previous) => ({ ...previous, file: undefined }));
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (pending) return;
+    const data = new FormData(event.currentTarget);
+    const value = (name: string) => String(data.get(name) ?? "").trim();
+    const expiresOn = value("expiresOn");
+    const missing: Partial<Record<Field, string>> = {};
+    if (!documentType) missing.documentType = "Choose the document type.";
+    if (!holderId) missing.holder = isDriver ? "Choose the driver." : "Choose the unit.";
+    if (!expiresOn) missing.expiresOn = "Enter the expiry date.";
+    if (!file) missing.file = "Choose the document file.";
+    else if (documentFileProblem(file)) missing.file = documentFileProblem(file) ?? undefined;
+    setErrors(missing);
+    setFailure(undefined);
+    if (Object.keys(missing).length || !file) { setFailure("Fill in the required fields."); return; }
+    setPending(true);
+    try {
+      const holder = isDriver ? { driverId: holderId } : { unitId: holderId };
+      const prepared = await prepareDocumentUpload({ documentType, ...holder, mimeType: file.type, sizeBytes: file.size });
+      if (!prepared.ok) { setFailure(prepared.message); return; }
+      const sha256 = await sha256File(file);
+      await uploadDocument(file, prepared.data.objectPath);
+      const saved = await finalizeDocumentUpload({
+        documentType, ...holder, documentNumber: value("documentNumber"), issuedOn: value("issuedOn") || undefined, expiresOn,
+        mimeType: file.type, sizeBytes: file.size, sha256, objectPath: prepared.data.objectPath, idempotencyKey: idempotencyKey.current,
+        fileName: file.name.slice(0, 200), expectedCurrentId: currentId ?? null,
+      });
+      // The record was definitely not saved, so the uploaded file would be orphaned (T134).
+      if (!saved.ok) { await removeDocumentObject(prepared.data.objectPath); setFailure(saved.message); return; }
+      onSaved({ id: saved.data.id, renewed: saved.data.renewed, documentType, unitId: isDriver ? null : holderId, driverId: isDriver ? holderId : null, holderName });
+    } catch (reason) {
+      setFailure(clientErrorMessage(reason));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return <form noValidate className="grid gap-4" onSubmit={submit}>
+    <p className="text-body-sm text-muted">Uploading a type the holder already has renews it. The previous file stays in the history.</p>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <FormField label="Document type" required>
+        <Select name="documentType" value={documentType} disabled={isDriver || fixed} aria-invalid={Boolean(errors.documentType) || undefined}
+          onChange={(event) => { setDocumentType(event.target.value); setErrors((previous) => ({ ...previous, documentType: undefined })); }}>
+          {isDriver ? <option value="driver_license">{documentTypeLabels.driver_license}</option> : <>
+            <option value="">Choose a document type</option>
+            {unitDocumentTypes.map((type) => <option key={type} value={type}>{documentTypeLabels[type]}</option>)}
+          </>}
+        </Select>
+        <FieldError message={errors.documentType} />
+      </FormField>
+      <FormField label={isDriver ? "Driver" : "Unit"} required>
+        <Select name="holder" value={holderId} disabled={!documentType || fixed} aria-invalid={Boolean(errors.holder) || undefined}
+          onChange={(event) => { setHolderId(event.target.value); setErrors((previous) => ({ ...previous, holder: undefined })); }}>
+          <option value="">{isDriver ? "Choose a driver" : "Choose a unit"}</option>
+          {holders.map((holder) => <option key={holder.id} value={holder.id}>{holder.name}</option>)}
+        </Select>
+        <FieldError message={errors.holder} />
+      </FormField>
+    </div>
+    {currentId ? <p className="flex items-start gap-2 rounded-md bg-info-soft p-3 text-body-sm text-info" role="status">
+      <Info aria-hidden="true" size={16} className="mt-0.5 shrink-0" />{holderName} already has a {typeLabel}. This upload renews it.
+    </p> : null}
     <div className="grid gap-4 sm:grid-cols-2">
       <FormField label="Document number"><Input name="documentNumber" maxLength={120} /></FormField>
       <FormField label="Issued on"><Input name="issuedOn" type="date" /></FormField>
-      <FormField label="Expiry date" required hint={isLicense ? (renewal ? "Renewing a license also updates the driver profile's expiry date." : profileExpiry ? `Must match the driver profile: ${profileExpiry}.` : "Must match the driver profile's license expiry.") : undefined}><Input required name="expiresOn" type="date" /></FormField>
+      <FormField label="Expiry date" required hint={isDriver ? "Uploading a license also sets the driver's license expiry date." : undefined}>
+        <Input name="expiresOn" type="date" aria-invalid={Boolean(errors.expiresOn) || undefined} onChange={() => setErrors((previous) => ({ ...previous, expiresOn: undefined }))} />
+        <FieldError message={errors.expiresOn} />
+      </FormField>
     </div>
-    <FormField label="File" required hint="JPG, PNG, WebP or PDF, 5 MB at most."><Input required name="file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" /></FormField>
-    <FormFooter pending={pending} status={status} label={renewal ? "Renew document" : "Upload document"} pendingLabel="Uploading…" />
-  </FormPanel>;
+    <FormField label="File" required hint="JPG, PNG, WebP or PDF, 5 MB at most.">
+      <FileInput ref={fileInput} name="file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className={file ? "sr-only" : "min-h-11"}
+        aria-invalid={Boolean(errors.file) || undefined} onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} />
+      {file ? <span className="flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-md border border-rule px-3">
+        <span className="min-w-0 truncate font-data text-body-sm">{file.name}</span>
+        <Button type="button" variant="ghost" onClick={removeFile} aria-label={`Remove ${file.name}`}><X aria-hidden="true" size={14} />Remove</Button>
+      </span> : null}
+      <FieldError message={errors.file} />
+    </FormField>
+    <ValidationSummary message={failure} />
+    <div className="flex flex-wrap justify-end gap-2">
+      <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+      <Button type="submit" disabled={pending}>{pending ? "Uploading…" : currentId ? "Renew document" : "Upload document"}</Button>
+    </div>
+  </form>;
 }

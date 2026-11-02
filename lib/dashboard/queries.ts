@@ -6,6 +6,7 @@ import { one } from "@/lib/supabase/embed";
 import { remittanceTotals } from "@/lib/remittances/totals";
 import { covers } from "@/lib/drivers/absences";
 import { demoDocuments, demoDriverAbsences, demoDrivers, demoExpenses, demoInRepairSince, demoMode, demoRemittances, demoUnitAssignmentsDaily, demoUnits } from "@/lib/demo/mode";
+import { documentsDueHref } from "@/lib/documents/url-state";
 import {
   dailyCollections, daysBetween, monthTotals, orderExpiringDocuments, orderExtradors, orderInRepair, orderUnpaidBalances, toPanel, unitIncomeBars,
   type ExtradorItem, type FleetStats, type InRepairUnitItem, type SummaryRow,
@@ -101,7 +102,7 @@ function assemble(input: {
   return {
     month: input.m,
     attention: {
-      documents: toPanel(orderExpiringDocuments(input.expiry, input.today), "/documents?expiry=due"),
+      documents: toPanel(orderExpiringDocuments(input.expiry, input.today), documentsDueHref),
       balances: toPanel(orderUnpaidBalances(input.balances), "/remittances?view=list&balance=unpaid"),
     },
     status: {
@@ -123,9 +124,9 @@ function demoDashboard(m: string, today: string) {
     const spent = demoExpenses.filter((e) => one(e.units)?.body_number === unit.body_number && inMonth(e.expense_date)).reduce((sum, e) => sum + e.amount_centavos, 0);
     return { unit_id: unit.id, body_number: unit.body_number, remittance_paid_centavos: paid, total_expense_centavos: spent, net_income_centavos: paid - spent };
   });
-  const limit = addDays(today, 30);
+  const limit = addDays(today, 7);
   const holderLabel = (doc: { unit_id: string | null; driver_id: string | null }) => doc.unit_id ? `Body ${demoUnits.find((unit) => unit.id === doc.unit_id)?.body_number ?? "?"}` : demoDrivers.find((driver) => driver.id === doc.driver_id)?.full_name ?? "Driver";
-  const expiry = demoDocuments.filter((doc) => doc.expires_on <= limit).map((doc) => ({ ...doc, bucket: doc.expires_on < today ? "expired" : doc.expires_on <= addDays(today, 7) ? "due_7" : "due_30", holderLabel: holderLabel(doc) }));
+  const expiry = demoDocuments.filter((doc) => doc.expires_on <= limit).map((doc) => ({ ...doc, bucket: doc.expires_on < today ? "expired" : "due_7", holderLabel: holderLabel(doc) }));
   const balances = demoDrivers.map((driver) => {
     const unpaid = demoRemittances.filter((r) => r.driver_id === driver.id).map((r) => ({ r, balance: remittanceTotals(r.amount_due_centavos, r.remittance_payments).balance })).filter((x) => x.balance > 0);
     return { driver_id: driver.id, driver_name: driver.full_name, outstanding_centavos: unpaid.reduce((sum, x) => sum + x.balance, 0), unpaid_remittance_count: unpaid.length, first_unpaid_service_date: unpaid.map((x) => x.r.service_date).sort()[0] ?? null };

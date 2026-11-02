@@ -18,6 +18,13 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "**/*.min.js",
   ]),
+  // Feature 013: the service-role client is server-only and used by the purge route alone.
+  {
+    ignores: ["app/api/cron/**", "tests/**", "lib/supabase/service.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { paths: [{ name: "@/lib/supabase/service", message: "The service-role client may only be imported by app/api/cron routes." }] }],
+    },
+  },
 ]);
 
 export default eslintConfig;
