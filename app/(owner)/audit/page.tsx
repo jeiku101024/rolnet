@@ -1,3 +1,4 @@
+import { requirePermission } from "@/lib/auth/guards";
 import { getAuditEvents } from "@/lib/audit/queries";
 import { AuditHistory } from "@/components/audit/audit-history";
 import { demoAuditEvents, demoMode } from "@/lib/demo/mode";
@@ -9,6 +10,7 @@ import { controlRows, controlsView, parseControls, prepareSpec } from "@/lib/pag
 import { auditEntityLabels, listControlSpecs } from "@/lib/pagination/list-control-specs";
 
 export default async function AuditPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  await requirePermission("view_audit");
   const params = await searchParams;
   const request = parseListPage(params);
   const controls = parseControls(params, prepareSpec(listControlSpecs.audit));
