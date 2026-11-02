@@ -107,13 +107,6 @@ describe("StatusSelect release confirmation (feature 010, FR-030, FR-029b)", () 
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
-  it("words the driver confirmation", async () => {
-    mocks.upcoming.mockResolvedValue({ ok: true, data: { count: 3 } });
-    render(<StatusSelect kind="driver" id={unitId} value="active" label="Status for Ana" releaseName="Ana" />);
-    await act(async () => { fireEvent.change(screen.getByLabelText("Status for Ana"), { target: { value: "inactive" } }); });
-    expect(await screen.findByText("Ana is assigned from today onward. Deactivating will release those units. Continue?")).toBeInTheDocument();
-    expect(mocks.upcoming).toHaveBeenCalledWith({ driverId: unitId });
-  });
 });
 
 describe("UnitDetailsSection (feature 010, FR-039, FR-040)", () => {

@@ -44,6 +44,10 @@ const constraintMessages: Record<string, { code: string; message: string }> = {
   // Feature 011: fixed expense categories.
   expenses_category_shape_check: { code: "INVALID_CATEGORY", message: "Check the category, category name, and date replaced." },
   expenses_amount_check: { code: "INVALID_AMOUNT", message: "Enter an amount greater than ₱0.00." },
+  // Feature 012: dated absences. The save function names the conflict first; this is the race backstop.
+  driver_absences_no_overlap: { code: "CONFLICT", message: "This driver already has an absence on these dates. Reload to see it." },
+  driver_absences_date_order: { code: "INVALID_DATES", message: "The To date must be on or after the From date." },
+  driver_absences_day_off_one_date: { code: "INVALID_DATES", message: "A day-off covers one date." },
 };
 
 type DatabaseError = { code?: string; message?: string; details?: string | null };

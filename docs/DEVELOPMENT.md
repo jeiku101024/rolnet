@@ -193,6 +193,40 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
 - Mileage (feature 011): the owner records readings on the unit detail page, which lists them
   newest first; staff use "Record mileage" on each unit card in the Units Daily view. The rules are
   unchanged (`validate_mileage_reading`).
+- Driver absences (feature 012): a **Day-off** covers one date; an **On-leave** covers a date range
+  or is open-ended (`driver_absences`, reason from a fixed list). The driver stores only Active or
+  Inactive (`is_active`); **Status today** is derived: Inactive, else Day-off/On-leave when an
+  absence covers today, else Active. An absence covers a date when it isn't cancelled, the date is on
+  or after `start_date`, on or before `end_date` (if any), and before `ended_early_on` (if any)
+  (`driver_absent_on`, mirrored by `covers()` in `lib/drivers/absences.ts`). Absences end by date on
+  their own; nothing runs on a schedule and the system never ends a leave. The exclusion constraint
+  `driver_absences_no_overlap` stops one driver's absences from covering the same date. Inactive
+  drivers can't get absences. Owner and staff manage absences; past start dates are allowed and past
+  assignments and remittances never change.
+- Availability (feature 012): a driver is offered in the Units Assign driver dropdown on a date only
+  when Active, not absent that date, licensed that date, and not saved on another unit that date
+  (`lib/drivers/availability.ts`); `validate_unit_assignment` also refuses an absent driver. Pre-fill
+  skips a driver who is absent. The dashboard's backup list leaves out drivers absent today.
+- Releasing for absences (feature 012): `save_driver_absence` adds or edits an absence and
+  soft-deletes the today-and-later assignments it newly covers, in one transaction, only when the
+  caller passes exactly that list (the dialog confirms it first; a changed list returns "Assignments
+  for these dates changed. Review them again."). An assignment with a remittance is never released:
+  the absence save is refused. Marking a driver Inactive keeps those locked assignments (feature 010).
+  Cancel (upcoming only), End early (covering today; sets `ended_early_on` to today, optionally
+  cancelling upcoming absences), and "Still on leave" go through `cancel_driver_absence`,
+  `end_driver_absence`, and `confirm_driver_leave`.
+- Role history (feature 012): Primary/Backup is a label only. `set_driver_role` (security definer,
+  any approved user, because driver updates are owner-only under RLS) changes `driver_kind` and logs
+  `driver_role_changes` together; `undo_driver_role_change` reverts the caller's latest change within
+  60 seconds and withdraws (soft-deletes) its entry. The role on a past date is the latest change on
+  or before it, or the first change's previous role, or the current role when nothing is logged
+  (`roleOn` in `lib/drivers/role-on.ts`); the Remittances cards, the unit and driver pages use it.
+  Existing drivers have no history rows. API v1 no longer updates `driver_kind`.
+- Stale leave flag (feature 012): an open-ended leave open `stale_leave_amber_days` (14) or more is
+  flagged amber, `stale_leave_red_days` (30) or more red; "Still on leave" hides the flag until the
+  check date plus `stale_leave_snooze_days` (7). The thresholds are `fleet_settings` columns (no
+  screen yet). Flags are informational only: they never change availability or end a leave, and no
+  notification is sent. The Drivers list banner's dismiss lasts for the browser session.
 
 ## Lists and dashboard (feature 006)
 

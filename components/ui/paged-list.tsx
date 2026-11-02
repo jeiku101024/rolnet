@@ -21,8 +21,10 @@ export interface ListView {
   searchPlaceholder?: string;
   /** Sort and filter controls of a main list (User Story 8). */
   controls?: ListControlsView;
-  /** A short tip shown after the record count, e.g. what opening a row does. */
-  hint?: string;
+  /** A short tip shown after the record count, e.g. what opening a row does, or a "Clear" link (feature 012). */
+  hint?: ReactNode;
+  /** A notice between the filters and the record count, e.g. the Drivers stale-leave banner (feature 012). */
+  banner?: ReactNode;
   /** A primary action beside the search and filters, e.g. the Units list's "Add a unit" (feature 010). */
   action?: ReactNode;
   /** A control on the right of the record count, e.g. "Show archived (N)" (feature 010). */
@@ -33,7 +35,7 @@ export interface ListView {
   emptyText?: string;
 }
 
-export function listView(pathname: string, searchParams: SearchParams, request: { prefix: string; q: string }, state: ListPageState, options: Pick<ListView, "search" | "searchLabel" | "searchPlaceholder" | "controls" | "hint" | "note" | "action" | "aside" | "emptyText"> = {}): ListView {
+export function listView(pathname: string, searchParams: SearchParams, request: { prefix: string; q: string }, state: ListPageState, options: Pick<ListView, "search" | "searchLabel" | "searchPlaceholder" | "controls" | "hint" | "banner" | "note" | "action" | "aside" | "emptyText"> = {}): ListView {
   return { pathname, searchParams, prefix: request.prefix, q: request.q, state, ...options };
 }
 
@@ -45,6 +47,7 @@ export function ListToolbar({ list }: { list: ListView }) {
   // Main lists (User Story 8): search, dates and filters on top; the count and sort just above the rows.
   if (list.controls) return <div className="flex flex-col gap-3 border-b border-rule pt-2 pb-3">
     {list.action ? <div className="flex flex-wrap items-start gap-3"><div className="min-w-0 flex-1"><ListControls pathname={list.pathname} searchParams={list.searchParams} controls={list.controls} search={search} /></div>{list.action}</div> : <ListControls pathname={list.pathname} searchParams={list.searchParams} controls={list.controls} search={search} />}
+    {list.banner}
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">{list.note ? <div className="grid gap-1">{count}<p className="text-body-sm text-muted">{list.note}</p></div> : count}<div className="flex flex-wrap items-center gap-3">{list.aside}<ListSort pathname={list.pathname} searchParams={list.searchParams} controls={list.controls} /></div></div>
   </div>;
   return <div className="flex flex-col gap-3 border-b border-rule pt-2 pb-4">
