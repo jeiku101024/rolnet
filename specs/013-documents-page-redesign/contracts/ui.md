@@ -13,6 +13,7 @@ the tokens from `app/globals.css` and `DESIGN.md`, the shadcn `base-nova` compon
 | `utype` | comma list of `or_cr`, `mtop_franchise`, `insurance` | none |
 | `ustatus` / `dstatus` | comma list of `expired`, `due`, `valid` | none |
 | `doc` | version id: opens the details modal | none |
+| `upage` | folder page of the unit pane, 10 folders per page (reset to 1 by search, filter or sort) | 1 |
 | `expiry=due` (legacy) | mapped to `ustatus=expired,due&dstatus=expired,due` | — |
 
 Unknown values are ignored. Search params are written after 300 ms of no typing, with

@@ -28,9 +28,12 @@ test.describe("documents page", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 
-  test("lists one collapsed folder per active unit with pills and counts", async ({ page }) => {
+  test("lists one collapsed folder per active unit with pills and counts, 10 per page", async ({ page }) => {
     await open(page);
-    await expect(page.getByRole("tree", { name: "Unit documents" }).locator("> li")).toHaveCount(11);
+    await expect(page.getByRole("tree", { name: "Unit documents" }).locator("> li")).toHaveCount(10);
+    const pager = page.getByRole("navigation", { name: "Folder pages" });
+    await expect(pager).toContainText("1–10 of 11 folders");
+    await expect(pager).toContainText("Page 1 of 2");
     await expect(folder(page, "ROLNET-12")).toHaveCount(0);
     await expect(folder(page, "ROLNET-2")).toHaveAttribute("aria-expanded", "false");
     await expect(folder(page, "ROLNET-2")).toContainText("1 expired");
@@ -38,8 +41,14 @@ test.describe("documents page", () => {
     await folder(page, "ROLNET-2").click();
     await expect(folder(page, "ROLNET-2")).toHaveAttribute("aria-expanded", "true");
     await expect(folder(page, "ROLNET-2").getByRole("group")).toContainText("ORCR-0002 · Expires");
+    await pager.getByRole("button", { name: "Next page" }).click();
+    await expect(page).toHaveURL(/upage=2/);
+    await expect(page.getByRole("tree").locator("> li")).toHaveCount(1);
     await folder(page, "ROLNET-11").click();
     await expect(folder(page, "ROLNET-11")).toContainText("Empty. Add or upload a document.");
+    await page.getByRole("searchbox", { name: "Search unit documents" }).fill("rolnet");
+    await expect(pager).toContainText("Page 1 of 2");
+    await page.getByRole("searchbox", { name: "Search unit documents" }).fill("");
     await page.getByRole("button", { name: "Collapse all folders" }).click();
     await expect(page.locator("[role=tree] > li[aria-expanded=true]")).toHaveCount(0);
     await page.getByRole("button", { name: "Expand all folders" }).click();
@@ -99,7 +108,7 @@ test.describe("documents page", () => {
     await expect(unitPane(page).getByRole("button", { name: "Filters (2 on)" })).toBeVisible();
     await expect(page.getByLabel("Sort (both panes)")).toHaveValue("name");
     await unitPane(page).getByRole("button", { name: "Clear all" }).click();
-    await expect(page.getByRole("tree").locator("> li")).toHaveCount(11);
+    await expect(page.getByRole("tree").locator("> li")).toHaveCount(10);
   });
 
   test("sorts folders and licenses with the shared sort", async ({ page }) => {
@@ -122,7 +131,7 @@ test.describe("documents page", () => {
     await expect(driverPane(page).getByRole("status")).toHaveText("1 result");
     await page.getByRole("searchbox", { name: "Search driver licenses" }).fill("zzz");
     await expect(driverPane(page).getByText("No licenses match.")).toBeVisible();
-    await expect(page.getByRole("tree").locator("> li")).toHaveCount(11);
+    await expect(page.getByRole("tree").locator("> li")).toHaveCount(10);
   });
 
   test("opens from the dashboard with Expired and Due within 7 days in both panes", async ({ page }) => {

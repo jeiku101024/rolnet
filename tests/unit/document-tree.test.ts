@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildUnitFolders, filterAndSortFolders, filterLicenses, licensePaneCount, unitPaneCount } from "@/lib/documents/tree";
+import { buildUnitFolders, filterAndSortFolders, filterLicenses, licensePaneCount, pageFolders, pageOfFolder, unitPaneCount } from "@/lib/documents/tree";
 import { buildDocumentsPage, type PageDocument } from "@/lib/documents/page-query";
 import { highlightParts, matchDocument } from "@/lib/documents/search";
 import { documentStatus } from "@/lib/documents/status";
@@ -106,5 +106,20 @@ describe("search, filters and sort (feature 013, US4)", () => {
     }
     times.sort((a, b) => a - b);
     expect(times[25]).toBeLessThan(16);
+  });
+});
+
+describe("folder pages (feature 013 follow-up)", () => {
+  const many = Array.from({ length: 23 }, (_, index) => ({ unitId: `p${index}` }));
+  it("shows 10 folders per page, clamps the page, and labels the range", () => {
+    expect(pageFolders(many, 1)).toMatchObject({ page: 1, lastPage: 3, label: "1–10 of 23 folders" });
+    expect(pageFolders(many, 3).folders.map((folder) => folder.unitId)).toEqual(["p20", "p21", "p22"]);
+    expect(pageFolders(many, 9)).toMatchObject({ page: 3, label: "21–23 of 23 folders" });
+    expect(pageFolders([], 2)).toMatchObject({ page: 1, lastPage: 1, label: "" });
+  });
+  it("finds the page that holds a folder", () => {
+    expect(pageOfFolder(many, "p0")).toBe(1);
+    expect(pageOfFolder(many, "p10")).toBe(2);
+    expect(pageOfFolder(many, "missing")).toBe(1);
   });
 });

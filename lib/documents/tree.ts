@@ -3,6 +3,7 @@ import type { DocumentStatus } from "@/lib/documents/status";
 import type { PageDocument, PageUnit } from "@/lib/documents/page-query";
 import type { DocumentSort } from "@/lib/documents/url-state";
 import { matchDocument, normalizeQuery } from "@/lib/documents/search";
+import { lastPageFor, pageSize } from "@/lib/pagination/list-page";
 
 // Feature 013 (FR-005–FR-009, FR-012–FR-016, FR-019–FR-020): the unit folder tree and the driver
 // license list, filtered, searched and sorted in memory.
@@ -88,4 +89,20 @@ export function filterLicenses(licenses: PageDocument[], query: string, statuses
   const rows = licenses.filter((doc) => passes(doc, [], statuses) && matchDocument(doc, q)).sort(compareDocuments(sort));
   const summary = q || statuses.length ? (rows.length ? plural(rows.length, "result") : null) : null;
   return { rows, summary };
+}
+
+/** The folders on one page of the unit pane, 10 per page like the other lists. The page is clamped. */
+export function pageFolders<T>(folders: T[], requested: number) {
+  const lastPage = lastPageFor(folders.length);
+  const page = Math.min(Math.max(1, requested), lastPage);
+  const start = (page - 1) * pageSize;
+  const shown = folders.slice(start, start + pageSize);
+  const label = folders.length ? `${start + 1}–${start + shown.length} of ${plural(folders.length, "folder")}` : "";
+  return { folders: shown, page, lastPage, label };
+}
+
+/** The page that holds a folder, so an upload or bring back can show it. */
+export function pageOfFolder(folders: { unitId: string }[], unitId: string) {
+  const index = folders.findIndex((folder) => folder.unitId === unitId);
+  return index < 0 ? 1 : Math.floor(index / pageSize) + 1;
 }

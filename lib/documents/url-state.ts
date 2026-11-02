@@ -23,6 +23,8 @@ export interface DocumentsUrlState {
   dsearch: string;
   dstatus: DocumentStatus[];
   doc: string | null;
+  /** Folder page of the unit pane, 10 folders per page (1 when absent). */
+  upage: number;
 }
 
 type Params = Record<string, string | string[] | undefined> | URLSearchParams;
@@ -52,6 +54,7 @@ export function parseDocumentsParams(params: Params): DocumentsUrlState {
     dsearch: read(params, "dsearch").slice(0, 100),
     dstatus: legacyDue && !read(params, "dstatus") ? dueStatuses : list(read(params, "dstatus"), documentStatuses),
     doc: uuid.test(doc) ? doc : null,
+    upage: /^[1-9]\d{0,3}$/.test(read(params, "upage")) ? Number(read(params, "upage")) : 1,
   };
 }
 
@@ -64,6 +67,7 @@ export function serializeDocumentsParams(state: DocumentsUrlState) {
   if (state.ustatus.length) params.set("ustatus", state.ustatus.join(","));
   if (state.dsearch) params.set("dsearch", state.dsearch);
   if (state.dstatus.length) params.set("dstatus", state.dstatus.join(","));
+  if (state.upage > 1) params.set("upage", String(state.upage));
   if (state.doc) params.set("doc", state.doc);
   const text = params.toString().replaceAll("%2C", ",");
   return text ? `?${text}` : "";
