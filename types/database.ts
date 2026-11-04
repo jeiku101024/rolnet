@@ -164,6 +164,11 @@ export interface Database {
       approve_staff_registration: { Args: { p_user_id: string }; Returns: unknown };
       reject_staff_registration: { Args: { p_reason?: string; p_user_id: string }; Returns: unknown };
       set_staff_account_status: { Args: { p_status: ProfileStatus; p_user_id: string }; Returns: unknown };
+      // Feature 014.
+      report_unit_month_totals: {
+        Args: { p_from: string; p_to: string };
+        Returns: { unit_id: string; month: string; rental_centavos: number; allowance_centavos: number; remittance_count: number; expense_centavos: number }[];
+      };
       // Feature 012.
       save_driver_absence: {
         Args: { p_id: string | null; p_driver_id: string; p_type: DriverAbsenceType; p_start: string; p_end: string | null; p_reason: DriverAbsenceReason; p_note: string | null; p_release_ids: string[]; p_expected_updated_at?: string | null };

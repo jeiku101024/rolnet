@@ -108,8 +108,11 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
 - Remittance financials (feature 009): every remittance stores an **Allowance** of ₱40
   (`allowance_centavos = 4000`), fixed when it is saved, and a **Deposit** = paid − allowance
   (`deposit_centavos`, may be negative). The database keeps the deposit in step with the payments
-  (triggers `remittances_set_deposit` and `remittance_payments_sync_deposit`), so it is correct for
-  every entry path. A payment can't take a remittance's total above its rental; the database rejects
+  (triggers `remittances_zz_set_deposit`, named to fire after `remittances_validate`, and
+  `remittance_payments_sync_deposit`), so it is correct for every entry path. Feature 014 briefly made it
+  rental − allowance; migration `20261103000300_restore_payments_deposit_rule.sql` restored paid − allowance.
+  The report workbooks still write Deposit as the formula Rental − Allowance (the client's mocks), so a
+  report's Deposit can differ from the app's for a record that was not paid in full. A payment can't take a remittance's total above its rental; the database rejects
   it with "Payment can't exceed the rental of ₱X. At most ₱Y more can be recorded." There is no
   credit. Records that were already overpaid before this rule keep their payments, show "Paid", and
   accept no new payment.
@@ -128,12 +131,24 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   disposition never changes (the owner reverses it on its details page); raising the payment adds the
   difference, and only the owner can lower it, which voids the earlier payments with a reason and
   records the new total.
-- Reports (`/reports`, owner only) download Weekly (Monday to Sunday of any date), Monthly and Yearly
-  .xlsx files for the whole fleet or one unit (retired units included), from
-  `GET /api/reports/{weekly|monthly|yearly}`. They follow the client's template, with live
-  formulas for subtotals, Net and grand totals. The workbook is written by `lib/reports/xlsx.ts`
-  (no spreadsheet package). The old monthly CSV download is gone; the `monthly_report` SQL function
-  and its pgTAP tests remain in the database but the app no longer calls it.
+- Reports (`/reports`, owner only, feature 014) download Weekly (Monday to Sunday of any date), Monthly
+  and Yearly .xlsx workbooks for **all units** (an "All units" summary sheet, then one sheet per unit in
+  natural name order: rolnet-2 before rolnet-10) or a **single unit** (that unit's sheet only). Every
+  non-archived unit gets a sheet; an archived unit only when it has a remittance or expense in the
+  period. Files are named `rolnet-{weekly|monthly|yearly}-{period}-{all-units|unit}.xlsx`. They follow
+  the client's six mock workbooks (`specs/014-reports-xlsx-downloads/reference/`), with live formulas and
+  cached values, and print on one A4 page with Narrow margins.
+  - The server only reads data: `GET /api/reports/{weekly|monthly|yearly}` returns JSON (units plus
+    amounts in centavos) and `GET /api/reports/units` lists the units for the Single unit dropdown. The
+    **browser builds the .xlsx** (`lib/reports/report-payload.ts`, loaded on first Download), because the
+    free Workers plan's 10 ms CPU limit is far below what a 100-unit workbook needs (research R4). The
+    writer is `lib/reports/xlsx.ts` with `zip.ts`, `report-layout.ts` and `summary-sheet.ts`; there is no
+    spreadsheet package. The yearly report reads the `report_unit_month_totals()` SQL function.
+  - `tests/unit/report-mocks.test.ts` compares generated workbooks with the six mocks (styles, formulas,
+    widths, heights, panes, links, print setup). `tests/fixtures/reports/mock-data.json` is rebuilt from
+    the mocks with `UPDATE_MOCK_DATA=1 corepack pnpm exec vitest run tests/unit/report-mock-data.test.ts`.
+  - The old monthly CSV download is gone; the `monthly_report` SQL function and its pgTAP tests remain in
+    the database but the app no longer calls it.
 - Business rows have timestamps, actor IDs, and soft deletion.
 - Driver profile license expiry must match the current license document. Uploading, renewing,
   reverting, restoring or bringing back a license sets the profile date in the same transaction

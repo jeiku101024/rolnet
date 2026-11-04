@@ -52,11 +52,6 @@ export function weekOfMonth(date: string) {
   return day < firstMonday ? 1 : 2 + Math.floor((day - firstMonday) / 7);
 }
 
-/** The Weekly report's "Week N": the week of the month holding its Monday (clarified 2026-10-31). */
-export function weeklyLabel(monday: string) {
-  return weekOfMonth(monday);
-}
-
 /** The month's weeks, cut at its first and last day. */
 export function monthWeeks(month: string): MonthWeek[] {
   const { from, to } = monthRange(month);
@@ -107,11 +102,45 @@ export function validatePeriod(kind: ReportKind, value: string | null, today = f
   return { range: yearRange(Number(value)), key: value };
 }
 
-/** "Covers Mon 27 Jan – Sun 2 Feb 2025" for the week holding the date (contracts/reports-http.md). */
-export function weekCoverText(date: string) {
-  if (!isCalendarDate(date)) return "";
-  const { from, to } = weekRange(date);
-  const [start, end] = days({ from, to }).filter((_, index, all) => index === 0 || index === all.length - 1);
-  const label = (day: ReportDay, withYear: boolean) => `${day.dayLabel} ${Number(day.date.slice(8, 10))} ${day.monthLabel}${withYear ? ` ${day.year}` : ""}`;
-  return `Covers ${label(start, start.year !== end.year)} – ${label(end, true)}`;
+// Feature 014 (research R9): the period texts and Excel dates used by the report workbooks. Month names are
+// fixed English arrays, not Intl output, so the text is the same in every runtime.
+
+export const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] as const;
+
+/** Excel's date serial for a YYYY-MM-DD calendar date: days since 1899-12-30. */
+export function excelSerial(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return Date.UTC(year, month - 1, day) / 86400000 + 25569;
+}
+
+/** "October 2026" for "2026-10". */
+export function monthTitle(month: string) {
+  return `${monthNames[Number(month.slice(5, 7)) - 1]} ${month.slice(0, 4)}`;
+}
+
+const dayOfMonth = (date: string) => Number(date.slice(8, 10));
+const monthLabel = (date: string) => monthLabels[Number(date.slice(5, 7)) - 1];
+
+/** A block's range with an en dash and no spaces: "Oct 1–4", "Oct 26–Nov 1", "Nov 1" for one day. */
+export function rangeLabel(from: string, to: string) {
+  if (from === to) return `${monthLabel(from)} ${dayOfMonth(from)}`;
+  if (from.slice(0, 7) === to.slice(0, 7)) return `${monthLabel(from)} ${dayOfMonth(from)}–${dayOfMonth(to)}`;
+  return `${monthLabel(from)} ${dayOfMonth(from)}–${monthLabel(to)} ${dayOfMonth(to)}`;
+}
+
+/** The week range with spaced en dash and the year: "Oct 19 – 25, 2026", "Oct 26 – Nov 1, 2026", "Dec 28, 2026 – Jan 3, 2027". */
+export function rangeText({ from, to }: DateRange) {
+  if (from.slice(0, 4) !== to.slice(0, 4)) return `${monthLabel(from)} ${dayOfMonth(from)}, ${from.slice(0, 4)} – ${monthLabel(to)} ${dayOfMonth(to)}, ${to.slice(0, 4)}`;
+  if (from.slice(0, 7) === to.slice(0, 7)) return `${monthLabel(from)} ${dayOfMonth(from)} – ${dayOfMonth(to)}, ${from.slice(0, 4)}`;
+  return `${monthLabel(from)} ${dayOfMonth(from)} – ${monthLabel(to)} ${dayOfMonth(to)}, ${to.slice(0, 4)}`;
+}
+
+/** "Week of Oct 26 – Nov 1, 2026" for the week starting on the Monday. */
+export function weekTitle(monday: string) {
+  return `Week of ${rangeText({ from: monday, to: addDays(monday, 6) })}`;
+}
+
+/** The hint under the weekly date picker: "Oct 26 – Nov 1, 2026" for any date in that week, or "" for a bad date. */
+export function weekRangeText(date: string) {
+  return isCalendarDate(date) ? rangeText(weekRange(date)) : "";
 }

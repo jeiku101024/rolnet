@@ -1,0 +1,1367 @@
+{
+  "monthly": {
+    "period": "2026-10",
+    "units": [
+      {
+        "name": "DHDMM1",
+        "remittances": [
+          {
+            "date": "2026-10-01",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-02",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-03",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-04",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-05",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-06",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-07",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-09",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-10",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-11",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-12",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-14",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-15",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-16",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-17",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-18",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-19",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-20",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-21",
+            "driverName": "P2 JUQN",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-22",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-23",
+            "driverName": "P2 JUQN",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-24",
+            "driverName": "P1 EGLQ",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-25",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-27",
+            "driverName": "P2 JUQN",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-28",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-29",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-30",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-31",
+            "driverName": "P2 JUQN",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          }
+        ],
+        "expensesByDate": {
+          "2026-10-26": 72000
+        }
+      },
+      {
+        "name": "DHDMM2",
+        "remittances": [
+          {
+            "date": "2026-10-01",
+            "driverName": "B1 VUUE",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-03",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-04",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-05",
+            "driverName": "B1 VUUE",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-06",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-07",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-08",
+            "driverName": "P2 AURM",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-09",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-10",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-11",
+            "driverName": "B1 VUUE",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-12",
+            "driverName": "B1 VUUE",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-13",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-14",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-15",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-16",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-18",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-19",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-20",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-21",
+            "driverName": "B1 VUUE",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-22",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-23",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-24",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-25",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-26",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-27",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-28",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-29",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-31",
+            "driverName": "P2 AURM",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          }
+        ],
+        "expensesByDate": {
+          "2026-10-05": 72000,
+          "2026-10-19": 35000,
+          "2026-10-26": 250100
+        }
+      },
+      {
+        "name": "DRECB2",
+        "remittances": [
+          {
+            "date": "2026-10-01",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-02",
+            "driverName": "P2 ASLT",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-03",
+            "driverName": "P2 ASLT",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-05",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-06",
+            "driverName": "RA JLEH",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-07",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-09",
+            "driverName": "P2 ASLT",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-10",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-11",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-12",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-13",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-14",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-16",
+            "driverName": "RA JLEH",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-17",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-19",
+            "driverName": "P2 ASLT",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-20",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-21",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-22",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-23",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-25",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-26",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-27",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-28",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-29",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-30",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-31",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          }
+        ],
+        "expensesByDate": {
+          "2026-10-01": 72000,
+          "2026-10-12": 35000,
+          "2026-10-26": 72000
+        }
+      },
+      {
+        "name": "DKQLM3",
+        "remittances": [
+          {
+            "date": "2026-10-01",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-02",
+            "driverName": "B1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-03",
+            "driverName": "RA SHAA",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-05",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-06",
+            "driverName": "B1 XAPS",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-07",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-08",
+            "driverName": "B1 XAPS",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-09",
+            "driverName": "RA SHAA",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-10",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-11",
+            "driverName": "B1 XAPS",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-12",
+            "driverName": "RA SHAA",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-14",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-15",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-16",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-17",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-18",
+            "driverName": "B1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-20",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-21",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-22",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-23",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-24",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-26",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-27",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-28",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-29",
+            "driverName": "B1 XAPS",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-30",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-31",
+            "driverName": "B1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          }
+        ],
+        "expensesByDate": {
+          "2026-10-01": 250100,
+          "2026-10-19": 145000,
+          "2026-10-26": 145000
+        }
+      },
+      {
+        "name": "DNPTV4",
+        "remittances": [
+          {
+            "date": "2026-10-01",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-02",
+            "driverName": "B1 JUQN",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-03",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-04",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-05",
+            "driverName": "B1 AURM",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-06",
+            "driverName": "B1 AURM",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-07",
+            "driverName": "B1 AURM",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-08",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-09",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-10",
+            "driverName": "B1 JUQN",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-11",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-12",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-13",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-14",
+            "driverName": "B1 AURM",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-15",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-17",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-18",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-19",
+            "driverName": "B1 JUQN",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-20",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-21",
+            "driverName": "B1 JUQN",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-23",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-24",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-25",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-26",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-28",
+            "driverName": "B1 AURM",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-29",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-31",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          }
+        ],
+        "expensesByDate": {
+          "2026-10-12": 145000
+        }
+      }
+    ]
+  },
+  "weekly": {
+    "period": "2026-10-26",
+    "units": [
+      {
+        "name": "DHDMM1",
+        "remittances": [
+          {
+            "date": "2026-10-27",
+            "driverName": "P2 JUQN",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-28",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-29",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-30",
+            "driverName": "P1 XAPS",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-31",
+            "driverName": "P2 JUQN",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-11-01",
+            "driverName": "P2 JUQN",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          }
+        ],
+        "expensesByDate": {
+          "2026-10-26": 72000
+        }
+      },
+      {
+        "name": "DHDMM2",
+        "remittances": [
+          {
+            "date": "2026-10-26",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-27",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-28",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-29",
+            "driverName": "P1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-31",
+            "driverName": "P2 AURM",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-11-01",
+            "driverName": "P2 AURM",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          }
+        ],
+        "expensesByDate": {
+          "2026-10-26": 250100
+        }
+      },
+      {
+        "name": "DRECB2",
+        "remittances": [
+          {
+            "date": "2026-10-26",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-27",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-28",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-29",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-30",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-31",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-11-01",
+            "driverName": "P1 LJFD",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          }
+        ],
+        "expensesByDate": {
+          "2026-10-26": 72000
+        }
+      },
+      {
+        "name": "DKQLM3",
+        "remittances": [
+          {
+            "date": "2026-10-26",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-27",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-28",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-29",
+            "driverName": "B1 XAPS",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-30",
+            "driverName": "B1 NQPC",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-31",
+            "driverName": "B1 XAPS",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          }
+        ],
+        "expensesByDate": {
+          "2026-10-26": 145000
+        }
+      },
+      {
+        "name": "DNPTV4",
+        "remittances": [
+          {
+            "date": "2026-10-26",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-28",
+            "driverName": "B1 AURM",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-29",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-10-31",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 30000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "date": "2026-11-01",
+            "driverName": "B1 EGLQ",
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          }
+        ],
+        "expensesByDate": {}
+      }
+    ]
+  },
+  "yearly": {
+    "period": "2026",
+    "units": [
+      {
+        "name": "DHDMM1",
+        "months": [
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 504000,
+            "allowanceCentavos": 96000
+          },
+          {
+            "rentalCentavos": 486000,
+            "allowanceCentavos": 92000
+          },
+          {
+            "rentalCentavos": 456000,
+            "allowanceCentavos": 80000
+          },
+          {
+            "rentalCentavos": 516000,
+            "allowanceCentavos": 104000
+          },
+          {
+            "rentalCentavos": 600000,
+            "allowanceCentavos": 112000
+          },
+          {
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          }
+        ],
+        "expenseCentavos": 435000
+      },
+      {
+        "name": "DHDMM2",
+        "months": [
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 474000,
+            "allowanceCentavos": 84000
+          },
+          {
+            "rentalCentavos": 582000,
+            "allowanceCentavos": 108000
+          },
+          {
+            "rentalCentavos": 522000,
+            "allowanceCentavos": 100000
+          },
+          {
+            "rentalCentavos": 582000,
+            "allowanceCentavos": 108000
+          },
+          {
+            "rentalCentavos": 600000,
+            "allowanceCentavos": 112000
+          },
+          {
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          }
+        ],
+        "expenseCentavos": 982000
+      },
+      {
+        "name": "DRECB2",
+        "months": [
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 468000,
+            "allowanceCentavos": 96000
+          },
+          {
+            "rentalCentavos": 552000,
+            "allowanceCentavos": 104000
+          },
+          {
+            "rentalCentavos": 558000,
+            "allowanceCentavos": 116000
+          },
+          {
+            "rentalCentavos": 576000,
+            "allowanceCentavos": 112000
+          },
+          {
+            "rentalCentavos": 564000,
+            "allowanceCentavos": 104000
+          },
+          {
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          }
+        ],
+        "expenseCentavos": 1250000
+      },
+      {
+        "name": "DKQLM3",
+        "months": [
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 462000,
+            "allowanceCentavos": 84000
+          },
+          {
+            "rentalCentavos": 444000,
+            "allowanceCentavos": 80000
+          },
+          {
+            "rentalCentavos": 552000,
+            "allowanceCentavos": 112000
+          },
+          {
+            "rentalCentavos": 498000,
+            "allowanceCentavos": 92000
+          },
+          {
+            "rentalCentavos": 570000,
+            "allowanceCentavos": 108000
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          }
+        ],
+        "expenseCentavos": 318000
+      },
+      {
+        "name": "DNPTV4",
+        "months": [
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          },
+          {
+            "rentalCentavos": 498000,
+            "allowanceCentavos": 100000
+          },
+          {
+            "rentalCentavos": 564000,
+            "allowanceCentavos": 112000
+          },
+          {
+            "rentalCentavos": 486000,
+            "allowanceCentavos": 92000
+          },
+          {
+            "rentalCentavos": 600000,
+            "allowanceCentavos": 112000
+          },
+          {
+            "rentalCentavos": 582000,
+            "allowanceCentavos": 108000
+          },
+          {
+            "rentalCentavos": 18000,
+            "allowanceCentavos": 4000
+          },
+          {
+            "rentalCentavos": 0,
+            "allowanceCentavos": 0
+          }
+        ],
+        "expenseCentavos": 764000
+      }
+    ]
+  }
+}

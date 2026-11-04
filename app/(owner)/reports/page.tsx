@@ -2,7 +2,6 @@ import { requirePermission } from "@/lib/auth/guards";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { demoMode, demoRemittances } from "@/lib/demo/mode";
 import { fleetToday } from "@/lib/dates/fleet-date";
-import { loadReportUnits } from "@/lib/reports/report-data";
 import { ReportExportForm } from "@/components/forms/report-export-form";
 import { PageHeader } from "@/components/ui/page-header";
 
@@ -16,14 +15,11 @@ function yearChoices(earliest: string | null) {
 export default async function ReportsPage() {
   await requirePermission("export_reports");
   const supabase = demoMode ? null : await createSupabaseServerClient();
-  const [units, earliest] = await Promise.all([
-    loadReportUnits(supabase),
-    supabase
-      ? supabase.from("remittances").select("service_date").is("deleted_at", null).order("service_date").limit(1).maybeSingle().then(({ data }) => (data?.service_date as string | undefined) ?? null)
-      : Promise.resolve(demoRemittances.map((row) => row.service_date).sort()[0] ?? null),
-  ]);
+  const earliest = supabase
+    ? await supabase.from("remittances").select("service_date").is("deleted_at", null).order("service_date").limit(1).maybeSingle().then(({ data }) => (data?.service_date as string | undefined) ?? null)
+    : demoRemittances.map((row) => row.service_date).sort()[0] ?? null;
   return <section className="workspace">
-    <PageHeader eyebrow="Reporting" title="Reports" description="Download Weekly, Monthly or Yearly reports as Excel files for the whole fleet or one unit." />
-    <div className="mt-8 max-w-xl border-t border-rule pt-5"><ReportExportForm units={units} years={yearChoices(earliest)} /></div>
+    <PageHeader eyebrow="Reporting" title="Reports" description="Download Weekly, Monthly or Yearly reports as Excel files for all units or a single unit." />
+    <div className="mt-8 max-w-xl border-t border-rule pt-5"><ReportExportForm years={yearChoices(earliest)} /></div>
   </section>;
 }
