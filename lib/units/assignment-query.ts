@@ -10,7 +10,7 @@ type Embed<T> = T | T[] | null;
 /**
  * One date's rows for the Daily assignment view (feature 010): non-archived units with their status
  * history, the date's saved assignments, which units already have a remittance that day, eligible
- * drivers, and (future dates) each unit's latest earlier assignment for pre-fill. `null` reads demo data.
+ * drivers, and (today and future dates) each unit's latest earlier assignment for pre-fill. `null` reads demo data.
  */
 export async function loadAssignmentRows(supabase: Supabase | null, date: string, today: string): Promise<AssignmentRows> {
   if (!supabase) return demoAssignmentRows(date, today);
@@ -20,7 +20,7 @@ export async function loadAssignmentRows(supabase: Supabase | null, date: string
     supabase.from("unit_assignments").select("id, unit_id, driver_id, notes, updated_at, drivers(full_name, driver_kind)").eq("service_date", date).is("deleted_at", null),
     supabase.from("remittances").select("unit_id").eq("service_date", date).is("deleted_at", null),
     supabase.from("drivers").select("id, full_name, driver_kind, is_active, license_expiry_date").is("deleted_at", null).eq("is_active", true).gte("license_expiry_date", date),
-    date > today ? supabase.rpc("latest_unit_assignments_before", { p_date: date }) : Promise.resolve({ data: [], error: null }),
+    date >= today ? supabase.rpc("latest_unit_assignments_before", { p_date: date }) : Promise.resolve({ data: [], error: null }),
     // Feature 012: absences that may cover the date (cancelled ones never do).
     supabase.from("driver_absences").select("driver_id, start_date, end_date, cancelled_at, ended_early_on").is("deleted_at", null).is("cancelled_at", null).lte("start_date", date).or(`end_date.is.null,end_date.gte.${date}`),
   ]);
@@ -44,7 +44,7 @@ export async function loadAssignmentRows(supabase: Supabase | null, date: string
 function demoAssignmentRows(date: string, today: string): AssignmentRows {
   const saved = demoUnitAssignmentsDaily.filter((row) => row.service_date === date);
   const latest = new Map<string, { unit_id: string; driver_id: string; service_date: string }>();
-  if (date > today) for (const row of demoUnitAssignmentsDaily) if (row.service_date < date && (latest.get(row.unit_id)?.service_date ?? "") < row.service_date) latest.set(row.unit_id, row);
+  if (date >= today) for (const row of demoUnitAssignmentsDaily) if (row.service_date < date && (latest.get(row.unit_id)?.service_date ?? "") < row.service_date) latest.set(row.unit_id, row);
   return {
     units: demoUnits.filter((unit) => !unit.archived).map(({ id, name, body_number, plate_number, make_model, created_at, current_mileage }) => ({ id, name, body_number, plate_number, make_model, created_at, current_mileage })),
     statusChanges: demoUnitStatusChanges.map((change) => ({ ...change })) as (StatusChange & { unit_id: string })[],

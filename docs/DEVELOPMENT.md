@@ -167,8 +167,8 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   Daily assignment view (`/units?view=daily&date=YYYY-MM-DD`, any date, owner and staff). One driver
   per unit and one unit per driver per day, enforced by unique indexes on `unit_assignments`; saving
   goes through `save_unit_assignment` (insert, or overwrite with the `updated_at` the card showed).
-  Future dates pre-fill each card with the unit's latest earlier driver
-  (`latest_unit_assignments_before`); pre-fills are never stored. Once a remittance is saved for a
+  Today and future dates pre-fill each unsaved card with the unit's latest earlier driver
+  (`latest_unit_assignments_before`); past dates start empty, and pre-fills are never stored. Once a remittance is saved for a
   unit and date, that day's assignment is locked until the remittance is reversed. A unit's current
   driver anywhere in the app is its saved assignment for today (`lib/assignments/current-drivers.ts`).
   Primary assignments, days off and backup coverage are read-only history.
