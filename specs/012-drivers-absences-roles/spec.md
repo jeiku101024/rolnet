@@ -257,7 +257,7 @@ The Absences tab lists every absence for the driver with its status, and lets th
 - **FR-038**: When any covered date is before today and assignments or remittances exist for the driver on those past dates, the modal MUST show an amber warning with the counts and change the save button to "Save anyway". Absences MUST NOT change, release, or hide any past assignment or remittance.
 - **FR-039**: Saving MUST show the toast "[Driver] is on day-off [date]", "[Driver] is on leave [start] to [end]", or "[Driver] is on leave from [start] (no end date)".
 - **FR-040**: A driver MUST be available for assignment on a date only if he is Active (not Inactive), no absence covers that date, his licence is valid on that date, and he is not already assigned to another unit on that date. Only available drivers MUST be offered in the Units Daily assignment dropdowns, and the system MUST reject saving an assignment for a driver who is absent on that date.
-- **FR-041**: Future-date pre-fill on the Units Daily assignment view MUST leave the dropdown empty when the previous day's driver is not available on the selected date.
+- **FR-041**: Pre-fill (today and future dates) on the Units Daily assignment view MUST leave the dropdown empty when the previous day's driver is not available on the selected date.
 
 #### Releasing assignments
 

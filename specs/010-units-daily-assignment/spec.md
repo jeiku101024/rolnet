@@ -19,6 +19,10 @@
 - Q: Should a unit appear in the daily views on dates before it was added? → A: No. It appears only on and after the date it was added, in the fleet time zone, and is left out of earlier dates' cards and counts (FR-011a).
 - Q: Which months does "Monthly expenses vs allowance" show? → A: Only months within the last 12 calendar months (including the current one) that have remittances or expenses for the unit, newest first. Older months are in the Yearly report (FR-041).
 
+
+### Session 2026-11-04
+
+- Q: Should today's unsaved cards be pre-filled like future dates? → A: Yes. Today and future dates pre-fill each unsaved card with the unit's latest earlier driver (usually yesterday's). Past dates still start empty, because they record what already happened (FR-021, US2 scenario 3).
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Assign a driver to each unit for the day (Priority: P1)
@@ -45,7 +49,7 @@ Each morning (or ahead of time), the owner opens Units, switches to **Daily assi
 
 ### User Story 2 - Plan future days with pre-filled drivers (Priority: P1)
 
-When the owner moves to a future date, each unsaved card suggests the driver that unit had most recently, marked "Pre-filled from previous day". The owner reviews, changes any that differ, and saves each card. Nothing is stored until Save assignment is clicked.
+When the owner opens today or moves to a future date, each unsaved card suggests the driver that unit had most recently, marked "Pre-filled from previous day". The owner reviews, changes any that differ, and saves each card. Nothing is stored until Save assignment is clicked.
 
 **Why this priority**: Most days repeat the previous day's pairings, so pre-fill makes planning a full fleet a few clicks instead of a dozen dropdowns.
 
@@ -53,9 +57,9 @@ When the owner moves to a future date, each unsaved card suggests the driver tha
 
 **Acceptance Scenarios**:
 
-1. **Given** a future date and an unsaved card whose unit has an earlier saved assignment, **When** the date loads, **Then** the dropdown is pre-filled with the driver from that unit's latest saved assignment before the date, with the hint "Pre-filled from previous day".
+1. **Given** today or a future date and an unsaved card whose unit has an earlier saved assignment, **When** the date loads, **Then** the dropdown is pre-filled with the driver from that unit's latest saved assignment before the date, with the hint "Pre-filled from previous day".
 2. **Given** a pre-filled driver who is already saved on another unit for that date, **When** the date loads, **Then** the dropdown is left empty and no hint is shown.
-3. **Given** today or a past date, **When** the date loads, **Then** unsaved cards start empty with no pre-fill.
+3. **Given** a past date (yesterday or earlier), **When** the date loads, **Then** unsaved cards start empty with no pre-fill.
 4. **Given** a pre-filled card, **When** the owner leaves without saving, **Then** no assignment is stored and the progress count does not include it.
 5. **Given** two cards whose pre-fills name the same driver, **When** the owner saves both, **Then** the first save wins and the second fails with "Driver already assigned today", as in User Story 1.
 
@@ -215,7 +219,7 @@ From "More info", the owner sees the unit's name, body number, plate and motorcy
 
 **Daily assignment view: pre-fill**
 
-- **FR-021**: On a future date only, each unsaved, non-blocked card MUST be pre-filled with the driver from that unit's latest saved assignment before the selected date, with the hint "Pre-filled from previous day". It MUST be left empty if that driver is saved on another unit for the selected date or is no longer eligible (FR-014).
+- **FR-021**: On today or a future date (never a past date), each unsaved, non-blocked card MUST be pre-filled with the driver from that unit's latest saved assignment before the selected date, with the hint "Pre-filled from previous day". It MUST be left empty if that driver is saved on another unit for the selected date or is no longer eligible (FR-014).
 - **FR-022**: A pre-fill MUST be only a suggestion the owner can change. It MUST NOT be stored or counted as assigned until Save assignment is clicked.
 
 **Unit status over time and blocked units**

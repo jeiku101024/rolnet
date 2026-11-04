@@ -7,8 +7,8 @@ import type { Absence } from "@/lib/drivers/absences";
 // card"). Pure, so every rule is unit tested: one card per non-archived unit that exists on the date
 // (FR-011, FR-011a); a saved assignment locks the card, and a remittance on that day locks it for
 // good (FR-019, FR-019a); a unit In repair or Retired on the date is blocked (FR-026); dropdowns
-// list only eligible drivers not saved on another unit that date (FR-014, FR-015); future dates
-// pre-fill each open card with the unit's latest earlier driver (FR-021). Feature 012: a driver with an
+// list only eligible drivers not saved on another unit that date (FR-014, FR-015); today and future
+// dates pre-fill each open card with the unit's latest earlier driver (FR-021); past dates never do. Feature 012: a driver with an
 // absence covering the date is not offered and is never pre-filled (FR-040, FR-041).
 
 export type DriverKind = "primary" | "backup";
@@ -20,7 +20,7 @@ export interface AssignmentRows {
   /** Units with a saved remittance on the date: their assignment can no longer change. */
   remittanceUnitIds: string[];
   drivers: { id: string; full_name: string; driver_kind: DriverKind; is_active: boolean; license_expiry_date: string }[];
-  /** Each unit's latest saved assignment before the date (future dates only). */
+  /** Each unit's latest saved assignment before the date (today and future dates only). */
   prefill: { unit_id: string; driver_id: string }[];
   /** Feature 012: absences that may cover the date. */
   absences?: Pick<Absence, "driver_id" | "start_date" | "end_date" | "cancelled_at" | "ended_early_on">[];
@@ -85,7 +85,8 @@ export function buildAssignmentBoard({ date, today, rows }: { date: string; toda
       cards.push({ ...base, options: [], kind: "blocked", status: status as BlockedCard["status"] });
       continue;
     }
-    const candidate = isFuture ? prefillOf.get(unit.id) ?? null : null;
+    // Today and later are planning, so they get a suggestion; past dates are history and start empty.
+    const candidate = date >= today ? prefillOf.get(unit.id) ?? null : null;
     const prefillDriverId = candidate && base.options.some((option) => option.id === candidate) ? candidate : null;
     cards.push({ ...base, kind: "open", prefillDriverId });
   }

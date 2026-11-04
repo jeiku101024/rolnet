@@ -69,8 +69,8 @@ describe("pre-fill (feature 010, US2)", () => {
     expect(board.cards[1]).toMatchObject({ kind: "open", prefillDriverId: null });
   });
 
-  it("doesn't pre-fill today or past dates", () => {
-    expect(build({ units, drivers, prefill: [{ unit_id: "u1", driver_id: "d1" }] }).cards[0]).toMatchObject({ prefillDriverId: null });
+  it("pre-fills today too, but never a past date", () => {
+    expect(build({ units, drivers, prefill: [{ unit_id: "u1", driver_id: "d1" }] }).cards[0]).toMatchObject({ prefillDriverId: "d1" });
     expect(build({ units, drivers, prefill: [{ unit_id: "u1", driver_id: "d1" }] }, "2026-10-31").cards[0]).toMatchObject({ prefillDriverId: null });
   });
 

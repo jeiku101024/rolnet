@@ -92,8 +92,10 @@ test.describe("units daily assignment view", () => {
     await expect(card(page, "ROLNET-8")).not.toContainText("Pre-filled from previous day");
   });
 
-  test("starts today and past dates empty, with no pre-fill", async ({ page }) => {
+  test("starts past dates empty, with no pre-fill", async ({ page }) => {
     await page.goto("/units?view=daily");
+    await page.getByRole("button", { name: "Previous day" }).click();
+    await expect(page).toHaveURL(/date=/);
     await expect(page.getByText("Pre-filled from previous day")).toHaveCount(0);
   });
 
@@ -113,7 +115,13 @@ test.describe("blocked units over time", () => {
   test("blocks a unit from the day it went into repair, not before", async ({ page }) => {
     await page.goto("/units?view=daily");
     await expect(card(page, "ROLNET-7, In repair")).toBeVisible();
-    for (let day = 0; day < 4; day++) await page.getByRole("button", { name: "Previous day" }).click();
+    // Wait for each day to load before stepping back again, or quick clicks can be lost.
+    const picker = page.getByRole("button", { name: /^Choose date/ });
+    for (let day = 0; day < 4; day++) {
+      const shown = await picker.getAttribute("aria-label");
+      await page.getByRole("button", { name: "Previous day" }).click();
+      await expect(picker).not.toHaveAttribute("aria-label", shown ?? "");
+    }
     await expect(card(page, "ROLNET-7")).toBeVisible();
     await expect(card(page, "ROLNET-2, In repair")).toBeVisible();
   });
