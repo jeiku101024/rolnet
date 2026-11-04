@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { days, defaultPeriods, weekCoverText, monthRange, monthWeeks, validatePeriod, weekOfMonth, weekRange, weeklyLabel, yearRange } from "@/lib/reports/periods";
+import { days, defaultPeriods, excelSerial, monthRange, monthTitle, monthWeeks, rangeLabel, validatePeriod, weekOfMonth, weekRange, weekRangeText, weekTitle, yearRange } from "@/lib/reports/periods";
 
 describe("report periods (feature 009, research R6)", () => {
   it("finds Monday to Sunday of a week, across months and years", () => {
@@ -16,12 +16,6 @@ describe("report periods (feature 009, research R6)", () => {
     // A month starting on a Monday: Week 1 is a full week.
     expect(weekOfMonth("2025-09-07")).toBe(1);
     expect(weekOfMonth("2025-09-08")).toBe(2);
-  });
-
-  it("labels a Weekly report with the week of its Monday's month (FR-030)", () => {
-    expect(weeklyLabel("2025-01-27")).toBe(5);
-    // December 2024 starts on a Sunday, so Mon 30 Dec is in its sixth week.
-    expect(weeklyLabel("2024-12-30")).toBe(6);
   });
 
   it("cuts a month's weeks at its first and last day", () => {
@@ -69,9 +63,44 @@ describe("report periods (feature 009, research R6)", () => {
     expect(weekRange(defaults.date).from).toBe("2025-01-27");
   });
 
-  it("describes the week a Weekly report covers", () => {
-    expect(weekCoverText("2025-01-29")).toBe("Covers Mon 27 Jan – Sun 2 Feb 2025");
-    expect(weekCoverText("2025-01-01")).toBe("Covers Mon 30 Dec 2024 – Sun 5 Jan 2025");
-    expect(weekCoverText("")).toBe("");
+});
+
+describe("report period texts and Excel dates (feature 014, research R9)", () => {
+  it("turns a calendar date into Excel's date serial", () => {
+    expect(excelSerial("2026-10-01")).toBe(46296);
+    expect(excelSerial("1900-03-01")).toBe(61);
+    expect(excelSerial("2026-01-01") + 31).toBe(excelSerial("2026-02-01"));
+  });
+
+  it("titles a month with its English name", () => {
+    expect(monthTitle("2026-10")).toBe("October 2026");
+    expect(monthTitle("2027-01")).toBe("January 2027");
+  });
+
+  it("labels a block's range with an en dash and no spaces", () => {
+    expect(rangeLabel("2026-10-01", "2026-10-04")).toBe("Oct 1–4");
+    expect(rangeLabel("2026-10-05", "2026-10-11")).toBe("Oct 5–11");
+    expect(rangeLabel("2026-11-01", "2026-11-01")).toBe("Nov 1");
+    expect(rangeLabel("2026-10-26", "2026-11-01")).toBe("Oct 26–Nov 1");
+    expect(rangeLabel("2026-12-28", "2027-01-03")).toBe("Dec 28–Jan 3");
+  });
+
+  it("titles a week within a month, across months and across years", () => {
+    expect(weekTitle("2026-10-19")).toBe("Week of Oct 19 – 25, 2026");
+    expect(weekTitle("2026-10-26")).toBe("Week of Oct 26 – Nov 1, 2026");
+    expect(weekTitle("2026-12-28")).toBe("Week of Dec 28, 2026 – Jan 3, 2027");
+  });
+
+  it("shows the week range under the weekly date picker", () => {
+    expect(weekRangeText("2026-10-28")).toBe("Oct 26 – Nov 1, 2026");
+    expect(weekRangeText("2026-11-01")).toBe("Oct 26 – Nov 1, 2026");
+    expect(weekRangeText("2026-10-21")).toBe("Oct 19 – 25, 2026");
+    expect(weekRangeText("not a date")).toBe("");
+  });
+
+  it("splits October 2026 into five blocks and November 2026 into six, the first being one day", () => {
+    expect(monthWeeks("2026-10").map((block) => rangeLabel(block.from, block.to))).toEqual(["Oct 1–4", "Oct 5–11", "Oct 12–18", "Oct 19–25", "Oct 26–31"]);
+    const november = monthWeeks("2026-11").map((block) => rangeLabel(block.from, block.to));
+    expect(november).toEqual(["Nov 1", "Nov 2–8", "Nov 9–15", "Nov 16–22", "Nov 23–29", "Nov 30"]);
   });
 });
