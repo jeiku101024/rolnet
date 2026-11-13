@@ -14,7 +14,7 @@ import type { SfMonthlyFlow, SfParticipantSummary } from "@/lib/sinking-fund/typ
 
 function ChartFrame({ title, chart, table }: { title: string; chart: ReactNode; table: ReactNode }) {
   const [asTable, setAsTable] = useState(false);
-  return <section className="grid gap-3 rounded-md border border-rule bg-surface p-4" aria-label={title}>
+  return <section className="grid content-start gap-3 rounded-md border border-rule bg-surface p-4" aria-label={title}>
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h2 className="text-section-title font-bold text-ink">{title}</h2>
       <button type="button" aria-pressed={asTable} onClick={() => setAsTable((current) => !current)}

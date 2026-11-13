@@ -34,7 +34,7 @@ export function InterestFundCard({ summary, today }: { summary: SfFundSummary; t
 
 /** Transactions view: five cards across all participants. */
 export function TransactionsSummary({ summary, today }: { summary: SfFundSummary; today: string }) {
-  return <section aria-label="Summary" className="grid grid-cols-2 items-start gap-4 lg:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.5fr)]">
+  return <section aria-label="Summary" className="grid grid-cols-2 items-stretch gap-4 lg:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.5fr)]">
     <Stat label="Total savings" value={formatPesos(summary.total_savings_centavos)} />
     <Stat label="Loans outstanding" value={formatPesos(summary.loans_outstanding_centavos)} note={`${summary.open_loan_count} open`} />
     <Stat label="Balance to collect" value={formatPesos(summary.balance_to_collect_centavos)} />
@@ -45,7 +45,7 @@ export function TransactionsSummary({ summary, today }: { summary: SfFundSummary
 
 /** Participants view: totals, including the Interest fund and the count of active participants. */
 export function ParticipantsSummary({ summary, today }: { summary: SfFundSummary; today: string }) {
-  return <section aria-label="Summary" className="grid grid-cols-2 items-start gap-4 lg:grid-cols-5">
+  return <section aria-label="Summary" className="grid grid-cols-2 items-stretch gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))_minmax(0,1.5fr)_minmax(0,1fr)]">
     <Stat label="Total savings" value={formatPesos(summary.total_savings_centavos)} />
     <Stat label="Total loans" value={formatPesos(summary.loans_outstanding_centavos)} note="Principal outstanding" />
     <Stat label="Balance to collect" value={formatPesos(summary.balance_to_collect_centavos)} />

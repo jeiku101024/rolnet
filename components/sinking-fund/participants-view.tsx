@@ -76,7 +76,7 @@ export function ParticipantsView() {
 
   return <div className="grid gap-4">
     <ParticipantsSummary summary={data.summary} today={data.today} />
-    <div className="grid items-start gap-4 lg:grid-cols-2">
+    <div className="grid items-stretch gap-4 lg:grid-cols-2">
       <SavingsDonut participants={data.participants} />
       <MonthlyBars flows={data.flows ?? []} />
     </div>
