@@ -7,10 +7,12 @@ export type Permission =
   | "view_dashboard"
   | "export_reports"
   | "manage_users"
-  | "view_audit";
+  | "view_audit"
+  | "manage_fund";
 
 const permissions: Record<AppRole, readonly Permission[]> = {
   owner: [
+    "manage_fund",
     "manage_master_data",
     "encode_operations",
     "manage_documents",

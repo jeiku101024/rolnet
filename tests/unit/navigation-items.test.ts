@@ -21,10 +21,10 @@ describe("navigation destination registry", () => {
     expect(navigationDestinations.every((item) => item.href.startsWith("/"))).toBe(true);
   });
 
-  it("shows all nine destinations to an approved owner (Maintenance merged into Expenses, feature 011)", () => {
+  it("shows all ten destinations to an approved owner (Sinking fund added, feature 015)", () => {
     const groups = getNavigationGroups(owner);
     expect(groups.map((group) => group.label)).toEqual(["Overview", "Fleet", "Operations", "Administration"]);
-    expect(groups.flatMap((group) => group.destinations)).toHaveLength(9);
+    expect(groups.flatMap((group) => group.destinations)).toHaveLength(10);
   });
 
   it("shows only approved-session fleet and operations pages to staff", () => {
@@ -35,6 +35,7 @@ describe("navigation destination registry", () => {
       "Drivers",
       "Remittances",
       "Expenses",
+      "Sinking fund",
     ]);
   });
 
@@ -64,10 +65,10 @@ describe("navigation destination registry", () => {
     const { container } = render(
       createElement(SidebarProvider, null, createElement(NavigationItems, { groups })),
     );
-    expect(screen.getAllByRole("link")).toHaveLength(9);
+    expect(screen.getAllByRole("link")).toHaveLength(10);
     expect(screen.getByRole("link", { name: "Units" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "Units" })).toHaveAttribute("data-active", "true");
-    expect(container.querySelectorAll("svg[aria-hidden='true']")).toHaveLength(9);
+    expect(container.querySelectorAll("svg[aria-hidden='true']")).toHaveLength(10);
     for (const destination of navigationDestinations) {
       expect(screen.getByRole("link", { name: destination.label })).toBeVisible();
       expect(destination.icon).toBeTruthy();

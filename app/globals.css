@@ -45,6 +45,17 @@
   --token-danger-soft: #fbe9e8;
   --token-info: #1f4f7a;
   --token-info-soft: #e6eef7;
+  /* Feature 015: Sinking fund type tags and trophies. Each pair meets 4.5:1 text contrast. */
+  --token-violet: #5b3f8c;
+  --token-violet-soft: #efe9f7;
+  --token-orange: #8f4300;
+  --token-orange-soft: #ffeadb;
+  --token-gold: #7a5a00;
+  --token-gold-soft: #fff3c2;
+  --token-silver: #4a5565;
+  --token-silver-soft: #eceff3;
+  --token-bronze: #7a4a22;
+  --token-bronze-soft: #f6e6d8;
   --token-control-border: #7d8996;
 
   --token-text-display: 2.25rem;
@@ -122,6 +133,16 @@
   --color-danger-soft: var(--token-danger-soft);
   --color-info: var(--token-info);
   --color-info-soft: var(--token-info-soft);
+  --color-violet: var(--token-violet);
+  --color-violet-soft: var(--token-violet-soft);
+  --color-orange: var(--token-orange);
+  --color-orange-soft: var(--token-orange-soft);
+  --color-gold: var(--token-gold);
+  --color-gold-soft: var(--token-gold-soft);
+  --color-silver: var(--token-silver);
+  --color-silver-soft: var(--token-silver-soft);
+  --color-bronze: var(--token-bronze);
+  --color-bronze-soft: var(--token-bronze-soft);
   --color-control-border: var(--token-control-border);
   --breakpoint-desk: 75rem;
   --font-sans: var(--font-geist-sans);
