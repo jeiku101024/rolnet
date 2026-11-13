@@ -275,7 +275,7 @@ US1–US4 are the P1 stories; US1–US3 together are the smallest useful slice (
 
 ## Phase 14: Polish and cross-cutting
 
-- [ ] T160 [P] Accessibility pass for every dialog and the sheet: focus trap, Escape, labelled controls, `aria-label` on trophies, chart tables, tooltips on disabled owner-only actions; extend `tests/e2e/accessibility-mobile.spec.ts` to cover `/sinking-fund` views and dialogs at 360 px
+- [x] T160 [P] Accessibility pass for every dialog and the sheet: focus trap, Escape, labelled controls, `aria-label` on trophies, chart tables, tooltips on disabled owner-only actions; extend `tests/e2e/accessibility-mobile.spec.ts` to cover `/sinking-fund` views and dialogs at 360 px
 - [x] T161 [P] Check every screen at 360 px (no horizontal scroll) and confirm no hex colors or arbitrary sizes were added under `components/sinking-fund/`
 - [x] T162 [P] Add a short "Sinking fund" section to `docs/DEVELOPMENT.md`: rules summary, centavo storage, owner-only actions, how to run the new pgTAP files and Vitest tests
 - [x] T163 Run `corepack pnpm lint`, `typecheck`, `test`, `test:e2e`, `check`, and `build:vinext`; fix anything the vinext check flags in the new route
@@ -319,8 +319,13 @@ to `rolnet-dev` and the files re-run against the real schema: 410 18/18, 420 86/
 The full existing pgTAP suite was not re-run (only `080_business_audit`, `rls/001_foundation_rls`, and
 `110_delete_restore`, which pass); the new migrations only add objects.
 
+**Real-mode check (2026-11-13):** a one-off Playwright run on the live :3000 server as the E2E owner added a participant, a
+₱10,000 deposit, a ₱2,000 loan, and a ₱500 payment, and saw the spec toasts, the list details, and the card figures
+(quickstart scenario 1). The test data was voided and archived afterwards. Scenarios 2 to 6 were not repeated in real mode.
+The accessibility e2e now covers all three views and the Add transaction dialog (T160).
+
 **Left open:** T054 (dialog unit test; the e2e spec covers the same behavior), T084 (check the Audit page against
-real data), T160 (extend the accessibility e2e), T164 (quickstart walkthrough on the live :3000 server), T165.
+real data), T164 (quickstart scenarios 2 to 6 on the live server), T165.
 
 **Deviations from the task text:**
 - T010: `sf_settings.id` is a fixed uuid (not a smallint), so the shared `audit_business_change` function is not

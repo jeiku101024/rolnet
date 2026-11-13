@@ -49,14 +49,17 @@ export function shortDueDate(isoDate: string) {
   return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "short", day: "numeric" }).format(new Date(`${isoDate}T00:00:00Z`));
 }
 
+/** Toast amounts drop the .00 on whole pesos, as in the spec examples ("To pay ₱2,100"). */
+const toastPesos = (centavos: number) => formatPesos(centavos).replace(/\.00$/, "");
+
 export function formatLoanToast(amountDueCentavos: number, dueDate: string) {
-  return `Loan recorded. To pay ${formatPesos(amountDueCentavos)} by ${shortDueDate(dueDate)}`;
+  return `Loan recorded. To pay ${toastPesos(amountDueCentavos)} by ${shortDueDate(dueDate)}`;
 }
 
 export function formatPaymentToast(balanceAfterCentavos: number) {
-  return balanceAfterCentavos === 0 ? "Payment recorded. Loan fully paid" : `Payment recorded. Balance ${formatPesos(balanceAfterCentavos)}`;
+  return balanceAfterCentavos === 0 ? "Payment recorded. Loan fully paid" : `Payment recorded. Balance ${toastPesos(balanceAfterCentavos)}`;
 }
 
 export function formatDistributionToast(totalCentavos: number, participants: number) {
-  return `${formatPesos(totalCentavos)} distributed to ${participants} participant${participants === 1 ? "" : "s"}. Shares added to their savings.`;
+  return `${toastPesos(totalCentavos)} distributed to ${participants} participant${participants === 1 ? "" : "s"}. Shares added to their savings.`;
 }

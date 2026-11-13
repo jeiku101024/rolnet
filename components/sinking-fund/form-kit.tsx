@@ -145,7 +145,6 @@ export function SearchableSelect({ id, label, options, value, onChange, placehol
         placeholder={selected ? selected.label : placeholder}
         className={selected && !open && !text ? "placeholder:text-ink" : undefined}
         value={text}
-        onFocus={() => setOpen(true)}
         onClick={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 120)}
         onChange={(event) => { setText(event.target.value); setActive(0); setOpen(true); }}
