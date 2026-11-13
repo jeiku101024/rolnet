@@ -108,12 +108,14 @@ export function SinkingFundPage({ data, params, searchParams, isOwner }: { data:
 
   return <Context.Provider value={actions}>
     <TooltipProvider>
-      <div className="grid gap-5">
+      <section className="workspace">
         <PageHeader eyebrow={pageContext.sinkingFund.eyebrow} title={pageContext.sinkingFund.title}
           action={isOwner ? <Button type="button" variant="outline" onClick={() => setDialog({ kind: "settings" })}><Settings aria-hidden="true" size={16} />Fund settings</Button> : null} />
-        <ViewToggle view={params.view} searchParams={searchParams} />
-        {params.view === "transactions" ? <TransactionsView /> : params.view === "top" ? <TopView /> : <ParticipantsView />}
-      </div>
+        <div className="mt-8 grid gap-6">
+          <ViewToggle view={params.view} searchParams={searchParams} />
+          {params.view === "transactions" ? <TransactionsView /> : params.view === "top" ? <TopView /> : <ParticipantsView />}
+        </div>
+      </section>
 
       {detail ? <ParticipantDetailSheet detail={detail} /> : null}
 

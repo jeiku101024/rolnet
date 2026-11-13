@@ -78,7 +78,7 @@ export const rowGrid = "md:grid-cols-[6.5rem_minmax(8rem,1fr)_8.5rem_9rem_minmax
 /** A Transactions row: a table-like grid from 768 px, a card on phones. Voided rows are struck through with a "Voided" tag. */
 export function TransactionRow({ row }: { row: SfLedgerRow }) {
   const voided = Boolean(row.voided_at);
-  return <li className={`grid gap-2 border-b border-rule px-3 py-3 text-body-sm md:items-start md:gap-4 ${rowGrid}`} data-testid="sf-row">
+  return <li className={`grid gap-2 border-b border-rule px-4 py-4 text-body-sm last:border-b-0 md:items-start md:gap-4 ${rowGrid}`} data-testid="sf-row">
     <span className="font-data text-muted"><span className="sr-only">Date </span>{formatListDate(row.tx_date)}</span>
     <span className="min-w-0 font-semibold"><span className="sr-only">Participant </span>{row.participant_name} {row.participant_is_driver ? <DriverTag /> : null}</span>
     <span className="flex flex-wrap items-center gap-1"><span className="sr-only">Type </span><TypeTag type={row.type} />{voided ? <VoidedTag /> : null}</span>

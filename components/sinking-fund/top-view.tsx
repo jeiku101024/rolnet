@@ -59,7 +59,7 @@ export function TopView() {
         const width = top > 0 ? Math.max(2, Math.round((row.amount_centavos / top) * 100)) : 0;
         return <li key={row.participant_id}>
           <button type="button" onClick={() => viewParticipant(row.participant_id)}
-            className={`grid w-full gap-2 rounded-md border border-rule px-3 text-left hover:border-brand ${style ? `${style.tint} py-4` : "bg-surface py-3"}`} data-testid="sf-rank-row">
+            className={`grid w-full gap-2 rounded-md border border-rule text-left hover:border-brand ${style ? `${style.tint} py-4` : "bg-surface py-3"} px-4`} data-testid="sf-rank-row">
             <span className="flex items-center gap-3">
               <span className="w-8 shrink-0 text-center font-data font-bold">{row.rank > 0 ? row.rank : "–"}</span>
               <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2 font-semibold">
