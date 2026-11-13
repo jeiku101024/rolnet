@@ -37,23 +37,23 @@ test.describe("app navigation", () => {
     await expect(page.getByRole("button", { name: "Logout" })).toHaveCount(0);
   });
 
-  test("owner receives nine grouped destinations and an active page", async ({ page }) => {
+  test("owner receives ten grouped destinations and an active page", async ({ page }) => {
     await signIn(page, ownerEmail, ownerPassword);
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
     const navigation = await openNavigation(page);
-    await expect(navigation.getByRole("link")).toHaveCount(10); // Brand home plus nine destinations (feature 011 merged Maintenance into Expenses).
+    await expect(navigation.getByRole("link")).toHaveCount(11); // Brand home plus ten destinations (features 011 and 015).
     await expect(navigation.getByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");
-    for (const label of ["Dashboard", "Units", "Drivers", "Remittances", "Expenses", "Documents", "Reports", "Audit History", "Staff Accounts"]) {
+    for (const label of ["Dashboard", "Units", "Drivers", "Remittances", "Expenses", "Sinking fund", "Documents", "Reports", "Audit History", "Staff Accounts"]) {
       await expect(navigation.getByRole("link", { name: label })).toBeVisible();
     }
   });
 
-  test("staff receives the four destinations permitted by current guards", async ({ page }) => {
+  test("staff receives the five destinations permitted by current guards", async ({ page }) => {
     test.skip(!staffEmail || !staffPassword, "Set E2E staff credentials to exercise the staff menu");
     await signIn(page, staffEmail!, staffPassword!);
     await page.goto("/units", { waitUntil: "domcontentloaded" });
     const navigation = await openNavigation(page);
-    for (const label of ["Units", "Drivers", "Remittances", "Expenses"]) {
+    for (const label of ["Units", "Drivers", "Remittances", "Expenses", "Sinking fund"]) {
       await expect(navigation.getByRole("link", { name: label })).toBeVisible();
     }
     for (const label of ["Dashboard", "Documents", "Reports", "Audit History", "Staff Accounts"]) {

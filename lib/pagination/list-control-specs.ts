@@ -3,6 +3,7 @@ import { bucketLabels } from "@/lib/pagination/list-controls";
 import { accountStatusLabels, auditActionLabels, dispositionLabels, unitStatusLabels } from "@/lib/pagination/search-specs";
 import { documentTypeLabels } from "@/lib/validation/documents";
 import { expenseCategoryLabels, expenseCategoryOptions } from "@/lib/expenses/categories";
+import { sfTransactionTypes, sfTypeLabels } from "@/lib/sinking-fund/types";
 
 /** Sorts and filters of each main list (contracts/list-paging.md, "Sort and filter"). The first sort is the default. */
 
@@ -15,6 +16,7 @@ export const auditEntityLabels: Record<string, string> = {
   mileage_readings: "Mileage readings", profiles: "Staff accounts", fleet_settings: "Fleet settings",
   driver_absences: "Absences", driver_absence_confirmations: "Leave checks", driver_role_changes: "Role changes",
   document_events: "Document activity",
+  sf_participants: "Sinking fund participants", sf_transactions: "Sinking fund transactions", sf_distributions: "Sinking fund distributions", sf_settings: "Sinking fund settings",
 };
 
 export const listControlSpecs = {
@@ -72,6 +74,21 @@ export const listControlSpecs = {
       { kind: "presence", param: "receipt", label: "Receipt", options: [{ value: "attached", label: "Attached", column: "receipt_object_path", present: true }, { value: "missing", label: "Missing", column: "receipt_object_path", present: false }] },
       // FR-037: find moved maintenance records, and the ₱0 ones to fix.
       { kind: "presence", param: "review", label: "Review", options: [{ value: "needs-review", label: "Needs review", column: "needs_review", present: true, equals: true }, { value: "moved", label: "Moved from maintenance", column: "source_table", present: true }] },
+    ],
+  },
+  // Feature 015: the Sinking fund Transactions list (reads sf_ledger_v). Newest first, then newest entry first.
+  sinkingFund: {
+    sorts: [
+      { value: "newest", label: "Date, newest first", column: "tx_date", ascending: false, then: [{ column: "created_at", ascending: false }] },
+      { value: "oldest", label: "Date, oldest first", column: "tx_date", ascending: true, then: [{ column: "created_at", ascending: true }] },
+      { value: "amount-desc", label: "Amount, highest first", column: "amount_centavos", ascending: false, then: [{ column: "tx_date", ascending: false }] },
+      { value: "amount", label: "Amount, lowest first", column: "amount_centavos", ascending: true, then: [{ column: "tx_date", ascending: false }] },
+    ],
+    filters: [
+      { kind: "range", label: "Date", column: "tx_date" },
+      { kind: "eq", param: "type", label: "Type", column: "type", options: sfTransactionTypes.map((value) => ({ value, label: sfTypeLabels[value] })) },
+      { kind: "eq", param: "participant", label: "Participant", column: "participant_id", options: [] },
+      { kind: "eq", param: "loan_status", label: "Loan status", column: "loan_status", options: [{ value: "open", label: "Open" }, { value: "overdue", label: "Overdue" }, { value: "paid", label: "Paid" }, { value: "withdrawn", label: "Withdrawn" }] },
     ],
   },
   documents: {

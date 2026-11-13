@@ -291,6 +291,28 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   This month (figures and charts from `dashboard_monthly_unit_summary`, matching the monthly
   report), and Recent activity. Panels show 3 rows on phones and up to 5 on wider screens.
 
+## Sinking fund (feature 015)
+
+- `/sinking-fund` (nav item after Expenses) tracks a shared savings ledger: participants save, borrow from
+  their own savings at 5% for one month (principal in steps of ₱100), and repay; loan interest goes to a
+  shared Interest fund the owner divides equally. Views are `?view=transactions|top|participants`; the other
+  URL state (`q`, filters, `n` for Load more, `rank`/`period`/`at`, `psort`, `detail`) is in
+  `lib/sinking-fund/url-state.ts`.
+- Money is integer centavos; the 5% rate is stored per loan in basis points (`500`). Savings, loan balances
+  and status, and the Interest fund are never stored: they are derived from the non-voided rows of
+  `sf_transactions` (views `sf_loans_v` and `sf_ledger_v`, functions `sf_*`). Rows are voided, never deleted.
+  "Withdrawal" in the UI is the owner closing an overdue loan (`loan_withdrawal`); "Savings withdrawal" pays
+  savings out (`savings_withdrawal`).
+- Every action is one `security definer` SQL function behind one advisory lock, and each re-validates the
+  whole timeline, so savings and the Interest fund are never negative on any date (back-dated entries and
+  voids included). Owner-only functions call `require_owner()`; the app also checks the owner role in
+  `app/actions/sinking-fund.ts`.
+- `lib/sinking-fund/rules.ts` and `ledger.ts` mirror the rules for previews and demo mode, and `aggregate.ts`
+  mirrors the read model. Worked examples A and B are tested in Vitest (`tests/unit/sinking-fund-*.test.ts`)
+  and in pgTAP (`supabase/tests/constraints/410..430` and `supabase/tests/rls/100_sinking_fund_rls.sql`).
+- Demo mode shows seeded data (`lib/sinking-fund/demo-data.ts`) and refuses writes;
+  `tests/e2e/sinking-fund.spec.ts` runs in demo mode.
+
 ## Validation and release
 
 Run lint, typecheck, tests, vinext check, and build:vinext. With a database runtime, also run all Supabase migrations, pgTAP, Storage/RLS tests, Playwright journeys, 100-unit/24-month dashboard performance checks, report reconciliation (a month's XLSX totals against List view and the Expenses page), and the acceptance protocol in specs/001-fleet-management/quickstart.md.
