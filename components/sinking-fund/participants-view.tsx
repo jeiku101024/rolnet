@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useDeferredValue, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,8 +71,10 @@ export function ParticipantsView() {
   const router = useRouter();
   const pathname = usePathname();
   const [, startTransition] = useTransition();
-  const needle = params.q.toLowerCase();
-  const rows = sortParticipants(data.participants.filter((participant) => !needle || participant.name.toLowerCase().includes(needle)), params.psort);
+  // Filters in the browser on the text as typed; the URL catches up after the search pause.
+  const [typed, setTyped] = useState(params.q);
+  const needle = useDeferredValue(typed).trim().toLowerCase();
+  const rows = useMemo(() => sortParticipants(data.participants.filter((participant) => !needle || participant.name.toLowerCase().includes(needle)), params.psort), [data.participants, needle, params.psort]);
 
   return <div className="grid gap-4">
     <ParticipantsSummary summary={data.summary} today={data.today} />
@@ -82,7 +84,7 @@ export function ParticipantsView() {
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-        <div className="min-w-0 basis-64 sm:flex-1"><ListSearch pathname={pathname} searchParams={searchParams} initialValue={params.q} placeholder="Search participants" label="Search participants" /></div>
+        <div className="min-w-0 basis-64 sm:flex-1"><ListSearch pathname={pathname} searchParams={searchParams} initialValue={params.q} onType={setTyped} placeholder="Search participants" label="Search participants" /></div>
         <div className="flex items-center gap-2">
           <label className="text-label font-bold text-muted" htmlFor="sf-psort">Sort</label>
           <FilterSelect id="sf-psort" className="w-52 max-w-full" value={params.psort} onChange={(event) => startTransition(() => router.replace(listHref(pathname, searchParams, { psort: event.target.value === "savings" ? null : event.target.value }), { scroll: false }))}>

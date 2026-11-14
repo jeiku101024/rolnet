@@ -4,15 +4,14 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { fleetToday } from "@/lib/dates/fleet-date";
 import { currentDriversOn, type TodayDriver } from "@/lib/assignments/current-drivers";
 import { demoMode, demoUnits } from "@/lib/demo/mode";
-import { DataTable } from "@/components/ui/data-table";
+import { LocalTable, type LocalRow } from "@/components/ui/local-table";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/feedback";
 import { unitStatusLabel, unitStatusTone, type UnitStatus } from "@/lib/status/record-status";
-import { listHref, pageRows, parseListPage, type SearchParams } from "@/lib/pagination/list-page";
-import { loadListPage } from "@/lib/pagination/search-filter";
+import { finishListPage, listHref, parseListPage, type SearchParams } from "@/lib/pagination/list-page";
 import { applyFilters, applySort, controlRows, controlsView, parseControls, prepareSpec } from "@/lib/pagination/list-controls";
 import { listControlSpecs } from "@/lib/pagination/list-control-specs";
-import { searchSpecs, unitStatusLabels } from "@/lib/pagination/search-specs";
+import { unitStatusLabels } from "@/lib/pagination/search-specs";
 import { listView } from "@/components/ui/paged-list";
 import { parseUnitsView } from "@/lib/units/view-params";
 import { buildAssignmentBoard, roleLabel } from "@/lib/units/assignment-board";
@@ -55,30 +54,34 @@ async function UnitsList({ supabase, params, today }: { supabase: Supabase | nul
   const showArchived = params.archived === "1";
   // Sort and filter (US8); the dashboard's "View all" opens this with status=in_repair.
   const controls = parseControls(params, prepareSpec(listControlSpecs.units));
-  const [result, archivedCount] = await Promise.all([
+  // The fleet is small, so every unit is loaded once and the search box filters them in the browser.
+  const [allUnits, archivedCount] = await Promise.all([
     supabase
-      ? loadListPage(supabase, request, searchSpecs.units, (from, to, filter) => {
-        let query = supabase.from("units").select("id, name, body_number, plate_number, make_model, status, current_mileage, archived, updated_at", { count: "exact" }).is("deleted_at", null);
+      ? (async () => {
+        let query = supabase.from("units").select("id, name, body_number, plate_number, make_model, status, current_mileage, archived, updated_at").is("deleted_at", null);
         if (!showArchived) query = query.eq("archived", false);
         query = applyFilters(query, controls);
-        if (filter) query = query.or(filter);
-        return applySort(query, controls).range(from, to);
-      })
-      : Promise.resolve(pageRows(controlRows(demoUnits.filter((unit) => showArchived || !unit.archived).map((unit) => ({ ...unit, updated_at: unit.created_at })), controls), request, (unit) => `${unit.name} ${unit.body_number} ${unit.plate_number} ${unit.make_model} ${unitStatusLabels[unit.status]}`)),
+        const { data, error } = await applySort(query, controls);
+        if (error) throw error;
+        return data ?? [];
+      })()
+      : Promise.resolve(controlRows(demoUnits.filter((unit) => showArchived || !unit.archived).map((unit) => ({ ...unit, updated_at: unit.created_at })), controls)),
     supabase
       ? supabase.from("units").select("id", { count: "exact", head: true }).eq("archived", true).is("deleted_at", null).then(({ count, error }) => { if (error) throw error; return count ?? 0; })
       : Promise.resolve(demoUnits.filter((unit) => unit.archived).length),
   ]);
-  const units = result.rows;
+  const units = allUnits;
   const drivers = await currentDriversOn(supabase, units.map((unit) => unit.id), today);
   const toggleHref = listHref("/units", params, { archived: showArchived ? null : "1", page: null });
-  const list = listView("/units", params, request, result, {
+  const list = listView("/units", params, request, finishListPage(units.length, request.page), {
     searchLabel: "Search units", controls: controlsView(controls),
     action: <AddUnitDialog />,
     aside: <ShowArchivedToggle checked={showArchived} count={archivedCount} href={toggleHref} />,
   });
-  return <DataTable list={list} headers={["Unit", "Body number", "Plate", "Motorcycle", "Current driver", "Mileage", "Status", "Options"]} empty={<p className="p-6 text-muted">No units recorded yet.</p>}>
-    {units.map((unit) => <tr key={unit.id} className={unit.archived ? "opacity-60" : undefined}>
+  const rows: LocalRow[] = units.map((unit) => ({
+    key: unit.id,
+    text: `${unit.name} ${unit.body_number} ${unit.plate_number} ${unit.make_model} ${unitStatusLabels[unit.status as UnitStatus]}`.toLowerCase(),
+    node: <tr className={unit.archived ? "opacity-60" : undefined}>
       <td className="whitespace-nowrap font-semibold"><span className="inline-flex items-center gap-2"><Link className="muted-link" href={`/units/${unit.id}`}>{unit.name}</Link>{unit.archived ? <StatusBadge label="Archived" /> : null}</span></td>
       <td className="whitespace-nowrap font-data">{unit.body_number}</td>
       <td className="font-data">{unit.plate_number}</td>
@@ -87,6 +90,9 @@ async function UnitsList({ supabase, params, today }: { supabase: Supabase | nul
       <td className="whitespace-nowrap font-data">{unit.current_mileage.toLocaleString()} km</td>
       <td><StatusBadge label={unitStatusLabel(unit.status as UnitStatus)} tone={unitStatusTone(unit.status as UnitStatus)} /></td>
       <td><UnitRowMenu unit={{ id: unit.id, name: unit.name, updatedAt: unit.updated_at, archived: unit.archived }} /></td>
-    </tr>)}
-  </DataTable>;
+    </tr>,
+  }));
+  // A new sort, filter or archived choice brings fresh rows, so the table starts again from them.
+  const resetKey = JSON.stringify([controls.values, controls.sort.value, showArchived]);
+  return <LocalTable key={resetKey} list={list} headers={["Unit", "Body number", "Plate", "Motorcycle", "Current driver", "Mileage", "Status", "Options"]} rows={rows} empty={<p className="p-6 text-muted">No units recorded yet.</p>} />;
 }

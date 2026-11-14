@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,6 +30,19 @@ export function Pane({ title, count, uploadLabel, onUpload, filters, onFilterCha
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
+  // The box keeps its own text so typing never waits on the (heavy) tree filter; the page is told after a short pause.
+  const [text, setText] = useState(search);
+  const committed = useRef(search);
+  const onSearchRef = useRef(onSearch);
+  useEffect(() => { onSearchRef.current = onSearch; });
+  useEffect(() => {
+    if (search !== committed.current) { committed.current = search; setText(search); }
+  }, [search]);
+  useEffect(() => {
+    if (text === committed.current) return;
+    const timer = window.setTimeout(() => { committed.current = text; onSearchRef.current(text); }, 200);
+    return () => window.clearTimeout(timer);
+  }, [text]);
   const chosenCount = filters.reduce((sum, group) => sum + group.chosen.length, 0);
   const chips = filters.flatMap((group) => group.chosen.map((value) => ({ group, value, text: `${group.label}: ${group.options.find((option) => option.value === value)?.label ?? value}` })));
 
@@ -68,7 +81,7 @@ export function Pane({ title, count, uploadLabel, onUpload, filters, onFilterCha
     <label className="relative block">
       <span className="sr-only">{searchLabel}</span>
       <Search aria-hidden="true" size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
-      <input type="search" value={search} placeholder={searchLabel} onChange={(event) => onSearch(event.target.value)}
+      <input type="search" value={text} placeholder={searchLabel} onChange={(event) => setText(event.target.value)}
         className="touch-target w-full min-w-0 rounded-md border border-control-border bg-surface pr-3 pl-9 text-body-sm text-ink" />
     </label>
 
