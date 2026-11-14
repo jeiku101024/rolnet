@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { allowedInterestRange, defaultInterestPart, isLoanStep, loanAmountDue, loanDueDate, loanInterest, loanState, shareOf, splitPayment } from "@/lib/sinking-fund/rules";
+import { allowedInterestRange, defaultInterestPart, isLoanStep, loanAmountDue, loanDueDate, loanInterest, loanState, proportionalShares, splitPayment } from "@/lib/sinking-fund/rules";
 import { deposit, loan, loanWithdrawal, payment, peso } from "../support/sf-fixtures";
 
 describe("loan terms", () => {
@@ -49,14 +49,45 @@ describe("allowed interest range and default prefill", () => {
   it("splits a payment", () => expect(splitPayment(peso(500), peso(100))).toEqual({ interest: peso(100), principal: peso(400) }));
 });
 
-describe("distribution shares", () => {
-  it("divides ₱100.00 among three, keeping ₱0.01", () => {
-    expect(shareOf(peso(100), 3)).toEqual({ share: 3333, total: 9999, remainder: 1 });
+describe("distribution shares (proportional to savings)", () => {
+  const person = (id: string, pesos: number) => ({ id, savingsCentavos: peso(pesos) });
+
+  it("shares ₱300 as ₱50, ₱100, and ₱150 for savings of ₱1,000, ₱2,000, and ₱3,000", () => {
+    const result = proportionalShares(peso(300), [person("a", 1000), person("b", 2000), person("c", 3000)]);
+    expect([...result.shares.values()]).toEqual([peso(50), peso(100), peso(150)]);
+    expect(result).toMatchObject({ total: peso(300), remainder: 0, overall: peso(6000) });
   });
 
-  it("gives nothing with no participants or no money", () => {
-    expect(shareOf(peso(100), 0)).toEqual({ share: 0, total: 0, remainder: peso(100) });
-    expect(shareOf(0, 3)).toEqual({ share: 0, total: 0, remainder: 0 });
+  it("rounds each share down and keeps the leftover centavos in the fund", () => {
+    const result = proportionalShares(peso(100), [person("a", 10), person("b", 10), person("c", 10)]);
+    expect([...result.shares.values()]).toEqual([3333, 3333, 3333]);
+    expect(result.remainder).toBe(1);
+    expect(result.total + result.remainder).toBe(peso(100));
+  });
+
+  it("gives equal shares only to equal savings", () => {
+    const result = proportionalShares(peso(100), [person("a", 10), person("b", 30)]);
+    expect(result.shares.get("a")).toBe(peso(25));
+    expect(result.shares.get("b")).toBe(peso(75));
+  });
+
+  it("gives a participant with no savings no share", () => {
+    const result = proportionalShares(peso(100), [person("a", 0), person("b", 500)]);
+    expect(result.shares.get("a")).toBe(0);
+    expect(result.shares.get("b")).toBe(peso(100));
+  });
+
+  it("gives nothing when nobody has savings or the fund is empty", () => {
+    expect(proportionalShares(peso(100), [person("a", 0), person("b", 0)])).toMatchObject({ total: 0, remainder: peso(100), overall: 0 });
+    expect(proportionalShares(0, [person("a", 100)])).toMatchObject({ total: 0, remainder: 0 });
+    expect(proportionalShares(peso(100), [])).toMatchObject({ total: 0, remainder: peso(100) });
+  });
+
+  it("keeps full precision for large funds", () => {
+    const fund = 9_000_000_000_000; // ₱90 billion in centavos, beyond float-safe multiplication
+    const result = proportionalShares(fund, [{ id: "a", savingsCentavos: 3_000_000_000_001 }, { id: "b", savingsCentavos: 6_000_000_000_001 }]);
+    expect(result.total + result.remainder).toBe(fund);
+    expect(result.remainder).toBeLessThan(2);
   });
 });
 

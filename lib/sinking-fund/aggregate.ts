@@ -1,12 +1,28 @@
+import { addDays } from "@/lib/dates/fleet-date";
 import { isLive, loanState } from "@/lib/sinking-fund/rules";
 import { fundAt, savingsAt, savingsDelta } from "@/lib/sinking-fund/ledger";
-import type { SfDistribution, SfFundSummary, SfLedgerRow, SfLoan, SfMonthlyFlow, SfParticipant, SfParticipantSummary, SfRankingRow, SfTransaction } from "@/lib/sinking-fund/types";
+import type { SfDistribution, SfDistributionDetail, SfDistributionRow, SfFundSummary, SfLedgerRow, SfLoan, SfMonthlyFlow, SfParticipant, SfParticipantSummary, SfRankingRow, SfTransaction } from "@/lib/sinking-fund/types";
 
 /**
  * Pure TypeScript twin of the SQL read model (views sf_loans_v and sf_ledger_v and the sf_* read functions).
  * Demo mode renders from these, and unit tests pin them to the same worked examples as pgTAP.
  */
-export type SfData = { participants: SfParticipant[]; transactions: SfTransaction[]; distributions: SfDistribution[] };
+export type SfData = {
+  participants: SfParticipant[];
+  transactions: SfTransaction[];
+  distributions: SfDistribution[];
+  /** The saved per-participant rows of each distribution (demo twin of sf_distribution_participants), by distribution id. */
+  distributionRows?: Record<string, SfDistributionRow[]>;
+};
+
+/**
+ * The cycle starts after the latest non-voided year-end close (a distribution without an equal per-participant
+ * amount; older equal-share distributions never closed a year). Null before any close.
+ */
+export function cycleStart(data: Pick<SfData, "distributions">): string | null {
+  const dates = data.distributions.filter((distribution) => !distribution.voided_at && distribution.per_participant_centavos === null).map((distribution) => distribution.dist_date).sort();
+  return dates.at(-1) ?? null;
+}
 
 const active = (participant: SfParticipant) => !participant.archived_at;
 const byDateThenCreated = (a: SfTransaction, b: SfTransaction) => a.tx_date.localeCompare(b.tx_date) || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id);
@@ -43,24 +59,30 @@ export function participantSummaries(data: SfData, today: string, asOf?: string)
 export function fundSummary(data: SfData, today: string, from?: string, to?: string): SfFundSummary {
   const loans = openLoans(buildLoans(data, today));
   const live = data.transactions.filter(isLive);
-  const collected = live.filter((row) => row.type === "payment").reduce((sum, row) => sum + (row.interest_part_centavos ?? 0), 0);
+  const cycle = cycleStart(data);
+  const inCycle = (row: SfTransaction) => !cycle || row.tx_date > cycle;
+  const collected = live.filter((row) => row.type === "payment" && inCycle(row)).reduce((sum, row) => sum + (row.interest_part_centavos ?? 0), 0);
   const distributed = data.distributions.filter((d) => !d.voided_at).reduce((sum, d) => sum + d.total_distributed_centavos, 0);
   return {
     total_savings_centavos: live.reduce((sum, row) => sum + savingsDelta(row), 0),
     loans_outstanding_centavos: loans.reduce((sum, loan) => sum + loan.principal_centavos, 0),
     open_loan_count: loans.length,
     balance_to_collect_centavos: loans.reduce((sum, loan) => sum + loan.balance_centavos, 0),
-    payments_received_centavos: live.filter((row) => row.type === "payment" && (!from || row.tx_date >= from) && (!to || row.tx_date <= to)).reduce((sum, row) => sum + row.amount_centavos, 0),
+    payments_received_centavos: live.filter((row) => row.type === "payment" && inCycle(row) && (!from || row.tx_date >= from) && (!to || row.tx_date <= to)).reduce((sum, row) => sum + row.amount_centavos, 0),
     interest_collected_centavos: collected,
     interest_distributed_centavos: distributed,
     interest_available_centavos: fundAt(data.transactions, data.distributions),
     interest_expected_centavos: loans.reduce((sum, loan) => sum + loan.unpaid_interest_centavos, 0),
     participant_count: data.participants.filter(active).length,
+    cycle_start: cycle,
   };
 }
 
 /** Ranking amounts for active participants: savings at the end of `end`, or deposits dated start..end. */
-export function rankingFor(data: SfData, by: "savings" | "deposits", start: string | null, end: string | null): SfRankingRow[] {
+export function rankingFor(data: SfData, by: "savings" | "deposits", startDate: string | null, end: string | null): SfRankingRow[] {
+  // Deposits count the current cycle unless a period was chosen (the first day after the cycle start).
+  const cycle = cycleStart(data);
+  const start = startDate ?? (cycle ? addDays(cycle, 1) : null);
   return data.participants.filter(active).map((participant) => {
     const rows = data.transactions.filter((row) => row.participant_id === participant.id);
     const amount = by === "savings"
@@ -101,7 +123,7 @@ export function ledgerRows(data: SfData, today: string): SfLedgerRow[] {
 
   const savingsAfter = new Map<string, number>();
   const running = new Map<string, number>();
-  const credit = (row: SfTransaction) => (row.type === "deposit" || row.type === "interest_share" || row.type === "payment" ? 0 : 1);
+  const credit = (row: SfTransaction) => (row.type === "deposit" || row.type === "interest_share" || row.type === "payment" ? 0 : 1); // cycle_close is a debit: it comes last in a day
   for (const row of data.transactions.filter(isLive).sort((a, b) => a.tx_date.localeCompare(b.tx_date) || credit(a) - credit(b) || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))) {
     const total = (running.get(row.participant_id) ?? 0) + savingsDelta(row);
     running.set(row.participant_id, total);
@@ -131,4 +153,32 @@ export function ledgerRows(data: SfData, today: string): SfLedgerRow[] {
       distribution_participant_count: distribution?.participant_count ?? null,
     };
   });
+}
+
+/** Highest ended total first, ties by name, rows without an ended total last (mirrors `sf_distribution_details`). */
+export function sortDistributionRows(rows: readonly SfDistributionRow[]): SfDistributionRow[] {
+  return [...rows].sort((a, b) => {
+    if ((a.ended_total_centavos === null) !== (b.ended_total_centavos === null)) return a.ended_total_centavos === null ? 1 : -1;
+    return (b.ended_total_centavos ?? 0) - (a.ended_total_centavos ?? 0) || a.participant_name.localeCompare(b.participant_name);
+  });
+}
+
+/** Totals row of a distribution table; the ended total is null when any row has none saved. */
+export function distributionTotals(rows: readonly SfDistributionRow[]): SfDistributionDetail["totals"] {
+  return {
+    ended_total_centavos: rows.length && rows.every((row) => row.ended_total_centavos !== null) ? rows.reduce((sum, row) => sum + (row.ended_total_centavos ?? 0), 0) : null,
+    share_centavos: rows.reduce((sum, row) => sum + row.share_centavos, 0),
+  };
+}
+
+/** One distribution's table. A distribution without saved rows (made before the year-end close) shows its shares only. */
+export function distributionDetail(data: SfData, id: string): SfDistributionDetail | null {
+  const distribution = data.distributions.find((item) => item.id === id);
+  if (!distribution) return null;
+  const saved = data.distributionRows?.[id];
+  const names = new Map(data.participants.map((participant) => [participant.id, participant.name]));
+  const rows = saved ?? data.transactions.filter((row) => row.distribution_id === id && row.type === "interest_share")
+    .map((row) => ({ participant_id: row.participant_id, participant_name: names.get(row.participant_id) ?? "", savings_before_centavos: null, share_centavos: row.amount_centavos, ended_total_centavos: null }));
+  const sorted = sortDistributionRows(rows);
+  return { distribution, rows: sorted, totals: distributionTotals(sorted) };
 }

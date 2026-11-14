@@ -1,4 +1,4 @@
-import { ArrowDownToLine, Banknote, CircleCheck, CircleDot, Coins, DoorOpen, HandCoins, Hourglass, ReceiptText, TriangleAlert, type LucideIcon } from "lucide-react";
+import { ArrowDownToLine, Banknote, CalendarCheck, CircleCheck, CircleDot, Coins, DoorOpen, HandCoins, Hourglass, ReceiptText, TriangleAlert, type LucideIcon } from "lucide-react";
 import { sfTypeLabels, type SfTransactionType } from "@/lib/sinking-fund/types";
 
 /** Type and status tags always combine icon, text, and colour (spec section 18; DESIGN.md). */
@@ -10,6 +10,7 @@ const typeStyles: Record<SfTransactionType, { icon: LucideIcon; className: strin
   loan_withdrawal: { icon: DoorOpen, className: "bg-danger-soft text-danger" },
   savings_withdrawal: { icon: Banknote, className: "bg-orange-soft text-orange" },
   interest_share: { icon: Coins, className: "bg-violet-soft text-violet" },
+  cycle_close: { icon: CalendarCheck, className: "bg-canvas text-ink" },
 };
 
 export function TypeTag({ type }: { type: SfTransactionType }) {

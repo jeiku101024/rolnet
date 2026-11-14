@@ -7,6 +7,8 @@ import { buildZip, zipEntry, type ZipEntry } from "@/lib/reports/zip";
 
 /** The amount format: thousands separators, negatives in red with a minus sign, zero shown as "-". */
 export const AMOUNT_FORMAT = '#,##0;[Red]-#,##0;"-"';
+/** Two decimals, zero shown as 0.00 (feature 016: the Sinking fund workbook shows centavos). */
+export const CENTS_FORMAT = "#,##0.00;[Red]-#,##0.00;0.00";
 export const DATE_FORMAT = 'ddd", "mmm d';
 export const MONTH_FORMAT = "mmmm";
 
@@ -64,6 +66,9 @@ export const styleDefs = {
   grandAmount: { ...grand, h: "right", numFmt: AMOUNT_FORMAT },
   grandLineLabelItalic: { ...body, bold: true, italic: true, h: "left", indent: 2 },
   grandLineAmountItalic: { ...body, bold: true, italic: true, h: "right", numFmt: AMOUNT_FORMAT },
+  amountCents: { ...body, bottom: thin, h: "right", numFmt: CENTS_FORMAT },
+  subAmountCents: { ...sub, h: "right", numFmt: CENTS_FORMAT },
+  grandAmountCents: { ...grand, h: "right", numFmt: CENTS_FORMAT },
   link: { ...body, color: linkBlue, underline: true, bottom: thin, h: "left", indent: 1 },
   linkAmount: { ...body, color: green, bottom: thin, h: "right", numFmt: AMOUNT_FORMAT },
   notesHead: { ...body, bold: true },

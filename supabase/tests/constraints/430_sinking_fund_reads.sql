@@ -55,10 +55,17 @@ select is((select count(*)::int from public.sf_monthly_flows(6)), 6, 'six months
 select is((select array[sum(deposits_centavos), sum(loans_centavos), sum(payments_centavos)] from public.sf_monthly_flows(6)), array[351000, 100000, 20000]::numeric[],
   'monthly flows add up to every deposit, loan, and payment (archived participants included)');
 
-insert into sf_t select gen_random_uuid()::text, public.sf_distribute_interest(public.sf_today(), array[(select id from sf_t where k = 'ann'), (select id from sf_t where k = 'bo')], '2026 year-end', null);
-select is((select array[count(*)::bigint, max(per_participant_centavos), max(participant_count)::bigint] from public.sf_distribution_history()), array[1, 2500, 2]::bigint[], 'the distribution appears in the history');
+-- Bo still has an open loan, so Ann alone is ticked (feature 016): she gets the whole ₱50.00 and her year closes.
+select throws_like($$select public.sf_distribute_interest(public.sf_today(), array[(select id from sf_t where k = 'ann'), (select id from sf_t where k = 'bo')], null, null)$$,
+  '%Bo still has an unpaid loan%', 'a ticked participant with an open loan blocks the distribution');
+insert into sf_t select gen_random_uuid()::text, public.sf_distribute_interest(public.sf_today(), array[(select id from sf_t where k = 'ann')], '2026 year-end', null);
+select is((select array[count(*)::bigint, max(participant_count)::bigint, max(share_count)::bigint, max(total_distributed_centavos), max(year)::bigint] from public.sf_distribution_history()),
+  array[1, 1, 1, 5000, extract(year from public.sf_today())::bigint]::bigint[], 'the distribution appears in the history with its year and share count');
 select is((select interest_available_centavos from public.sf_fund_summary()), 0::bigint, 'the Interest fund is empty after the distribution');
-select is((select savings_centavos from public.sf_participant_summaries() where name = 'Ann'), 152500::bigint, 'the share is in the card''s savings');
+select is((select savings_centavos from public.sf_participant_summaries() where name = 'Ann'), 0::bigint, 'the year-end close takes Ann''s savings back to zero');
+select is((select ended_total_centavos from public.sf_distribution_details((select id from public.sf_distribution_history() limit 1))), 155000::bigint, 'the details show the ended total saved with the share');
+select is((select array[payments_received_centavos, interest_collected_centavos] from public.sf_fund_summary()), array[0, 0]::bigint[], 'payments received and interest collected start again after the close');
+select is((select cycle_start from public.sf_fund_summary()), public.sf_today(), 'the cycle starts at the close date');
 
 select * from finish();
 rollback;

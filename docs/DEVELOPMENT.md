@@ -295,7 +295,7 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
 
 - `/sinking-fund` (nav item after Expenses) tracks a shared savings ledger: participants save, borrow from
   their own savings at 5% for one month (principal in steps of ₱100), and repay; loan interest goes to a
-  shared Interest fund the owner divides equally. Views are `?view=transactions|top|participants`; the other
+  shared Interest fund the owner shares by savings (feature 016, below). Views are `?view=transactions|top|participants`; the other
   URL state (`q`, filters, `n` for Load more, `rank`/`period`/`at`, `psort`, `detail`) is in
   `lib/sinking-fund/url-state.ts`.
 - Money is integer centavos; the 5% rate is stored per loan in basis points (`500`). Savings, loan balances
@@ -312,6 +312,33 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   and in pgTAP (`supabase/tests/constraints/410..430` and `supabase/tests/rls/100_sinking_fund_rls.sql`).
 - Demo mode shows seeded data (`lib/sinking-fund/demo-data.ts`) and refuses writes;
   `tests/e2e/sinking-fund.spec.ts` runs in demo mode.
+
+### Sharing the Interest fund and closing the year (feature 016)
+
+Feature 016 replaces 015's equal split: the owner's **Distribute** shares the fund in proportion to savings and
+closes the year.
+
+- Each ticked participant's share is `floor(fund x their savings / the ticked participants' savings)` in whole
+  centavos (`proportionalShares` in `lib/sinking-fund/rules.ts`, `sf_distribute_interest` in SQL). The leftover
+  (less than one centavo per participant) stays in the fund. The pop-up previews the shares and sends the total it
+  showed; the database refuses the distribution if the figures changed.
+- The distribution **closes the year**: it saves each participant's savings before, share, and ended total in
+  `sf_distribution_participants`, and writes a `cycle_close` ledger row ("Year-end close") that takes their savings
+  back to ₱0.00. Nothing is deleted. Loans, balance, and payments are ₱0.00 because a close is refused while a ticked
+  participant has an Open or Overdue loan; "payments received" and "interest collected" count after the latest close
+  (the cycle start, `sf_cycle_start()`). Cards, the donut, and rankings show the current cycle; the monthly chart keeps
+  every month.
+- After a close, nothing can be dated on or before the close date for that participant, and their older rows cannot
+  be voided (`sf_guard_closed_cycle`, `sf_void_transaction`). A close can be voided as a whole only while nothing newer
+  was recorded for its participants. A distribution date cannot be earlier than a ticked participant's last activity.
+- **View history** (owner only) lists every distribution; each opens a table of participants sorted from the highest
+  ended total to the lowest, with the Sinking fund total for the year, and a **Download Excel** button
+  (`GET /api/sinking-fund/distributions/{id}/xlsx`, built with the feature 014 workbook writer: one A4 page, narrow
+  margins). Distributions made before the year-end close show their shares and "Not recorded" for ended totals.
+- Tests: Vitest `sinking-fund-*.test.ts` (shares, demo cycle, workbook), pgTAP
+  `supabase/tests/constraints/440_sf_proportional_distribution.sql` and `supabase/tests/rls/110_sf_distribution_rls.sql`.
+  Playwright needs demo mode on its own dev server (one `next dev` per folder): start the `demo-dev` entry of
+  `.claude/launch.json` and set `PLAYWRIGHT_BASE_URL=http://localhost:3200`.
 
 ## Validation and release
 

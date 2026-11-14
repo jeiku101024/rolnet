@@ -34,12 +34,22 @@ export function Pane({ title, count, uploadLabel, onUpload, filters, onFilterCha
   const [text, setText] = useState(search);
   const committed = useRef(search);
   const onSearchRef = useRef(onSearch);
+  const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { onSearchRef.current = onSearch; });
+  // Text typed before the page finished loading is kept rather than overwritten.
+  useEffect(() => {
+    const typed = inputRef.current?.value ?? "";
+    if (typed !== search) setText(typed);
+    // Only on mount: later changes from outside are handled below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (search !== committed.current) { committed.current = search; setText(search); }
   }, [search]);
   useEffect(() => {
     if (text === committed.current) return;
+    // Clearing the box applies at once (what is shown, and the folders that were open, come back with it); typing waits a moment.
+    if (!text.trim()) { committed.current = text; onSearchRef.current(text); return; }
     const timer = window.setTimeout(() => { committed.current = text; onSearchRef.current(text); }, 200);
     return () => window.clearTimeout(timer);
   }, [text]);
@@ -81,7 +91,7 @@ export function Pane({ title, count, uploadLabel, onUpload, filters, onFilterCha
     <label className="relative block">
       <span className="sr-only">{searchLabel}</span>
       <Search aria-hidden="true" size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
-      <input type="search" value={text} placeholder={searchLabel} onChange={(event) => setText(event.target.value)}
+      <input ref={inputRef} type="search" value={text} placeholder={searchLabel} onChange={(event) => setText(event.target.value)}
         className="touch-target w-full min-w-0 rounded-md border border-control-border bg-surface pr-3 pl-9 text-body-sm text-ink" />
     </label>
 

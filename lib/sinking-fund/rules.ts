@@ -48,12 +48,26 @@ export function splitPayment(amountCentavos: number, interestPartCentavos: numbe
   return { interest: interestPartCentavos, principal: amountCentavos - interestPartCentavos };
 }
 
-/** Equal share of the Interest fund, rounded down to the centavo; the remainder stays in the fund. */
-export function shareOf(availableCentavos: number, participants: number) {
-  if (participants <= 0 || availableCentavos <= 0) return { share: 0, total: 0, remainder: Math.max(availableCentavos, 0) };
-  const share = Math.floor(availableCentavos / participants);
-  const total = share * participants;
-  return { share, total, remainder: availableCentavos - total };
+export type ShareInput = { id: string; savingsCentavos: number };
+
+/**
+ * Proportional share of the Interest fund (feature 016): each participant gets
+ * floor(fund x their savings / the ticked participants' savings), in whole centavos. The leftover (less than one
+ * centavo per participant) stays in the fund. Mirrors `sf_distribute_interest`; the product uses BigInt so large
+ * funds cannot lose precision.
+ */
+export function proportionalShares(availableCentavos: number, participants: readonly ShareInput[]) {
+  const overall = participants.reduce((sum, participant) => sum + Math.max(participant.savingsCentavos, 0), 0);
+  const shares = new Map<string, number>();
+  let total = 0;
+  for (const participant of participants) {
+    const share = availableCentavos > 0 && overall > 0
+      ? Number((BigInt(availableCentavos) * BigInt(Math.max(participant.savingsCentavos, 0))) / BigInt(overall))
+      : 0;
+    shares.set(participant.id, share);
+    total += share;
+  }
+  return { shares, total, overall, remainder: Math.max(availableCentavos, 0) - total };
 }
 
 /** True when a non-voided row counts (voided rows are ignored by every derived value). */

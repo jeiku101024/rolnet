@@ -45,6 +45,7 @@ The first four values are extracted directly from the supplied SVG assets:
 | `--color-violet` / `--color-violet-soft` | `#5B3F8C` / `#EFE9F7` | Sinking fund Interest share tag | 7.0:1 on soft |
 | `--color-orange` / `--color-orange-soft` | `#8F4300` / `#FFEADB` | Sinking fund Savings withdrawal tag | 6.0:1 on soft |
 | `--color-gold`, `--color-silver`, `--color-bronze` and their `-soft` tints | `#7A5A00`/`#FFF3C2`, `#4A5565`/`#ECEFF3`, `#7A4A22`/`#F6E6D8` | Top participants trophies (always with a text label) | 4.5:1 or better on soft |
+| `--color-chart-deposit` / `--color-chart-loan` / `--color-chart-payment` | `#1A7F4E` / `#D97706` / `#2563EB` | Monthly Sinking fund chart bars (Deposits, Loans, Payments), always with a legend, a pattern fill (solid, hatch, dots), and a table alternative | Non-text: 5.0:1, 3.2:1, 5.2:1 on white |
 | `--color-control-border` | `#7D8996` | Borders of interactive controls (search field, toolbar buttons, segmented control) | Non-text: on white 3.56:1; on `#FFF1BD` 3.15:1; on `#F3F4F6` 3.24:1 |
 
 The yellow brand accent never carries white text. Status colors are deliberately separate from the brand accent and always appear with an icon and a text label; color is never the only status signal.

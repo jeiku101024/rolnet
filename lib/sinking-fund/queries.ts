@@ -4,11 +4,11 @@ import { fleetToday } from "@/lib/dates/fleet-date";
 import { applyFilters, applySort, controlRows, controlsView, parseControls, prepareSpec, type ListControlsView, type ParsedControls } from "@/lib/pagination/list-controls";
 import { listControlSpecs } from "@/lib/pagination/list-control-specs";
 import type { SearchParams } from "@/lib/pagination/list-page";
-import { buildLoans, fundSummary, ledgerRows, monthlyFlows, openLoans, participantSummaries, rankingFor } from "@/lib/sinking-fund/aggregate";
+import { buildLoans, distributionDetail, distributionTotals, fundSummary, ledgerRows, monthlyFlows, openLoans, participantSummaries, rankingFor } from "@/lib/sinking-fund/aggregate";
 import { demoSfData, demoSfSettings } from "@/lib/sinking-fund/demo-data";
 import { periodRange } from "@/lib/sinking-fund/rankings";
 import type { SfPageParams } from "@/lib/sinking-fund/url-state";
-import type { SfDistribution, SfFundSummary, SfLedgerRow, SfLoan, SfMonthlyFlow, SfParticipantSummary, SfPrefill, SfRankingRow } from "@/lib/sinking-fund/types";
+import type { SfDistribution, SfDistributionDetail, SfDistributionRow, SfFundSummary, SfLedgerRow, SfLoan, SfMonthlyFlow, SfParticipantSummary, SfPrefill, SfRankingRow } from "@/lib/sinking-fund/types";
 
 export type SfDriverOption = { id: string; full_name: string };
 
@@ -34,7 +34,6 @@ export type SfPageData = {
   ranking?: SfRankingRow[];
   period?: ReturnType<typeof periodRange>;
   flows?: SfMonthlyFlow[];
-  detail?: SfDetail | null;
 };
 
 const one = <T,>(rows: T[] | null) => (rows ?? [])[0];
@@ -50,14 +49,15 @@ type LedgerQuery = {
   range(from: number, to: number): PromiseLike<{ data: SfLedgerRow[] | null; count: number | null }>;
 };
 
-async function loadFromDatabase(params: SfPageParams, controls: ParsedControls): Promise<Omit<SfPageData, "controls" | "today">> {
+async function loadFromDatabase(params: SfPageParams, controls: ParsedControls, isOwner: boolean): Promise<Omit<SfPageData, "controls" | "today">> {
   const supabase = await createSupabaseServerClient();
   const [summaries, summaryResult, loansResult, settings, distributions, linked, driverRows] = await Promise.all([
     supabase.rpc("sf_participant_summaries", {}),
     supabase.rpc("sf_fund_summary", { p_from: controls.active.find((f) => f.def.kind === "range")?.from ?? null, p_to: controls.active.find((f) => f.def.kind === "range")?.to ?? null }),
     supabase.from("sf_loans_v").select("*").eq("status", "open").order("loan_date", { ascending: true }).order("id", { ascending: true }),
     supabase.from("sf_settings").select("default_interest_prefill").maybeSingle(),
-    supabase.rpc("sf_distribution_history", {}),
+    // The distribution history lists every participant's ended savings: owner only (it raises for anyone else).
+    isOwner ? supabase.rpc("sf_distribution_history", {}) : Promise.resolve({ data: [] as SfDistribution[] }),
     supabase.from("sf_participants").select("driver_id").not("driver_id", "is", null).is("deleted_at", null),
     supabase.from("drivers").select("id, full_name").is("deleted_at", null).order("full_name"),
   ]);
@@ -89,25 +89,15 @@ async function loadFromDatabase(params: SfPageParams, controls: ParsedControls):
     extra.flows = (flows.data ?? []) as SfMonthlyFlow[];
   }
 
-  if (params.detail) {
-    const participant = participants.find((item) => item.participant_id === params.detail);
-    if (participant) {
-      const [loans, history] = await Promise.all([
-        supabase.from("sf_loans_v").select("*").eq("participant_id", participant.participant_id).order("loan_date", { ascending: false }),
-        supabase.from("sf_ledger_v").select("*", { count: "exact" }).eq("participant_id", participant.participant_id).order("tx_date", { ascending: false }).order("created_at", { ascending: false }).range(0, params.hn - 1),
-      ]);
-      extra.detail = { participant, loans: (loans.data ?? []) as unknown as SfLoan[], history: (history.data ?? []) as unknown as SfLedgerRow[], historyTotal: history.count ?? 0 };
-    } else extra.detail = null;
-  }
   return { ...base, ...extra };
 }
 
 const emptySummary: SfFundSummary = {
   total_savings_centavos: 0, loans_outstanding_centavos: 0, open_loan_count: 0, balance_to_collect_centavos: 0, payments_received_centavos: 0,
-  interest_collected_centavos: 0, interest_distributed_centavos: 0, interest_available_centavos: 0, interest_expected_centavos: 0, participant_count: 0,
+  interest_collected_centavos: 0, interest_distributed_centavos: 0, interest_available_centavos: 0, interest_expected_centavos: 0, participant_count: 0, cycle_start: null,
 };
 
-function loadFromDemo(params: SfPageParams, controls: ParsedControls, today: string): Omit<SfPageData, "controls" | "today"> {
+function loadFromDemo(params: SfPageParams, controls: ParsedControls, today: string, isOwner: boolean): Omit<SfPageData, "controls" | "today"> {
   const data = demoSfData;
   const participants = participantSummaries(data, today);
   const range = controls.active.find((filter) => filter.def.kind === "range");
@@ -117,7 +107,7 @@ function loadFromDemo(params: SfPageParams, controls: ParsedControls, today: str
     openLoans: openLoans(buildLoans(data, today)).sort((a, b) => a.loan_date.localeCompare(b.loan_date)),
     summary: fundSummary(data, today, range?.from, range?.to),
     prefill: demoSfSettings.default_interest_prefill as SfPrefill,
-    distributions: [...data.distributions].sort((a, b) => b.dist_date.localeCompare(a.dist_date)),
+    distributions: isOwner ? [...data.distributions].sort((a, b) => b.dist_date.localeCompare(a.dist_date)) : [],
     drivers: demoDrivers.filter((driver) => !linked.has(driver.id)).map((driver) => ({ id: driver.id, full_name: driver.full_name })),
   };
   const extra: Partial<SfPageData> = {};
@@ -133,27 +123,53 @@ function loadFromDemo(params: SfPageParams, controls: ParsedControls, today: str
   } else {
     extra.flows = monthlyFlows(data, 6, today);
   }
-  if (params.detail) {
-    const participant = participants.find((item) => item.participant_id === params.detail);
-    if (participant) {
-      const history = ledgerRows(data, today).filter((row) => row.participant_id === participant.participant_id).sort((a, b) => b.tx_date.localeCompare(a.tx_date) || b.created_at.localeCompare(a.created_at));
-      extra.detail = { participant, loans: buildLoans(data, today).filter((loan) => loan.participant_id === participant.participant_id), history: history.slice(0, params.hn), historyTotal: history.length };
-    } else extra.detail = null;
-  }
   return { ...base, ...extra };
 }
 
 /** Everything /sinking-fund needs for the active view (plus the figures every view and dialog share). */
-export async function loadSinkingFund(params: SfPageParams, searchParams: SearchParams): Promise<SfPageData> {
+export async function loadSinkingFund(params: SfPageParams, searchParams: SearchParams, isOwner: boolean): Promise<SfPageData> {
   const today = fleetToday();
   // Participant filter options come from the people on the page, so load the shared pieces first.
   const optionSource = demoMode ? participantSummaries(demoSfData, today) : null;
   let controls = parseControls(searchParams, prepareSpec(listControlSpecs.sinkingFund, { options: { participant: (optionSource ?? []).map((item) => ({ value: item.participant_id, label: item.name })) } }), today);
-  if (demoMode) return { ...loadFromDemo(params, controls, today), controls: controlsView(controls), today };
+  if (demoMode) return { ...loadFromDemo(params, controls, today, isOwner), controls: controlsView(controls), today };
 
   // A first pass reads the participants so the Participant filter can offer them, then the real pass runs.
   const supabase = await createSupabaseServerClient();
   const { data: names } = await supabase.from("sf_participants").select("id, name").is("archived_at", null).is("deleted_at", null).order("name");
   controls = parseControls(searchParams, prepareSpec(listControlSpecs.sinkingFund, { options: { participant: (names ?? []).map((item) => ({ value: item.id, label: item.name })) } }), today);
-  return { ...(await loadFromDatabase(params, controls)), controls: controlsView(controls), today };
+  return { ...(await loadFromDatabase(params, controls, isOwner)), controls: controlsView(controls), today };
+}
+
+/** One participant's pop-up data: figures, loans, and the first `historyCount` history rows (feature 016: read on open, not through the page address). */
+export async function loadParticipantDetail(participantId: string, historyCount: number): Promise<SfDetail | null> {
+  const today = fleetToday();
+  if (demoMode) {
+    const participant = participantSummaries(demoSfData, today).find((item) => item.participant_id === participantId);
+    if (!participant) return null;
+    const history = ledgerRows(demoSfData, today).filter((row) => row.participant_id === participantId).sort((a, b) => b.tx_date.localeCompare(a.tx_date) || b.created_at.localeCompare(a.created_at));
+    return { participant, loans: buildLoans(demoSfData, today).filter((loan) => loan.participant_id === participantId), history: history.slice(0, historyCount), historyTotal: history.length };
+  }
+  const supabase = await createSupabaseServerClient();
+  const summaries = await supabase.rpc("sf_participant_summaries", {});
+  const participant = ((summaries.data ?? []) as SfParticipantSummary[]).find((item) => item.participant_id === participantId);
+  if (!participant) return null;
+  const [loans, history] = await Promise.all([
+    supabase.from("sf_loans_v").select("*").eq("participant_id", participantId).order("loan_date", { ascending: false }),
+    supabase.from("sf_ledger_v").select("*", { count: "exact" }).eq("participant_id", participantId).order("tx_date", { ascending: false }).order("created_at", { ascending: false }).range(0, historyCount - 1),
+  ]);
+  return { participant, loans: (loans.data ?? []) as unknown as SfLoan[], history: (history.data ?? []) as unknown as SfLedgerRow[], historyTotal: history.count ?? 0 };
+}
+
+/** One distribution's table (owner only: the caller checks the role; the database function checks it again). Null when not found. */
+export async function loadDistributionDetail(id: string): Promise<SfDistributionDetail | null> {
+  if (demoMode) return distributionDetail(demoSfData, id);
+  const supabase = await createSupabaseServerClient();
+  const [history, details] = await Promise.all([supabase.rpc("sf_distribution_history", {}), supabase.rpc("sf_distribution_details", { p_id: id })]);
+  if (history.error) throw history.error;
+  if (details.error) throw details.error;
+  const distribution = ((history.data ?? []) as SfDistribution[]).find((item) => item.id === id);
+  if (!distribution) return null;
+  const rows = (details.data ?? []) as SfDistributionRow[];
+  return { distribution, rows, totals: distributionTotals(rows) };
 }

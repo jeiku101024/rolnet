@@ -60,6 +60,9 @@ export function formatPaymentToast(balanceAfterCentavos: number) {
   return balanceAfterCentavos === 0 ? "Payment recorded. Loan fully paid" : `Payment recorded. Balance ${toastPesos(balanceAfterCentavos)}`;
 }
 
-export function formatDistributionToast(totalCentavos: number, participants: number) {
-  return `${toastPesos(totalCentavos)} distributed to ${participants} participant${participants === 1 ? "" : "s"}. Shares added to their savings.`;
+/** `shareCount` is the number of participants who received a share above ₱0.00. */
+export function formatDistributionToast(totalCentavos: number, shareCount: number) {
+  return `${toastPesos(totalCentavos)} distributed to ${shareCount} participant${shareCount === 1 ? "" : "s"}. Year closed. Everyone starts again from ₱0.00.`;
 }
+
+export const distributeWarning = "Confirming saves each ticked participant's ended total, then resets their savings, loans, balance, and payments to ₱0.00. Earlier transactions stay in history.";

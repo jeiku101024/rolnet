@@ -161,34 +161,47 @@ select throws_ok($$select public.sf_record_deposit((select id from sf_t where k 
   'P0002', 'This participant was not found or is archived.', 'an archived participant takes no new transactions');
 select lives_ok($$select public.sf_add_participant('Ana', null, null)$$, 'an archived participant''s name can be used again');
 
--- Distribution of ₱400.00 among three: ₱133.33 each, ₱0.01 stays ------------------------------------------------------------------
+-- Distribution and year-end close (feature 016; the full proportional cases are in 440_sf_proportional_distribution.sql) -----------
 select throws_ok($$select public.sf_distribute_interest(public.sf_today(), array[(select id from sf_t where k = 'a')], null, null)$$,
   'P0001', 'Only active participants can receive a share.', 'archived participants cannot receive a share');
-insert into sf_t select 'dist1', public.sf_distribute_interest(public.sf_today(), array[(select id from sf_t where k = 'b'), (select id from sf_t where k = 'c'), (select id from sf_t where k = 'd')], '2026 year-end', null);
-select is((select array[available_before_centavos, per_participant_centavos, total_distributed_centavos, remainder_centavos]
-  from public.sf_distributions where id = (select id from sf_t where k = 'dist1')), array[40000, 13333, 39999, 1]::bigint[], 'the fund is divided in whole centavos and ₱0.01 remains');
-select is((select count(*)::int from public.sf_transactions where distribution_id = (select id from sf_t where k = 'dist1') and type = 'interest_share'), 3, 'one interest share per participant');
-select is(public.sf_savings_at((select id from sf_t where k = 'b')), 1013333::bigint, 'the share is added to savings');
-select is((select interest_available_centavos from public.sf_fund_summary()), 1::bigint, 'only the remainder stays in the fund');
-select throws_like($$select public.sf_distribute_interest(public.sf_today(), array[(select id from sf_t where k = 'b'), (select id from sf_t where k = 'c'), (select id from sf_t where k = 'd')], null, null)$$,
-  '%too little%', 'a fund too small to split three ways is refused');
+select throws_like($$select public.sf_distribute_interest(public.sf_today() - 1, array[(select id from sf_t where k = 'b'), (select id from sf_t where k = 'c'), (select id from sf_t where k = 'd')], null, null)$$,
+  '%unpaid loan%', 'a participant with an open or overdue loan blocks the distribution');
+-- Ben is the only ticked participant, so he gets the whole ₱400.00 fund and his year is closed the day before today.
+insert into sf_t select 'dist1', public.sf_distribute_interest(public.sf_today() - 1, array[(select id from sf_t where k = 'b')], '2026 year-end', null);
+select is((select array[available_before_centavos, total_distributed_centavos, remainder_centavos]
+  from public.sf_distributions where id = (select id from sf_t where k = 'dist1')), array[40000, 40000, 0]::bigint[], 'the whole fund goes to the only ticked participant');
+select is((select per_participant_centavos from public.sf_distributions where id = (select id from sf_t where k = 'dist1')), null::bigint, 'a proportional distribution has no equal per-participant amount');
+select is((select array[savings_before_centavos, share_centavos, ended_total_centavos] from public.sf_distribution_participants where distribution_id = (select id from sf_t where k = 'dist1')),
+  array[1000000, 40000, 1040000]::bigint[], 'the ended total is saved with the share');
+select is((select count(*)::int from public.sf_transactions where distribution_id = (select id from sf_t where k = 'dist1') and type in ('interest_share', 'cycle_close')), 2, 'one interest share and one year-end close row');
+select is(public.sf_savings_at((select id from sf_t where k = 'b')), 0::bigint, 'the year-end close takes the ended total back to ₱0.00');
+select is((select interest_available_centavos from public.sf_fund_summary()), 0::bigint, 'the fund is empty after the distribution');
+select throws_like($$select public.sf_distribute_interest(public.sf_today(), array[(select id from sf_t where k = 'b')], null, null)$$,
+  '%no interest to distribute%', 'an empty fund cannot be distributed');
 select throws_like($$select public.sf_change_interest_part((select id from sf_t where k = 'f_p1'), 0, (select updated_at from public.sf_transactions where id = (select id from sf_t where k = 'f_p1')))$$,
   'The Interest fund only had%', 'interest that was already distributed cannot be moved back to savings');
-select throws_like($$select public.sf_void_transaction((select id from sf_t where k = 'b_p2'), 'wrong entry', (select updated_at from public.sf_transactions where id = (select id from sf_t where k = 'b_p2')))$$,
+select throws_like($$select public.sf_void_transaction((select id from sf_t where k = 'f_p1'), 'wrong entry', (select updated_at from public.sf_transactions where id = (select id from sf_t where k = 'f_p1')))$$,
   'The Interest fund only had%', 'a payment whose interest was distributed cannot be voided');
-select throws_ok($$select public.sf_void_transaction((select id from public.sf_transactions where distribution_id = (select id from sf_t where k = 'dist1') order by id limit 1), 'wrong entry',
-  (select updated_at from public.sf_transactions where distribution_id = (select id from sf_t where k = 'dist1') order by id limit 1))$$,
+select throws_like($$select public.sf_void_transaction((select id from sf_t where k = 'b_p2'), 'wrong entry', (select updated_at from public.sf_transactions where id = (select id from sf_t where k = 'b_p2')))$$,
+  '%year was closed on%Void the distribution first.', 'a transaction dated before the close cannot be voided');
+select throws_ok($$select public.sf_void_transaction((select id from public.sf_transactions where distribution_id = (select id from sf_t where k = 'dist1') and type = 'interest_share'), 'wrong entry',
+  (select updated_at from public.sf_transactions where distribution_id = (select id from sf_t where k = 'dist1') and type = 'interest_share'))$$,
   'P0001', 'An interest share is voided with its distribution. Void the distribution instead.', 'a share cannot be voided alone');
-insert into sf_t select 'b_sw', public.sf_record_savings_withdrawal((select id from sf_t where k = 'b'), public.sf_today(), 1013333, null, null);
+select throws_ok($$select public.sf_void_transaction((select id from public.sf_transactions where distribution_id = (select id from sf_t where k = 'dist1') and type = 'cycle_close'), 'wrong entry',
+  (select updated_at from public.sf_transactions where distribution_id = (select id from sf_t where k = 'dist1') and type = 'cycle_close'))$$,
+  'P0001', 'A year-end close is voided with its distribution. Void the distribution instead.', 'a year-end close cannot be voided alone');
+select throws_like($$select public.sf_record_deposit((select id from sf_t where k = 'b'), public.sf_today() - 1, 100, null, null)$$,
+  '%year was closed on%Use a later date.', 'nothing can be dated on or before the close');
+insert into sf_t select 'b_after', public.sf_record_deposit((select id from sf_t where k = 'b'), public.sf_today(), 5000, null, null);
 select throws_like($$select public.sf_void_distribution((select id from sf_t where k = 'dist1'), 'wrong year', (select updated_at from public.sf_distributions where id = (select id from sf_t where k = 'dist1')))$$,
-  'Ben only had%', 'a distribution cannot be voided if a participant already took the money out');
-select lives_ok($$select public.sf_void_transaction((select id from sf_t where k = 'b_sw'), 'entered twice', (select updated_at from public.sf_transactions where id = (select id from sf_t where k = 'b_sw')))$$,
-  'a savings withdrawal can be voided and the savings return');
+  '%cannot be voided because Ben has new transactions since it.', 'a distribution cannot be voided once a participant has new activity');
+select lives_ok($$select public.sf_void_transaction((select id from sf_t where k = 'b_after'), 'entered twice', (select updated_at from public.sf_transactions where id = (select id from sf_t where k = 'b_after')))$$,
+  'a transaction after the close can be voided');
 select lives_ok($$select public.sf_void_distribution((select id from sf_t where k = 'dist1'), 'wrong year', (select updated_at from public.sf_distributions where id = (select id from sf_t where k = 'dist1')))$$,
-  'the distribution can be voided as a whole');
-select is((select count(*)::int from public.sf_transactions where distribution_id = (select id from sf_t where k = 'dist1') and voided_at is not null), 3, 'all of its shares are voided together');
+  'the distribution can be voided as a whole once nothing new was recorded');
+select is((select count(*)::int from public.sf_transactions where distribution_id = (select id from sf_t where k = 'dist1') and voided_at is not null), 2, 'its interest share and year-end close are voided together');
 select is((select interest_available_centavos from public.sf_fund_summary()), 40000::bigint, 'the Interest fund is back to ₱400');
-select is(public.sf_savings_at((select id from sf_t where k = 'b')), 1000000::bigint, 'Ben''s savings no longer include the share');
+select is(public.sf_savings_at((select id from sf_t where k = 'b')), 1000000::bigint, 'Ben''s savings are back to ₱10,000');
 
 -- Voids -----------------------------------------------------------------------------------------------------------------------------
 select throws_like($$select public.sf_void_transaction((select id from sf_t where k = 'd_dep'), 'wrong entry', (select updated_at from public.sf_transactions where id = (select id from sf_t where k = 'd_dep')))$$,

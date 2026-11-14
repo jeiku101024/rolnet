@@ -58,8 +58,10 @@ export const changeInterestSchema = z.object({
 
 export const distributeSchema = z.object({
   date: pastDate,
-  participantIds: z.array(z.string().uuid()).min(1, "Tick at least one participant."),
+  participantIds: z.array(z.string().uuid()).min(1, "Tick at least one participant.").max(200, "Tick up to 200 participants."),
   notes,
+  /** The total the owner saw in the pop-up; the database refuses the distribution if the figures changed since. */
+  expectedTotalCentavos: z.number().int().min(1, "There is nothing to distribute."),
   idempotencyKey: z.string().uuid(),
 });
 

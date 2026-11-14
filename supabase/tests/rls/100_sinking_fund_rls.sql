@@ -19,7 +19,7 @@ values ('00000000-0000-0000-0000-000000100201', '00000000-0000-0000-0000-0000001
 
 -- Grants as catalogs report them ---------------------------------------------------------------------------------
 select ok(has_function_privilege('authenticated', 'public.sf_record_deposit(uuid, date, bigint, text, uuid)', 'execute'), 'authenticated can record a deposit');
-select ok(has_function_privilege('authenticated', 'public.sf_distribute_interest(date, uuid[], text, uuid)', 'execute'), 'authenticated can call distribute (the function checks the owner)');
+select ok(has_function_privilege('authenticated', 'public.sf_distribute_interest(date, uuid[], text, uuid, bigint)', 'execute'), 'authenticated can call distribute (the function checks the owner)');
 select ok(has_function_privilege('authenticated', 'public.sf_fund_summary(date, date)', 'execute'), 'authenticated can read the fund summary');
 select ok(has_function_privilege('authenticated', 'public.sf_allowed_interest_range(uuid, bigint, uuid)', 'execute'), 'authenticated can read the allowed interest range');
 select ok(not has_function_privilege('authenticated', 'public.sf_savings_total(uuid, date)', 'execute'), 'authenticated cannot call the savings helper');
