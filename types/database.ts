@@ -9,7 +9,7 @@ export type DocumentType = "or_cr" | "driver_license" | "mtop_franchise" | "insu
 export type DocumentLifecycle = "current" | "superseded" | "void" | "reverted";
 export type DocumentEventKind = "uploaded" | "renewed" | "reverted" | "removed" | "brought_back" | "restored";
 
-import type { SfDistribution, SfFundSummary, SfInterestSetBy, SfParticipantSummary, SfPrefill, SfRankingRow, SfTransactionType } from "@/lib/sinking-fund/types";
+import type { SfDistribution, SfDistributionRow, SfFundSummary, SfInterestSetBy, SfParticipantSummary, SfPrefill, SfRankingRow, SfTransactionType } from "@/lib/sinking-fund/types";
 
 export interface Database {
   public: {
@@ -167,12 +167,18 @@ export interface Database {
         Update: never;
       };
       sf_distributions: {
-        Row: { id: string; dist_date: string; available_before_centavos: number; per_participant_centavos: number; participant_count: number; total_distributed_centavos: number; remainder_centavos: number; notes: string | null; voided_at: string | null; voided_by: string | null; void_reason: string | null; created_at: string; created_by: string | null; updated_at: string; updated_by: string | null };
+        Row: { id: string; dist_date: string; available_before_centavos: number; per_participant_centavos: number | null; participant_count: number; total_distributed_centavos: number; remainder_centavos: number; notes: string | null; voided_at: string | null; voided_by: string | null; void_reason: string | null; created_at: string; created_by: string | null; updated_at: string; updated_by: string | null };
         Insert: never;
         Update: never;
       };
       sf_transactions: {
         Row: { id: string; participant_id: string; type: SfTransactionType; amount_centavos: number; tx_date: string; notes: string | null; loan_id: string | null; distribution_id: string | null; interest_rate_bp: number | null; interest_centavos: number | null; amount_due_centavos: number | null; due_date: string | null; interest_part_centavos: number | null; principal_part_centavos: number | null; interest_set_by: SfInterestSetBy | null; interest_waived_centavos: number | null; voided_at: string | null; voided_by: string | null; void_reason: string | null; created_at: string; created_by: string | null; updated_at: string; updated_by: string | null };
+        Insert: never;
+        Update: never;
+      };
+      // Feature 016 (migration 20261114000200): one saved row per participant per distribution, owner-read only.
+      sf_distribution_participants: {
+        Row: { id: string; distribution_id: string; participant_id: string; participant_name: string; savings_before_centavos: number; share_centavos: number; ended_total_centavos: number; created_at: string; created_by: string | null; updated_at: string; updated_by: string | null; deleted_at: string | null; deleted_by: string | null };
         Insert: never;
         Update: never;
       };
@@ -226,7 +232,7 @@ export interface Database {
       sf_record_savings_withdrawal: { Args: { p_participant: string; p_date: string; p_amount: number; p_notes: string | null; p_key: string | null }; Returns: string };
       sf_mark_loan_withdrawal: { Args: { p_loan: string; p_expected_balance_centavos: number }; Returns: string };
       sf_change_interest_part: { Args: { p_payment: string; p_interest_part: number; p_expected_updated_at: string }; Returns: string };
-      sf_distribute_interest: { Args: { p_date: string; p_participants: string[]; p_notes: string | null; p_key: string | null }; Returns: string };
+      sf_distribute_interest: { Args: { p_date: string; p_participants: string[]; p_notes: string | null; p_key: string | null; p_expected_total?: number | null }; Returns: string };
       sf_void_transaction: { Args: { p_id: string; p_reason: string; p_expected_updated_at: string }; Returns: string };
       sf_void_distribution: { Args: { p_id: string; p_reason: string; p_expected_updated_at: string }; Returns: string };
       sf_set_default_prefill: { Args: { p_value: SfPrefill }; Returns: undefined };
@@ -237,6 +243,7 @@ export interface Database {
       sf_ranking: { Args: { p_rank_by: "savings" | "deposits"; p_start?: string | null; p_end?: string | null }; Returns: SfRankingRow[] };
       sf_monthly_flows: { Args: { p_months?: number }; Returns: { month: string; deposits_centavos: number; loans_centavos: number; payments_centavos: number }[] };
       sf_distribution_history: { Args: Record<string, never>; Returns: (SfDistribution & { void_reason: string | null })[] };
+      sf_distribution_details: { Args: { p_id: string }; Returns: SfDistributionRow[] };
     };
     Enums: {
       app_role: AppRole;

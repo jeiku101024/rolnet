@@ -22,12 +22,12 @@ export function InterestFundCard({ summary, today }: { summary: SfFundSummary; t
   return <Card size="sm" className="col-span-2 gap-1 px-4 lg:col-span-1" data-testid="sf-interest-fund">
     <p className="text-label font-bold text-muted">Interest fund</p>
     <p className="font-data text-xl font-bold text-ink">{formatPesos(summary.interest_available_centavos)}</p>
-    <p className="text-label text-muted">Collected {formatPesos(summary.interest_collected_centavos)} all time · Distributed {formatPesos(summary.interest_distributed_centavos)}</p>
+    <p className="text-label text-muted">Collected {formatPesos(summary.interest_collected_centavos)} {summary.cycle_start ? "since the last distribution" : "all time"} · Distributed {formatPesos(summary.interest_distributed_centavos)} all time</p>
     <p className="text-label text-muted">Expected {formatPesos(summary.interest_expected_centavos)} from open loans</p>
     {december && isOwner ? <p className="text-label font-semibold text-warn">Year end is near. Distribute the interest fund?</p> : null}
     <div className="mt-1 flex flex-wrap items-center gap-2">
       {isOwner ? <Button type="button" size="sm" onClick={distribute}>Distribute</Button> : null}
-      <button type="button" className="touch-target text-label font-semibold text-brand-dark underline" onClick={history}>View history</button>
+      {isOwner ? <button type="button" className="touch-target text-label font-semibold text-brand-dark underline" onClick={history}>View history</button> : null}
     </div>
   </Card>;
 }

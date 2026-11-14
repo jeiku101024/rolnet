@@ -9,6 +9,7 @@ export function savingsDelta(row: SfTransaction) {
     case "payment": return row.principal_part_centavos ?? 0;
     case "loan": return -row.amount_centavos;
     case "savings_withdrawal": return -row.amount_centavos;
+    case "cycle_close": return -row.amount_centavos; // the year-end close takes the ended total back to zero
     case "loan_withdrawal": return 0; // the principal already left savings when the loan was taken
   }
 }

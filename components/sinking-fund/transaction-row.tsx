@@ -14,7 +14,7 @@ const amountClass = "font-data font-semibold";
 function Amount({ row }: { row: SfLedgerRow }) {
   const money = formatPesos(row.amount_centavos);
   if (row.type === "loan_withdrawal") return <span className={amountClass}>{money} <span className="font-sans font-normal text-muted">closed</span></span>;
-  const sign = row.type === "loan" || row.type === "savings_withdrawal" ? "-" : "+";
+  const sign = row.type === "loan" || row.type === "savings_withdrawal" || row.type === "cycle_close" ? "-" : "+";
   return <span className={amountClass}>{sign}{money}</span>;
 }
 
@@ -50,6 +50,8 @@ function Details({ row }: { row: SfLedgerRow }) {
       return <span>Loan on {row.loan_date ? formatListDate(row.loan_date) : "—"} closed. {formatPesos(row.amount_centavos)} unpaid ({formatPesos(row.interest_waived_centavos ?? 0)} interest waived). Savings unchanged.</span>;
     case "interest_share":
       return <span>Share of {formatPesos(row.distribution_total_centavos ?? 0)} distributed on {row.distribution_date ? formatListDate(row.distribution_date) : "—"} ({row.distribution_participant_count ?? 0} participants) · added to savings</span>;
+    case "cycle_close":
+      return <span>Year closed on {row.distribution_date ? formatListDate(row.distribution_date) : "—"} · savings, loans, balance, and payments start again from ₱0.00 · voided with its distribution</span>;
   }
 }
 
@@ -68,7 +70,7 @@ function RowMenu({ row }: { row: SfLedgerRow }) {
       {openLoan ? <DropdownMenuItem onClick={() => addTransaction({ participantId: row.participant_id, type: "payment", loanId: row.id })}>Add payment</DropdownMenuItem> : null}
       {openLoan?.overdue ? ownerOnly("Mark as withdrawal", () => loanWithdrawal(openLoan)) : null}
       {row.type === "payment" && !voided && row.loan_status !== "withdrawn" ? ownerOnly("Change interest part", () => changeInterest(row)) : null}
-      {!voided ? ownerOnly(row.type === "interest_share" ? "Void distribution" : "Void transaction", () => voidRow(row), true) : null}
+      {!voided ? ownerOnly(row.type === "interest_share" || row.type === "cycle_close" ? "Void distribution" : "Void transaction", () => voidRow(row), true) : null}
     </DropdownMenuContent>
   </DropdownMenu>;
 }
@@ -76,9 +78,10 @@ function RowMenu({ row }: { row: SfLedgerRow }) {
 export const rowGrid = "md:grid-cols-[6.5rem_minmax(8rem,1fr)_8.5rem_9rem_minmax(14rem,2.2fr)_2.75rem]";
 
 /** A Transactions row: a table-like grid from 768 px, a card on phones. Voided rows are struck through with a "Voided" tag. */
-export function TransactionRow({ row }: { row: SfLedgerRow }) {
+/** `compact` always stacks the row (the participant pop-up is narrow even on a wide screen). */
+export function TransactionRow({ row, compact = false }: { row: SfLedgerRow; compact?: boolean }) {
   const voided = Boolean(row.voided_at);
-  return <li className={`grid gap-2 border-b border-rule px-4 py-4 text-body-sm last:border-b-0 md:items-start md:gap-4 ${rowGrid}`} data-testid="sf-row">
+  return <li className={compact ? "grid min-w-0 gap-2 border-b border-rule py-3 text-body-sm last:border-b-0" : `grid gap-2 border-b border-rule px-4 py-4 text-body-sm last:border-b-0 md:items-start md:gap-4 ${rowGrid}`} data-testid={compact ? "sf-detail-row" : "sf-row"}>
     <span className="font-data text-muted"><span className="sr-only">Date </span>{formatListDate(row.tx_date)}</span>
     <span className="min-w-0 font-semibold"><span className="sr-only">Participant </span>{row.participant_name} {row.participant_is_driver ? <DriverTag /> : null}</span>
     <span className="flex flex-wrap items-center gap-1"><span className="sr-only">Type </span><TypeTag type={row.type} />{voided ? <VoidedTag /> : null}</span>

@@ -47,7 +47,7 @@ test.describe("paged lists", () => {
     await search.fill("zzzz");
     // Feature 012: the Drivers list's empty message (FR-004).
     await expect(page.getByText("No drivers match.")).toBeVisible();
-    await page.getByRole("link", { name: "Clear search" }).click();
+    await page.getByText("Clear search").click();
     await expect(page.locator("tbody tr")).toHaveCount(10);
   });
 

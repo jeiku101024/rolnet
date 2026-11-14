@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { Plus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -18,10 +18,11 @@ import { ChangeInterestPartDialog } from "@/components/sinking-fund/dialogs/chan
 import { LoanWithdrawalDialog } from "@/components/sinking-fund/dialogs/loan-withdrawal-dialog";
 import { DistributeDialog } from "@/components/sinking-fund/dialogs/distribute-dialog";
 import { DistributionHistoryDialog } from "@/components/sinking-fund/dialogs/distribution-history-dialog";
+import { DistributionDetailsDialog } from "@/components/sinking-fund/dialogs/distribution-details-dialog";
 import { FundSettingsDialog } from "@/components/sinking-fund/dialogs/fund-settings-dialog";
 import { VoidDialog, type VoidTarget } from "@/components/sinking-fund/dialogs/void-dialog";
 import { ArchiveDialog, EditNameDialog } from "@/components/sinking-fund/dialogs/participant-dialogs";
-import { ParticipantDetailSheet } from "@/components/sinking-fund/participant-detail-sheet";
+import { ParticipantDetailDialog } from "@/components/sinking-fund/participant-detail-dialog";
 import { TransactionsView } from "@/components/sinking-fund/transactions-view";
 import { TopView } from "@/components/sinking-fund/top-view";
 import { ParticipantsView } from "@/components/sinking-fund/participants-view";
@@ -36,6 +37,7 @@ type Dialog =
   | { kind: "loan-withdrawal"; loan: SfLoan }
   | { kind: "distribute" }
   | { kind: "history" }
+  | { kind: "distribution-details"; distribution: SfDistribution }
   | { kind: "settings" }
   | { kind: "void"; target: VoidTarget }
   | { kind: "rename"; participant: SfParticipantSummary }
@@ -77,10 +79,30 @@ export function PrimaryActions() {
 
 /** The client shell of /sinking-fund: header, view toggle, the active view, and every dialog. */
 export function SinkingFundPage({ data, params, searchParams, isOwner }: { data: SfPageData; params: SfPageParams; searchParams: SearchParams; isOwner: boolean }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [dialog, setDialog] = useState<Dialog | null>(null);
   const close = () => setDialog(null);
+  // The participant pop-up is client state only (feature 016): opening and closing it never renders the page. The
+  // address keeps `detail` in step through replaceState, so a refresh or a shared link still opens it.
+  const [participantId, setParticipantId] = useState<string | null>(params.detail ?? null);
+  const opener = useRef<HTMLElement | null>(null);
+  const scrollAtOpen = useRef(0);
+  const writeDetail = useCallback((id: string | null) => {
+    const current = Object.fromEntries(new URLSearchParams(window.location.search));
+    window.history.replaceState(null, "", listHref(pathname, current, { detail: id, hn: null }));
+  }, [pathname]);
+  const closeParticipant = useCallback(() => {
+    setParticipantId(null);
+    writeDetail(null);
+    const element = opener.current;
+    const top = scrollAtOpen.current;
+    opener.current = null;
+    // Closing must leave the page where it was: put focus back without scrolling and restore the scroll position.
+    requestAnimationFrame(() => {
+      if (element?.isConnected) element.focus({ preventScroll: true });
+      window.scrollTo({ top, behavior: "instant" });
+    });
+  }, [writeDetail]);
 
   const actions = useMemo<SfActions>(() => ({
     isOwner, data, params, searchParams,
@@ -91,7 +113,7 @@ export function SinkingFundPage({ data, params, searchParams, isOwner }: { data:
     distribute: () => setDialog({ kind: "distribute" }),
     history: () => setDialog({ kind: "history" }),
     voidRow: (row) => {
-      if (row.type === "interest_share") {
+      if (row.type === "interest_share" || row.type === "cycle_close") {
         const distribution = data.distributions.find((item) => item.id === row.distribution_id);
         if (distribution) setDialog({ kind: "void", target: voidTargetForDistribution(distribution) });
         return;
@@ -100,11 +122,15 @@ export function SinkingFundPage({ data, params, searchParams, isOwner }: { data:
     },
     rename: (participant) => setDialog({ kind: "rename", participant }),
     archive: (participant) => setDialog({ kind: "archive", participant }),
-    viewParticipant: (participantId) => router.push(listHref(pathname, searchParams, { detail: participantId, hn: null }), { scroll: false }),
-  }), [data, isOwner, params, pathname, router, searchParams]);
+    viewParticipant: (id) => {
+      opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      scrollAtOpen.current = window.scrollY;
+      setParticipantId(id);
+      writeDetail(id);
+    },
+  }), [data, isOwner, params, searchParams, writeDetail]);
 
   const participantFor = (id: string) => data.participants.find((item) => item.participant_id === id);
-  const detail = data.detail;
 
   return <Context.Provider value={actions}>
     <TooltipProvider>
@@ -117,14 +143,15 @@ export function SinkingFundPage({ data, params, searchParams, isOwner }: { data:
         </div>
       </section>
 
-      {detail ? <ParticipantDetailSheet detail={detail} /> : null}
+      {participantId && !dialog ? <ParticipantDetailDialog key={participantId} participantId={participantId} onClose={closeParticipant} /> : null}
 
       {dialog?.kind === "add-participant" ? <AddParticipantDialog drivers={data.drivers} open onOpenChange={(open) => !open && close()} /> : null}
       {dialog?.kind === "add-transaction" ? <AddTransactionDialog participants={data.participants} openLoans={data.openLoans} prefill={data.prefill} isOwner={isOwner} today={data.today} initial={dialog.initial} open onOpenChange={(open) => !open && close()} /> : null}
       {dialog?.kind === "change-interest" ? <ChangeInterestPartDialog payment={dialog.payment} open onOpenChange={(open) => !open && close()} /> : null}
       {dialog?.kind === "loan-withdrawal" ? <LoanWithdrawalDialog loan={dialog.loan} participantName={participantFor(dialog.loan.participant_id)?.name ?? ""} savingsCentavos={participantFor(dialog.loan.participant_id)?.savings_centavos ?? 0} open onOpenChange={(open) => !open && close()} /> : null}
-      {dialog?.kind === "distribute" ? <DistributeDialog participants={data.participants} availableCentavos={data.summary.interest_available_centavos} today={data.today} open onOpenChange={(open) => !open && close()} /> : null}
-      {dialog?.kind === "history" ? <DistributionHistoryDialog distributions={data.distributions} isOwner={isOwner} onVoid={(distribution) => setDialog({ kind: "void", target: voidTargetForDistribution(distribution) })} open onOpenChange={(open) => !open && close()} /> : null}
+      {dialog?.kind === "distribute" ? <DistributeDialog participants={data.participants} openLoans={data.openLoans} availableCentavos={data.summary.interest_available_centavos} today={data.today} open onOpenChange={(open) => !open && close()} /> : null}
+      {dialog?.kind === "history" ? <DistributionHistoryDialog distributions={data.distributions} onOpenDetails={(distribution) => setDialog({ kind: "distribution-details", distribution })} open onOpenChange={(open) => !open && close()} /> : null}
+      {dialog?.kind === "distribution-details" ? <DistributionDetailsDialog distribution={dialog.distribution} onVoid={(distribution) => setDialog({ kind: "void", target: voidTargetForDistribution(distribution) })} open onOpenChange={(open) => !open && close()} /> : null}
       {dialog?.kind === "settings" ? <FundSettingsDialog prefill={data.prefill} open onOpenChange={(open) => !open && close()} /> : null}
       {dialog?.kind === "void" ? <VoidDialog target={dialog.target} open onOpenChange={(open) => !open && close()} /> : null}
       {dialog?.kind === "rename" ? <EditNameDialog participant={dialog.participant} open onOpenChange={(open) => !open && close()} /> : null}
@@ -134,7 +161,7 @@ export function SinkingFundPage({ data, params, searchParams, isOwner }: { data:
 }
 
 function voidTargetForDistribution(distribution: SfDistribution): VoidTarget {
-  return { kind: "distribution", id: distribution.id, updatedAt: distribution.updated_at, summary: `Distribution on ${formatListDate(distribution.dist_date)} · ${formatPesos(distribution.total_distributed_centavos)} to ${distribution.participant_count} participants` };
+  return { kind: "distribution", id: distribution.id, updatedAt: distribution.updated_at, summary: `Distribution on ${formatListDate(distribution.dist_date)} · ${formatPesos(distribution.total_distributed_centavos)} shared by savings among ${distribution.participant_count} participant${distribution.participant_count === 1 ? "" : "s"}` };
 }
 
 export function OwnerOnlyNote({ children }: { children: ReactNode }) {

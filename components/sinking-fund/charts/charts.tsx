@@ -5,6 +5,7 @@ import { Table2, ChartPie } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatPesos } from "@/lib/money/centavos";
 import { formatMonth } from "@/lib/sinking-fund/format";
+import { hasNoActivity, monthLabelPlan } from "@/lib/sinking-fund/chart";
 import type { SfMonthlyFlow, SfParticipantSummary } from "@/lib/sinking-fund/types";
 
 /**
@@ -68,32 +69,59 @@ export function SavingsDonut({ participants }: { participants: readonly SfPartic
   return <ChartFrame title="Savings by participant" chart={chart} table={total === 0 ? empty : table} />;
 }
 
+// Each series has its own hue and its own pattern (solid, hatch, dots), so it can be told apart without color (feature 016).
 const barSeries = [
-  { key: "deposits_centavos", label: "Deposits", className: "fill-ok", swatch: "bg-ok" },
-  { key: "loans_centavos", label: "Loans", className: "fill-warn", swatch: "bg-warn" },
-  { key: "payments_centavos", label: "Payments", className: "fill-info", swatch: "bg-info" },
+  { key: "deposits_centavos", label: "Deposits", fill: "fill-chart-deposit", pattern: "solid" },
+  { key: "loans_centavos", label: "Loans", fill: "fill-chart-loan", pattern: "sf-bars-hatch" },
+  { key: "payments_centavos", label: "Payments", fill: "fill-chart-payment", pattern: "sf-bars-dots" },
 ] as const;
+
+/** The pattern fills the bars and the legend swatches share. They live in the chart's SVG and are used by id. */
+function BarPatterns() {
+  return <defs>
+    <pattern id="sf-bars-hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="5" height="5" className="fill-chart-loan" />
+      <rect width="2" height="5" className="fill-surface" />
+    </pattern>
+    <pattern id="sf-bars-dots" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" className="fill-chart-payment" />
+      <circle cx="3" cy="3" r="1.3" className="fill-surface" />
+    </pattern>
+  </defs>;
+}
 
 /** Deposits, Loans, and Payments per month for the last 6 months, as grouped bars with a legend. */
 export function MonthlyBars({ flows }: { flows: readonly SfMonthlyFlow[] }) {
   const max = Math.max(1, ...flows.flatMap((flow) => barSeries.map((series) => flow[series.key])));
   const groupWidth = 360 / Math.max(flows.length, 1);
+  const labels = monthLabelPlan(flows.map((flow) => flow.month));
+  const empty = hasNoActivity(flows);
+  const baseline = 150;
   const chart = <div className="grid gap-3">
-    <svg viewBox="0 0 360 170" role="img" aria-label="Deposits, loans, and payments per month" className="w-full">
-      <line x1="0" y1="140" x2="360" y2="140" className="stroke-rule" strokeWidth="1" />
+    <svg viewBox="0 0 360 180" role="img" aria-label="Deposits, loans, and payments per month" className="w-full">
+      <BarPatterns />
+      <line x1="0" y1={baseline} x2="360" y2={baseline} className="stroke-rule" strokeWidth="1" />
       {flows.map((flow, index) => {
         const x0 = index * groupWidth + groupWidth * 0.15;
         const barWidth = (groupWidth * 0.7) / 3;
+        const label = labels[index]?.label;
         return <g key={flow.month}>
           {barSeries.map((series, seriesIndex) => {
             const height = (flow[series.key] / max) * 130;
-            return <rect key={series.key} x={x0 + seriesIndex * barWidth} y={140 - height} width={barWidth - 1} height={height} className={series.className}><title>{`${series.label} ${formatMonth(flow.month)}: ${formatPesos(flow[series.key])}`}</title></rect>;
+            return <rect key={series.key} x={x0 + seriesIndex * barWidth} y={baseline - height} width={barWidth - 1} height={height}
+              className={series.pattern === "solid" ? series.fill : undefined} fill={series.pattern === "solid" ? undefined : "url(#" + series.pattern + ")"}>
+              <title>{series.label + " " + formatMonth(flow.month) + ": " + formatPesos(flow[series.key])}</title>
+            </rect>;
           })}
-          <text x={index * groupWidth + groupWidth / 2} y="158" textAnchor="middle" className="fill-muted" fontSize="9">{formatMonth(flow.month)}</text>
+          <line x1={index * groupWidth + groupWidth / 2} y1={baseline} x2={index * groupWidth + groupWidth / 2} y2={baseline + 4} className="stroke-rule" strokeWidth="1" />
+          {label ? <text x={index * groupWidth + groupWidth / 2} y={baseline + 22} textAnchor="middle" className="fill-ink font-semibold" fontSize="13">{label}</text> : null}
         </g>;
       })}
+      {empty ? <text x="180" y="80" textAnchor="middle" className="fill-muted" fontSize="13">No activity in these months yet.</text> : null}
     </svg>
-    <ul className="flex flex-wrap gap-4 text-body-sm">{barSeries.map((series) => <li key={series.key} className="flex items-center gap-2"><span aria-hidden="true" className={`size-3 rounded-sm ${series.swatch}`} />{series.label}</li>)}</ul>
+    <ul className="flex flex-wrap gap-4 text-body-sm" data-testid="sf-bars-legend">{barSeries.map((series) => <li key={series.key} className="flex items-center gap-2">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="3" className={series.pattern === "solid" ? series.fill : undefined} fill={series.pattern === "solid" ? undefined : "url(#" + series.pattern + ")"} /></svg>{series.label}
+    </li>)}</ul>
   </div>;
   const table = <Table><TableHeader><TableRow><TableHead>Month</TableHead>{barSeries.map((series) => <TableHead key={series.key} className="text-right">{series.label}</TableHead>)}</TableRow></TableHeader>
     <TableBody>{flows.map((flow) => <TableRow key={flow.month}><TableCell>{formatMonth(flow.month)}</TableCell>{barSeries.map((series) => <TableCell key={series.key} className="text-right font-data">{formatPesos(flow[series.key])}</TableCell>)}</TableRow>)}</TableBody></Table>;

@@ -1,12 +1,15 @@
 import { addDays, fleetToday } from "@/lib/dates/fleet-date";
 import { demoDrivers } from "@/lib/demo/mode";
-import { loanAmountDue, loanDueDate, loanInterest } from "@/lib/sinking-fund/rules";
+import { fundAt, savingsAt } from "@/lib/sinking-fund/ledger";
+import { loanAmountDue, loanDueDate, loanInterest, proportionalShares } from "@/lib/sinking-fund/rules";
 import type { SfData } from "@/lib/sinking-fund/aggregate";
-import type { SfDistribution, SfParticipant, SfTransaction } from "@/lib/sinking-fund/types";
+import type { SfDistribution, SfDistributionRow, SfParticipant, SfTransaction } from "@/lib/sinking-fund/types";
 
 /**
  * Seeded Sinking fund ledger for demo mode (research R11): enough rows for "Load more", every loan status
- * (open, overdue, paid, withdrawn), an archived participant, a distribution, and a savings withdrawal.
+ * (open, overdue, paid, withdrawn), an archived participant, a proportional distribution that closed the year for
+ * three participants (one with no savings), an older equal-share distribution with no saved ended totals, and a
+ * savings withdrawal.
  * Amounts are centavos. Dates are relative to the business "today" so overdue status stays correct.
  */
 const today = fleetToday();
@@ -32,7 +35,7 @@ export const demoSfParticipants: SfParticipant[] = people.map((person, index) =>
   archived_at: person.archived ? stamp(-3, 0) : null,
   updated_at: stamp(-60, index),
 }));
-const [ana, ben, cora, dino, elena, felix, , iris] = demoSfParticipants.map((participant) => participant.id);
+const [ana, ben, cora, dino, elena, felix, hugo, iris] = demoSfParticipants.map((participant) => participant.id);
 
 let order = 0;
 const blank = (participant: string, type: SfTransaction["type"], day: number, amount: number): SfTransaction => {
@@ -76,14 +79,45 @@ rows.push({ ...blank(elena, "loan_withdrawal", -10, 75000), loan_id: elenaLoan.i
 // A loan taken today with nothing paid yet.
 rows.push(loan(dino, -5, 50000));
 
-export const demoSfDistributions: SfDistribution[] = [{
-  id: id(3, 1), dist_date: addDays(today, -3), available_before_centavos: 25000, per_participant_centavos: 8333, participant_count: 3,
-  total_distributed_centavos: 24999, remainder_centavos: 1, notes: "Demo year-end", voided_at: null, void_reason: null, updated_at: stamp(-3, 1),
-}];
-for (const participant of [ana, ben, cora]) rows.push({ ...blank(participant, "interest_share", -3, 8333), distribution_id: demoSfDistributions[0].id });
+// A year-end close, proportional to savings: Dino, Felix, and Hugo (who had no savings) took part. Their ended totals
+// were saved and their savings went back to zero; later rows below start the new cycle.
+const closeDay = -26;
+const closeDate = addDays(today, closeDay);
+const ticked = [dino, felix, hugo];
+const available = fundAt(rows, [], closeDate);
+const split = proportionalShares(available, ticked.map((participant) => ({ id: participant, savingsCentavos: savingsAt(rows.filter((row) => row.participant_id === participant), closeDate) })));
+const nameOf = (participant: string) => demoSfParticipants.find((item) => item.id === participant)?.name ?? "";
+const closeRows: SfDistributionRow[] = ticked.map((participant) => {
+  const before = savingsAt(rows.filter((row) => row.participant_id === participant), closeDate);
+  const share = split.shares.get(participant) ?? 0;
+  return { participant_id: participant, participant_name: nameOf(participant), savings_before_centavos: before, share_centavos: share, ended_total_centavos: before + share };
+});
+const closeDistribution: SfDistribution = {
+  id: id(3, 2), dist_date: closeDate, year: Number(closeDate.slice(0, 4)), available_before_centavos: available, per_participant_centavos: null, participant_count: ticked.length,
+  share_count: closeRows.filter((row) => row.share_centavos > 0).length, total_distributed_centavos: split.total, remainder_centavos: split.remainder,
+  notes: "Demo year-end close", voided_at: null, void_reason: null, updated_at: stamp(closeDay, 2),
+};
+for (const row of closeRows) {
+  if (row.share_centavos > 0) rows.push({ ...blank(row.participant_id, "interest_share", closeDay, row.share_centavos), distribution_id: closeDistribution.id });
+  if ((row.ended_total_centavos ?? 0) > 0) rows.push({ ...blank(row.participant_id, "cycle_close", closeDay, row.ended_total_centavos ?? 0), distribution_id: closeDistribution.id, notes: "Year-end close" });
+}
+
+// An older equal-share distribution (made before the year-end close): no saved ended totals ("Not recorded").
+const legacyDistribution: SfDistribution = {
+  id: id(3, 1), dist_date: addDays(today, -3), year: Number(addDays(today, -3).slice(0, 4)), available_before_centavos: 6001, per_participant_centavos: 2000, participant_count: 3,
+  share_count: 3, total_distributed_centavos: 6000, remainder_centavos: 1, notes: "Demo equal-share distribution", voided_at: null, void_reason: null, updated_at: stamp(-3, 1),
+};
+for (const participant of [ana, ben, cora]) rows.push({ ...blank(participant, "interest_share", -3, 2000), distribution_id: legacyDistribution.id });
+
+// Ben saves a little every day for a week after his loan is paid, so his history needs "Load more" (more than 10 rows).
+for (let day = -24; day <= -17; day += 1) rows.push(deposit(ben, day, 1000));
 
 // A savings withdrawal (the owner paid money back out) and the archived participant's payout.
-rows.push(blank(felix, "savings_withdrawal", -2, 150000), blank(iris, "savings_withdrawal", -4, 100000));
+rows.push(blank(felix, "savings_withdrawal", -2, 30000), blank(iris, "savings_withdrawal", -4, 100000));
 
-export const demoSfData: SfData = { participants: demoSfParticipants, transactions: rows, distributions: demoSfDistributions };
+export const demoSfDistributions: SfDistribution[] = [legacyDistribution, closeDistribution];
+export const demoSfData: SfData = {
+  participants: demoSfParticipants, transactions: rows, distributions: demoSfDistributions,
+  distributionRows: { [closeDistribution.id]: closeRows },
+};
 export const demoSfSettings = { default_interest_prefill: "first" as const };

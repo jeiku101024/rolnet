@@ -6,14 +6,14 @@ import { Search } from "lucide-react";
 import { listHref, type SearchParams } from "@/lib/pagination/list-page";
 
 /** Pause after the last keystroke before the list is searched. */
-const typingPause = 400;
+const typingPause = 250;
 
 /**
  * Whole-list search (feature 006). Writes `${prefix}q` to the URL after a short pause, which drops
  * the list's page so results start on page 1; the server then reads every matching record.
  * The same input stays mounted while results load, so focus and the text being typed are never lost.
  */
-export function ListSearch({ pathname, searchParams, prefix = "", initialValue, placeholder = "Search records", label, wide = false }: { pathname: string; searchParams: SearchParams; prefix?: string; initialValue: string; placeholder?: string; label?: string; wide?: boolean }) {
+export function ListSearch({ pathname, searchParams, prefix = "", initialValue, placeholder = "Search records", label, wide = false, onType, local = false }: { pathname: string; searchParams: SearchParams; prefix?: string; initialValue: string; placeholder?: string; label?: string; wide?: boolean; onType?: (value: string) => void; local?: boolean }) {
   const router = useRouter();
   const [value, setValue] = useState(initialValue);
   const [pending, startTransition] = useTransition();
@@ -23,6 +23,14 @@ export function ListSearch({ pathname, searchParams, prefix = "", initialValue, 
 
   function send(next: string) {
     const trimmed = next.trim();
+    if (local) {
+      // Rows are already in the browser: only keep the address current, no server round trip.
+      const query = new URLSearchParams(window.location.search);
+      if ((query.get(param) ?? "") === trimmed) return;
+      sent.current = trimmed;
+      window.history.replaceState(null, "", listHref(pathname, Object.fromEntries(query), { [param]: trimmed || null }));
+      return;
+    }
     if (trimmed === sent.current) return;
     sent.current = trimmed;
     startTransition(() => router.replace(listHref(pathname, searchParams, { [param]: trimmed || null }), { scroll: false }));
@@ -44,10 +52,16 @@ export function ListSearch({ pathname, searchParams, prefix = "", initialValue, 
     setValue(initialValue);
   }, [initialValue]);
 
+  // Lists that can filter in the browser follow the text as it is typed, ahead of the URL.
+  useEffect(() => { onType?.(value); }, [value, onType]);
+
+  // Depends on the text only, so unrelated re-renders do not restart the pause.
+  const sendRef = useRef(send);
+  useEffect(() => { sendRef.current = send; });
   useEffect(() => {
-    const timer = setTimeout(() => send(value), typingPause);
+    const timer = setTimeout(() => sendRef.current(value), typingPause);
     return () => clearTimeout(timer);
-  });
+  }, [value]);
 
   return <label className={`relative block w-full min-w-0 text-body-sm ${wide ? "" : "sm:max-w-sm"}`}>
     <span className="sr-only">{label ?? placeholder}</span>

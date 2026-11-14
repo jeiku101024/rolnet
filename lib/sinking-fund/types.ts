@@ -1,12 +1,12 @@
 /** Shared types for the Sinking fund (feature 015). All money is integer centavos. */
 
-export type SfTransactionType = "deposit" | "loan" | "payment" | "loan_withdrawal" | "savings_withdrawal" | "interest_share";
+export type SfTransactionType = "deposit" | "loan" | "payment" | "loan_withdrawal" | "savings_withdrawal" | "interest_share" | "cycle_close";
 export type SfInterestSetBy = "owner" | "default";
 export type SfPrefill = "first" | "last";
 export type SfView = "transactions" | "top" | "participants";
 export type SfLoanStatus = "open" | "paid" | "withdrawn";
 
-export const sfTransactionTypes: readonly SfTransactionType[] = ["deposit", "loan", "payment", "loan_withdrawal", "savings_withdrawal", "interest_share"];
+export const sfTransactionTypes: readonly SfTransactionType[] = ["deposit", "loan", "payment", "loan_withdrawal", "savings_withdrawal", "interest_share", "cycle_close"];
 
 export type SfParticipant = {
   id: string;
@@ -45,8 +45,12 @@ export type SfDistribution = {
   id: string;
   dist_date: string;
   available_before_centavos: number;
-  per_participant_centavos: number;
+  /** Only for distributions made before the year-end close (equal shares); empty for proportional ones. */
+  per_participant_centavos: number | null;
   participant_count: number;
+  /** Participants who received a share above zero. */
+  share_count: number;
+  year: number;
   total_distributed_centavos: number;
   remainder_centavos: number;
   notes: string | null;
@@ -99,6 +103,24 @@ export type SfFundSummary = {
   interest_available_centavos: number;
   interest_expected_centavos: number;
   participant_count: number;
+  /** The date of the latest non-voided year-end close; payments received and interest collected count after it. */
+  cycle_start: string | null;
+};
+
+/** One participant in a distribution: savings before, share, and the ended total saved when it was made. Ended total and savings before are null for distributions made before the year-end close. */
+export type SfDistributionRow = {
+  participant_id: string;
+  participant_name: string;
+  savings_before_centavos: number | null;
+  share_centavos: number;
+  ended_total_centavos: number | null;
+};
+
+export type SfDistributionDetail = {
+  distribution: SfDistribution;
+  /** Sorted by ended total savings, highest first; ties by name; rows without an ended total last. */
+  rows: SfDistributionRow[];
+  totals: { ended_total_centavos: number | null; share_centavos: number };
 };
 
 export type SfMonthlyFlow = { month: string; deposits_centavos: number; loans_centavos: number; payments_centavos: number };
@@ -130,4 +152,5 @@ export const sfTypeLabels: Record<SfTransactionType, string> = {
   loan_withdrawal: "Withdrawal",
   savings_withdrawal: "Savings withdrawal",
   interest_share: "Interest share",
+  cycle_close: "Year-end close",
 };

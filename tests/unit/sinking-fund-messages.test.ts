@@ -13,7 +13,7 @@ describe("sinking fund toasts (spec section 6)", () => {
   });
 
   it("says how many participants share the interest", () => {
-    expect(formatDistributionToast(9999, 3)).toBe("₱99.99 distributed to 3 participants. Shares added to their savings.");
-    expect(formatDistributionToast(5000, 1)).toBe("₱50 distributed to 1 participant. Shares added to their savings.");
+    expect(formatDistributionToast(9999, 3)).toBe("₱99.99 distributed to 3 participants. Year closed. Everyone starts again from ₱0.00.");
+    expect(formatDistributionToast(5000, 1)).toBe("₱50 distributed to 1 participant. Year closed. Everyone starts again from ₱0.00.");
   });
 });

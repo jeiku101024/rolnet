@@ -39,11 +39,14 @@ export function listView(pathname: string, searchParams: SearchParams, request: 
   return { pathname, searchParams, prefix: request.prefix, q: request.q, state, ...options };
 }
 
-export function ListToolbar({ list }: { list: ListView }) {
+/** `local`: the page already holds every row and filters them itself (units, drivers). */
+export interface LocalHandlers { onType: (value: string) => void; onPage: (page: number) => void; onClear: () => void }
+
+export function ListToolbar({ list, local }: { list: ListView; local?: LocalHandlers }) {
   const prefix = list.prefix ?? "";
   const { total } = list.state;
   const count = <span className="font-data text-label text-muted">{total} {total === 1 ? "record" : "records"}{list.hint ? <span className="font-sans"> · {list.hint}</span> : null}</span>;
-  const search = list.search === false ? null : <ListSearch pathname={list.pathname} searchParams={list.searchParams} prefix={prefix} initialValue={list.q} label={list.searchLabel} placeholder={list.searchPlaceholder ?? (list.searchLabel ? `${list.searchLabel}…` : undefined)} wide={Boolean(list.controls)} />;
+  const search = list.search === false ? null : <ListSearch pathname={list.pathname} searchParams={list.searchParams} prefix={prefix} initialValue={list.q} onType={local?.onType} local={Boolean(local)} label={list.searchLabel} placeholder={list.searchPlaceholder ?? (list.searchLabel ? `${list.searchLabel}…` : undefined)} wide={Boolean(list.controls)} />;
   // Main lists (User Story 8): search, dates and filters on top; the count and sort just above the rows.
   if (list.controls) return <div className="flex flex-col gap-3 border-b border-rule pt-2 pb-3">
     {list.action ? <div className="flex flex-wrap items-start gap-3"><div className="min-w-0 flex-1"><ListControls pathname={list.pathname} searchParams={list.searchParams} controls={list.controls} search={search} /></div>{list.action}</div> : <ListControls pathname={list.pathname} searchParams={list.searchParams} controls={list.controls} search={search} />}
@@ -56,19 +59,22 @@ export function ListToolbar({ list }: { list: ListView }) {
 }
 
 /** Shown instead of rows when a search or filter matches nothing. */
-export function SearchEmpty({ list }: { list: ListView }) {
+export function SearchEmpty({ list, onClear }: { list: ListView; onClear?: () => void }) {
   const prefix = list.prefix ?? "";
   const clear = listHref(list.pathname, list.searchParams, { [`${prefix}q`]: null });
-  return <div className="px-4 py-8 text-center"><p className="font-semibold text-ink">{list.emptyText ?? (list.q ? `No records match "${list.q}".` : "No records match this filter.")}</p>{list.q ? <Link className="muted-link mt-3 inline-block text-body-sm" href={clear} scroll={prefix === ""}>Clear search</Link> : null}</div>;
+  const link = onClear
+    ? <button type="button" className="muted-link mt-3 inline-block text-body-sm" onClick={onClear}>Clear search</button>
+    : <Link className="muted-link mt-3 inline-block text-body-sm" href={clear} scroll={prefix === ""}>Clear search</Link>;
+  return <div className="px-4 py-8 text-center"><p className="font-semibold text-ink">{list.emptyText ?? (list.q ? `No records match "${list.q}".` : "No records match this filter.")}</p>{list.q ? link : null}</div>;
 }
 
 /** Toolbar, rows (or the right empty message) and pagination footer, shared by tables and lists. */
-export function ListFrame({ list, hasRows, empty, children }: { list: ListView; hasRows: boolean; empty?: ReactNode; children: ReactNode }) {
+export function ListFrame({ list, hasRows, empty, children, local }: { list: ListView; hasRows: boolean; empty?: ReactNode; children: ReactNode; local?: LocalHandlers }) {
   const narrowed = Boolean(list.q) || Boolean(list.controls?.count);
   return <>
-    <ListToolbar list={list} />
-    <div className="pt-2">{hasRows ? children : narrowed ? <SearchEmpty list={list} /> : empty}</div>
-    <Pagination pathname={list.pathname} searchParams={list.searchParams} prefix={list.prefix} state={list.state} />
+    <ListToolbar list={list} local={local} />
+    <div className="pt-2">{hasRows ? children : narrowed ? <SearchEmpty list={list} onClear={local?.onClear} /> : empty}</div>
+    <Pagination pathname={list.pathname} searchParams={list.searchParams} prefix={list.prefix} state={list.state} onPage={local?.onPage} />
   </>;
 }
 

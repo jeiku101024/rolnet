@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireApprovedSession } from "@/lib/auth/guards";
 import { ActionError } from "@/lib/actions/errors";
 import { run } from "@/lib/actions/run";
 import { demoMode } from "@/lib/demo/mode";
 import { loanDueDate } from "@/lib/sinking-fund/rules";
+import { loadDistributionDetail, loadParticipantDetail } from "@/lib/sinking-fund/queries";
 import { sfMessages } from "@/lib/sinking-fund/messages";
 import { archiveSchema, changeInterestSchema, depositSchema, distributeSchema, loanSchema, loanWithdrawalSchema, participantSchema, paymentSchema, renameSchema, savingsWithdrawalSchema, settingsSchema, voidSchema } from "@/lib/validation/sinking-fund";
 
@@ -39,6 +41,31 @@ async function requireOwner() {
 }
 
 const revalidate = () => revalidatePath("/sinking-fund");
+
+// Reads (feature 016). They work in demo mode too (it only refuses writes).
+
+/** One participant's pop-up data, read when the pop-up opens so closing it never needs a page render. Any approved user. */
+export async function getParticipantDetail(input: unknown) {
+  return run("The details could not be loaded. Try again.", async () => {
+    await requireApprovedSession();
+    const value = z.object({ participantId: z.string().uuid(), historyCount: z.number().int().min(1).max(500) }).parse(input);
+    const detail = await loadParticipantDetail(value.participantId, value.historyCount);
+    if (!detail) throw new ActionError("NOT_FOUND", "This participant was not found. Reload the page and try again.");
+    return detail;
+  }, labels);
+}
+
+/** One distribution's table (ended total savings and share per participant). Owner only. */
+export async function getDistributionDetails(input: unknown) {
+  return run("The distribution could not be loaded. Try again.", async () => {
+    const profile = await requireApprovedSession();
+    if (profile.role !== "owner") throw new ActionError("FORBIDDEN", sfMessages.ownerOnly);
+    const value = z.object({ id: z.string().uuid() }).parse(input);
+    const detail = await loadDistributionDetail(value.id);
+    if (!detail) throw new ActionError("NOT_FOUND", "This distribution was not found. Reload the page and try again.");
+    return detail;
+  }, labels);
+}
 
 export async function addParticipant(input: unknown) {
   return run("Could not add the participant. Check the name and try again.", async () => {
@@ -157,11 +184,17 @@ export async function distributeInterest(input: unknown) {
     await requireOwner();
     const value = distributeSchema.parse(input);
     const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.rpc("sf_distribute_interest", { p_date: value.date, p_participants: value.participantIds, p_notes: value.notes ?? null, p_key: value.idempotencyKey });
+    const { data, error } = await supabase.rpc("sf_distribute_interest", { p_date: value.date, p_participants: value.participantIds, p_notes: value.notes ?? null, p_key: value.idempotencyKey, p_expected_total: value.expectedTotalCentavos });
     if (error) throw error;
-    const { data: row } = await supabase.from("sf_distributions").select("total_distributed_centavos, participant_count").eq("id", data as string).maybeSingle();
+    const [{ data: row }, { data: shares }] = await Promise.all([
+      supabase.from("sf_distributions").select("total_distributed_centavos, participant_count, remainder_centavos").eq("id", data as string).maybeSingle(),
+      supabase.from("sf_distribution_participants").select("share_centavos").eq("distribution_id", data as string),
+    ]);
     revalidate();
-    return { id: data as string, totalCentavos: row?.total_distributed_centavos ?? 0, participants: row?.participant_count ?? value.participantIds.length };
+    return {
+      id: data as string, totalCentavos: row?.total_distributed_centavos ?? 0, participants: row?.participant_count ?? value.participantIds.length,
+      shareCount: (shares ?? []).filter((item) => item.share_centavos > 0).length, remainderCentavos: row?.remainder_centavos ?? 0,
+    };
   }, labels);
 }
 

@@ -57,6 +57,10 @@
   --token-bronze: #7a4a22;
   --token-bronze-soft: #f6e6d8;
   --token-control-border: #7d8996;
+  /* Feature 016: the monthly Sinking fund chart. Three clearly different hues, each at least 3:1 against white (graphics). */
+  --token-chart-deposit: #1a7f4e;
+  --token-chart-loan: #d97706;
+  --token-chart-payment: #2563eb;
 
   --token-text-display: 2.25rem;
   --token-text-page-title: 1.75rem;
@@ -133,6 +137,9 @@
   --color-danger-soft: var(--token-danger-soft);
   --color-info: var(--token-info);
   --color-info-soft: var(--token-info-soft);
+  --color-chart-deposit: var(--token-chart-deposit);
+  --color-chart-loan: var(--token-chart-loan);
+  --color-chart-payment: var(--token-chart-payment);
   --color-violet: var(--token-violet);
   --color-violet-soft: var(--token-violet-soft);
   --color-orange: var(--token-orange);
@@ -202,7 +209,8 @@
   .workspace-grid > * { min-width: 0; }
   .workspace-grid-wide { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: var(--space-8); }
   .workspace-grid-wide > * { min-width: 0; }
-  .data-region { min-width: 0; overflow: hidden; border-block: 1px solid var(--token-rule); background: var(--token-surface); }
+  /* Inside a card: no rule on the top or bottom edge (feature 016); the card keeps its own outline. */
+  .data-region { min-width: 0; overflow: hidden; background: var(--token-surface); }
   form.data-region { border: 1px solid var(--border); border-radius: var(--radius-xl); padding: var(--space-6); box-shadow: 0 1px 2px rgb(0 0 0 / 0.04); }
   .data-scroll { overflow-x: auto; }
   .data-table { width: 100%; min-width: var(--space-table-min); border-collapse: collapse; text-align: left; font-size: var(--token-text-body-sm); }

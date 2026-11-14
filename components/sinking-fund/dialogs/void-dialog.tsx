@@ -32,7 +32,7 @@ export function VoidDialog({ target, open, onOpenChange }: { target: VoidTarget;
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent title={`Void this ${noun}?`} description={target.kind === "distribution"
-      ? "All of its interest shares are voided together, and the totals are recalculated as if it never happened."
+      ? "Its interest shares and year-end closes are voided together, everyone's savings come back, and the totals are recalculated as if it never happened."
       : "It stays in the history marked Voided, and the totals are recalculated as if it never happened."}>
       <form noValidate className="grid gap-4" onSubmit={onSubmit}>
         <p className="rounded-md bg-canvas p-3 text-body-sm">{target.summary}</p>
