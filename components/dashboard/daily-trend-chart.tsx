@@ -12,12 +12,12 @@ export function DailyTrendChart({ days, monthLabel }: { days: DailyCollection[];
   const emptyDays = days.filter((day) => day.collectedCentavos === 0).length;
   const width = Math.max(days.length, 1) * 10;
   const summary = total ? `${formatPesos(total)} collected in ${monthLabel}. Best day ${best?.date}: ${formatPesos(best?.collectedCentavos ?? 0)}. ${emptyDays} ${emptyDays === 1 ? "day" : "days"} with nothing collected.` : "";
-  return <Card className="min-w-0">
+  return <Card className="h-full min-w-0">
     <CardHeader><CardTitle><h3 className="text-section-title font-bold">Daily collections</h3></CardTitle><p className="text-body-sm text-muted">{monthLabel}, payments received each day.</p></CardHeader>
-    <CardContent>
-      {total ? <figure>
+    <CardContent className="flex flex-1 flex-col">
+      {total ? <figure className="flex flex-1 flex-col">
         <p className="font-data text-section-title font-bold">{formatPesos(total)}</p>
-        <svg className="mt-3 h-32 w-full text-brand" viewBox={`0 0 ${width} 100`} preserveAspectRatio="none" role="img" aria-label={summary}>
+        <svg className="mt-3 min-h-32 w-full flex-1 text-brand" viewBox={`0 0 ${width} 100`} preserveAspectRatio="none" role="img" aria-label={summary}>
           <line x1="0" y1="100" x2={width} y2="100" className="stroke-rule" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           {days.map((day, index) => <rect key={day.date} x={index * 10 + 1} width="8" y={100 - day.heightPct} height={day.heightPct} className="fill-current"><title>{`${day.date}: ${formatPesos(day.collectedCentavos)}`}</title></rect>)}
         </svg>
