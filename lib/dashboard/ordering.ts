@@ -48,6 +48,28 @@ export function orderUnpaidBalances(rows: { driver_id: string; driver_name: stri
     .sort((a, b) => b.outstandingCentavos - a.outstandingCentavos || (a.firstUnpaidServiceDate ?? "9999").localeCompare(b.firstUnpaidServiceDate ?? "9999"));
 }
 
+// Unpaid sinking fund loans (feature 017)
+
+export interface UnpaidLoanItem { participantId: string; participantName: string; outstandingCentavos: number; openLoanCount: number; overdue: boolean; earliestDueDate: string | null }
+
+/** One row per participant: open loan balances combined, largest first. Paid or unknown-participant loans are left out. */
+export function orderUnpaidLoans(loans: { participant_id: string; balance_centavos: number; overdue: boolean; due_date: string | null }[], participants: { id: string; name: string }[]): UnpaidLoanItem[] {
+  const names = new Map(participants.map((participant) => [participant.id, participant.name]));
+  const byParticipant = new Map<string, UnpaidLoanItem>();
+  for (const loan of loans) {
+    const balance = Number(loan.balance_centavos);
+    const name = names.get(loan.participant_id);
+    if (!(balance > 0) || name === undefined) continue;
+    const current = byParticipant.get(loan.participant_id) ?? { participantId: loan.participant_id, participantName: name, outstandingCentavos: 0, openLoanCount: 0, overdue: false, earliestDueDate: null };
+    current.outstandingCentavos += balance;
+    current.openLoanCount += 1;
+    current.overdue = current.overdue || loan.overdue;
+    if (loan.due_date && (!current.earliestDueDate || loan.due_date < current.earliestDueDate)) current.earliestDueDate = loan.due_date;
+    byParticipant.set(loan.participant_id, current);
+  }
+  return [...byParticipant.values()].sort((a, b) => b.outstandingCentavos - a.outstandingCentavos || a.participantName.localeCompare(b.participantName));
+}
+
 // Extradors and units in repair
 
 export interface ExtradorItem { driverId: string; fullName: string; phone: string; currentUnit: { unitId: string; bodyNumber: string } | null; assignmentType: "backup" | "primary" | null }

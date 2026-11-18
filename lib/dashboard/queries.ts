@@ -7,8 +7,10 @@ import { remittanceTotals } from "@/lib/remittances/totals";
 import { covers } from "@/lib/drivers/absences";
 import { demoDocuments, demoDriverAbsences, demoDrivers, demoExpenses, demoInRepairSince, demoMode, demoRemittances, demoUnitAssignmentsDaily, demoUnits } from "@/lib/demo/mode";
 import { documentsDueHref } from "@/lib/documents/url-state";
+import { buildLoans, openLoans } from "@/lib/sinking-fund/aggregate";
+import { demoSfData, demoSfParticipants } from "@/lib/sinking-fund/demo-data";
 import {
-  dailyCollections, daysBetween, monthTotals, orderExpiringDocuments, orderExtradors, orderInRepair, orderUnpaidBalances, toPanel, unitIncomeBars,
+  dailyCollections, daysBetween, monthTotals, orderExpiringDocuments, orderExtradors, orderInRepair, orderUnpaidBalances, orderUnpaidLoans, toPanel, unitIncomeBars,
   type ExtradorItem, type FleetStats, type InRepairUnitItem, type SummaryRow,
 } from "@/lib/dashboard/ordering";
 
@@ -34,7 +36,7 @@ async function liveDashboard(m: string, today: string) {
   const s = await createSupabaseServerClient();
   // Payments from the day before the month starts, so every fleet-local day of the month is covered.
   const paymentsFrom = `${addDays(`${m}-01`, -1)}T00:00:00Z`;
-  const [summary, expiry, balances, units, backups, payments, remittances, expenses, documents] = await Promise.all([
+  const [summary, expiry, balances, units, backups, payments, remittances, expenses, documents, sfLoans, sfParticipants] = await Promise.all([
     s.rpc("dashboard_monthly_unit_summary", { month_start: `${m}-01` }),
     s.rpc("expiring_documents", { as_of: today }),
     s.rpc("driver_outstanding_balances", { as_of: today }),
@@ -44,6 +46,9 @@ async function liveDashboard(m: string, today: string) {
     s.from("remittances").select("id, service_date, amount_due_centavos, disposition, units(body_number), drivers(full_name), remittance_payments(amount_centavos)").is("deleted_at", null).order("service_date", { ascending: false }).order("created_at", { ascending: false }).limit(5),
     s.from("expenses").select("id, expense_date, amount_centavos, receipt_object_path, category, custom_category, units(body_number)").is("deleted_at", null).order("expense_date", { ascending: false }).order("created_at", { ascending: false }).limit(5),
     s.from("documents").select("id, document_type, expires_on, lifecycle_status, created_at, unit_id, driver_id").is("deleted_at", null).order("created_at", { ascending: false }).limit(5),
+    // Feature 017: open sinking fund loans (balance above zero, not withdrawn) and the names to group them under.
+    s.from("sf_loans_v").select("participant_id, balance_centavos, overdue, due_date").eq("status", "open"),
+    s.from("sf_participants").select("id, name").is("deleted_at", null),
   ]);
 
   const unitRows = units.data ?? [];
@@ -77,6 +82,7 @@ async function liveDashboard(m: string, today: string) {
     summary: (summary.data ?? []) as SummaryRow[],
     expiry: expiryRows.map((row) => ({ ...row, holderLabel: holderLabel(row) })),
     balances: balances.data ?? [],
+    loans: sfLoans.data ?? [], participants: sfParticipants.data ?? [],
     units: unitRows,
     extradors, inRepair,
     payments: payments.data ?? [],
@@ -91,6 +97,7 @@ async function liveDashboard(m: string, today: string) {
 function assemble(input: {
   m: string; today: string; summary: SummaryRow[]; expiry: { id: string; document_type: string; expires_on: string; bucket: string; holderLabel: string }[];
   balances: { driver_id: string; driver_name: string; outstanding_centavos: number; unpaid_remittance_count: number | null; first_unpaid_service_date: string | null }[];
+  loans: { participant_id: string; balance_centavos: number; overdue: boolean; due_date: string | null }[]; participants: { id: string; name: string }[];
   units: { status: string }[]; extradors: ExtradorItem[]; inRepair: InRepairUnitItem[]; payments: { paid_at: string; amount_centavos: number }[]; recent: Record<RecentKind, Item[]>;
 }) {
   const stats: FleetStats = {
@@ -104,6 +111,7 @@ function assemble(input: {
     attention: {
       documents: toPanel(orderExpiringDocuments(input.expiry, input.today), documentsDueHref),
       balances: toPanel(orderUnpaidBalances(input.balances), "/remittances?view=list&balance=unpaid"),
+      loans: toPanel(orderUnpaidLoans(input.loans, input.participants), "/sinking-fund"),
     },
     status: {
       extradors: toPanel(orderExtradors(input.extradors), "/drivers?kind=backup"),
@@ -137,8 +145,9 @@ function demoDashboard(m: string, today: string) {
   });
   const inRepair: InRepairUnitItem[] = demoUnits.filter((unit) => unit.status === "in_repair").map((unit) => { const at = demoInRepairSince[unit.id] ?? null; return { unitId: unit.id, bodyNumber: unit.body_number, plateNumber: unit.plate_number, inRepairSince: at, daysInRepair: at ? daysBetween(manilaDate(at), today) : null }; });
   const payments = demoRemittances.map((r) => ({ paid_at: `${r.service_date}T04:00:00Z`, amount_centavos: remittanceTotals(r.amount_due_centavos, r.remittance_payments).paid }));
+  const loans = openLoans(buildLoans(demoSfData, today)).map((loan) => ({ participant_id: loan.participant_id, balance_centavos: loan.balance_centavos, overdue: loan.overdue, due_date: loan.due_date }));
   return assemble({
-    m, today, summary, expiry, balances, units: demoUnits.filter((unit) => !unit.archived), extradors, inRepair, payments,
+    m, today, summary, expiry, balances, loans, participants: demoSfParticipants.map((p) => ({ id: p.id, name: p.name })), units: demoUnits.filter((unit) => !unit.archived), extradors, inRepair, payments,
     recent: {
       remittances: demoRemittances.slice(0, 5) as Item[],
       expenses: demoExpenses.slice(0, 5) as Item[],

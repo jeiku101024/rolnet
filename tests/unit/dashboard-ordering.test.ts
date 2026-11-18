@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { addDays } from "@/lib/dates/fleet-date";
-import { expiryText, orderExpiringDocuments, orderExtradors, orderInRepair, orderUnpaidBalances, repairText, toPanel } from "@/lib/dashboard/ordering";
+import { expiryText, orderExpiringDocuments, orderExtradors, orderInRepair, orderUnpaidBalances, orderUnpaidLoans, repairText, toPanel } from "@/lib/dashboard/ordering";
 
 const today = "2026-10-30";
 
@@ -28,6 +28,27 @@ describe("dashboard attention ordering (feature 006)", () => {
     const panel = toPanel(Array.from({ length: 12 }, (_, index) => index), "/maintenance?due=1");
     expect(panel.items).toHaveLength(5);
     expect(panel.total).toBe(12);
+  });
+});
+
+describe("unpaid sinking fund loans (feature 017)", () => {
+  const people = [{ id: "a", name: "Ana" }, { id: "b", name: "Ben" }, { id: "c", name: "Cora" }];
+  const loan = (participant_id: string, balance_centavos: number, overdue = false, due_date: string | null = "2026-11-30") => ({ participant_id, balance_centavos, overdue, due_date });
+
+  it("combines a participant's open loans into one row", () => {
+    const [row] = orderUnpaidLoans([loan("a", 30000, false, "2026-12-01"), loan("a", 20000, true, "2026-10-01")], people);
+    expect(row).toMatchObject({ participantName: "Ana", outstandingCentavos: 50000, openLoanCount: 2, overdue: true, earliestDueDate: "2026-10-01" });
+  });
+
+  it("orders by balance then name and drops paid loans and unknown participants", () => {
+    const ordered = orderUnpaidLoans([loan("b", 10000), loan("c", 10000), loan("a", 90000), loan("a", 0), loan("zzz", 5000)], people);
+    expect(ordered.map((item) => item.participantName)).toEqual(["Ana", "Ben", "Cora"]);
+    expect(orderUnpaidLoans([loan("a", 0)], people)).toEqual([]);
+    expect(orderUnpaidLoans([], people)).toEqual([]);
+  });
+
+  it("is not overdue when no open loan is past due", () => {
+    expect(orderUnpaidLoans([loan("a", 100)], people)[0]?.overdue).toBe(false);
   });
 });
 
