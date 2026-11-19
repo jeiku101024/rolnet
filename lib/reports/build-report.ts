@@ -20,7 +20,7 @@ export interface BuildInput {
 }
 
 const emptyDaily = (): UnitDailyData => ({ remittances: [], expensesByDate: new Map() });
-const emptyYear = (): UnitYearData => ({ months: Array.from({ length: 12 }, () => ({ rentalCentavos: 0, allowanceCentavos: 0 })), expenseCentavos: 0 });
+const emptyYear = (): UnitYearData => ({ months: Array.from({ length: 12 }, () => ({ rentalCentavos: 0, allowanceCentavos: 0, depositCentavos: 0 })), expenseCentavos: 0 });
 
 export function periodTitle(kind: ReportKind, key: string) {
   return kind === "monthly" ? monthTitle(key) : kind === "weekly" ? weekTitle(key) : key;

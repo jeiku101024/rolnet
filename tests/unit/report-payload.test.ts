@@ -11,10 +11,10 @@ import { readWorkbook } from "@/tests/support/xlsx-read";
 
 const units = [{ id: "a", name: "rolnet-1" }, { id: "b", name: "rolnet-2" }];
 const daily = new Map<string, UnitDailyData>([
-  ["a", { remittances: [{ date: "2026-10-26", rentalCentavos: 18000, allowanceCentavos: 4000, driverName: "Juan Dela Cruz" }, { date: "2026-10-28", rentalCentavos: 30000, allowanceCentavos: 4000, driverName: "Pedro Santos" }], expensesByDate: new Map([["2026-10-30", 12000]]) }],
+  ["a", { remittances: [{ date: "2026-10-26", rentalCentavos: 18000, allowanceCentavos: 4000, depositCentavos: 14000, latePayments: [], driverName: "Juan Dela Cruz" }, { date: "2026-10-28", rentalCentavos: 30000, allowanceCentavos: 4000, depositCentavos: 26000, latePayments: [], driverName: "Pedro Santos" }], expensesByDate: new Map([["2026-10-30", 12000]]) }],
 ]);
 const yearly = new Map<string, UnitYearData>([
-  ["b", { months: Array.from({ length: 12 }, (_, index) => ({ rentalCentavos: index * 18000, allowanceCentavos: index * 4000 })), expenseCentavos: 25000 }],
+  ["b", { months: Array.from({ length: 12 }, (_, index) => ({ rentalCentavos: index * 18000, allowanceCentavos: index * 4000, depositCentavos: index * 14000 })), expenseCentavos: 25000 }],
 ]);
 
 const cells = async (bytes: Uint8Array) => readWorkbook(bytes).sheets.map((sheet) => [sheet.name, [...sheet.cells].map(([ref, cell]) => [ref, cell.value, cell.formula])]);

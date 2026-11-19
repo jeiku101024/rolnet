@@ -13,7 +13,7 @@ function synthetic(unitCount: number) {
   const units = Array.from({ length: unitCount }, (_, index) => ({ id: `u${index + 1}`, name: `rolnet-${index + 1}` }));
   const daily = new Map<string, UnitDailyData>();
   for (const unit of units) {
-    const remittances = Array.from({ length: 31 }, (_, day) => ({ date: `2026-10-${String(day + 1).padStart(2, "0")}`, rentalCentavos: 18000, allowanceCentavos: 4000, driverName: `Driver ${unit.name}` }));
+    const remittances = Array.from({ length: 31 }, (_, day) => ({ date: `2026-10-${String(day + 1).padStart(2, "0")}`, rentalCentavos: 18000, allowanceCentavos: 4000, depositCentavos: 14000, latePayments: day % 10 === 9 ? [{ date: "2026-11-02", amountCentavos: 18000 }] : [], driverName: `Driver ${unit.name}` }));
     daily.set(unit.id, { remittances, expensesByDate: new Map([["2026-10-06", 12000]]) });
   }
   return { units, daily };

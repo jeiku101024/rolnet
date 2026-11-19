@@ -3,6 +3,7 @@ import { one } from "@/lib/supabase/embed";
 import { demoExpenses, demoRemittances, demoUnits } from "@/lib/demo/mode";
 import type { DateRange } from "@/lib/reports/periods";
 import { sortUnits } from "@/lib/reports/sheet-names";
+import { latePaymentsFor } from "@/lib/reports/late-payments";
 import type { UnitDailyData, UnitYearData } from "@/lib/reports/report-layout";
 import type { Database } from "@/types/database";
 
@@ -73,14 +74,16 @@ export async function loadDailyData(supabase: Client | null, { from, to }: DateR
   if (!supabase) {
     const inRange = (date: string) => date >= from && date <= to;
     const sorted = demoRemittances.filter((row) => inRange(row.service_date) && (!unitId || row.unit_id === unitId)).sort((a, b) => a.service_date.localeCompare(b.service_date));
-    for (const row of sorted) unitData(row.unit_id).remittances.push({ date: row.service_date, rentalCentavos: row.amount_due_centavos, allowanceCentavos: row.allowance_centavos, driverName: one(row.drivers)?.full_name ?? "Unknown driver" });
+    for (const row of sorted) unitData(row.unit_id).remittances.push({ date: row.service_date, rentalCentavos: row.amount_due_centavos, allowanceCentavos: row.allowance_centavos, depositCentavos: row.deposit_centavos, latePayments: [], driverName: one(row.drivers)?.full_name ?? "Unknown driver" });
     for (const row of demoExpenses.filter((item) => inRange(item.expense_date) && (!unitId || item.unit_id === unitId))) addExpense(row.unit_id, row.expense_date, row.amount_centavos);
     return result;
   }
   const [remittances, expenses] = await Promise.all([
     allPages((start, end) => {
-      let query = supabase.from("remittances").select("unit_id, service_date, amount_due_centavos, allowance_centavos, drivers(full_name)")
-        .is("deleted_at", null).gte("service_date", from).lte("service_date", to);
+      // Feature 020: the recorded deposit (payments minus allowance) and the remittance's own non-voided payments, so a payment
+      // that arrived after the service date can be noted. One embedded read keeps the paging as it was.
+      let query = supabase.from("remittances").select("unit_id, service_date, amount_due_centavos, allowance_centavos, deposit_centavos, drivers(full_name), remittance_payments(paid_at, amount_centavos)")
+        .is("deleted_at", null).is("remittance_payments.deleted_at", null).gte("service_date", from).lte("service_date", to);
       if (unitId) query = query.eq("unit_id", unitId);
       return query.order("service_date").order("created_at").order("id").range(start, end);
     }),
@@ -95,6 +98,8 @@ export async function loadDailyData(supabase: Client | null, { from, to }: DateR
       date: row.service_date as string,
       rentalCentavos: Number(row.amount_due_centavos),
       allowanceCentavos: Number(row.allowance_centavos),
+      depositCentavos: Number(row.deposit_centavos),
+      latePayments: latePaymentsFor(row.service_date as string, (row.remittance_payments as { paid_at: string; amount_centavos: number }[] | null) ?? []),
       driverName: one(row.drivers as { full_name: string } | { full_name: string }[] | null)?.full_name ?? "Unknown driver",
     });
   }
@@ -102,7 +107,7 @@ export async function loadDailyData(supabase: Client | null, { from, to }: DateR
   return result;
 }
 
-const emptyYear = (): UnitYearData => ({ months: Array.from({ length: 12 }, () => ({ rentalCentavos: 0, allowanceCentavos: 0 })), expenseCentavos: 0 });
+const emptyYear = (): UnitYearData => ({ months: Array.from({ length: 12 }, () => ({ rentalCentavos: 0, allowanceCentavos: 0, depositCentavos: 0 })), expenseCentavos: 0 });
 
 /** Monthly totals by unit for a year, from the database's aggregate function (research R5). */
 export async function loadYearlyData(supabase: Client | null, year: number, unitId: string | null): Promise<Map<string, UnitYearData>> {
@@ -118,6 +123,7 @@ export async function loadYearlyData(supabase: Client | null, year: number, unit
       const month = unitData(row.unit_id).months[Number(row.service_date.slice(5, 7)) - 1];
       month.rentalCentavos += row.amount_due_centavos;
       month.allowanceCentavos += row.allowance_centavos;
+      month.depositCentavos += row.deposit_centavos;
     }
     for (const row of demoExpenses.filter((item) => item.expense_date >= range.from && item.expense_date <= range.to && (!unitId || item.unit_id === unitId))) unitData(row.unit_id).expenseCentavos += row.amount_centavos;
     return result;
@@ -131,6 +137,7 @@ export async function loadYearlyData(supabase: Client | null, year: number, unit
     const month = data.months[Number(row.month.slice(5, 7)) - 1];
     month.rentalCentavos += Number(row.rental_centavos);
     month.allowanceCentavos += Number(row.allowance_centavos);
+    month.depositCentavos += Number(row.deposit_centavos);
     data.expenseCentavos += Number(row.expense_centavos);
   }
   return result;

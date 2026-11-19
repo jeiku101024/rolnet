@@ -1,4 +1,5 @@
 import { days, excelSerial, monthTitle, monthWeeks, rangeLabel, weekRange, weekTitle, type DateRange, type ReportKind } from "@/lib/reports/periods";
+import { lateNote, type LatePayment } from "@/lib/reports/late-payments";
 import type { Cell, Row, SheetModel, StyleName } from "@/lib/reports/xlsx";
 
 // Feature 014 (contracts/workbook-layout.md): the unit sheets of the Weekly, Monthly and Yearly reports as
@@ -6,9 +7,19 @@ import type { Cell, Row, SheetModel, StyleName } from "@/lib/reports/xlsx";
 // cached value, worked out here from the same centavo sums. Row numbers come from the build, never from
 // constants, and each builder returns the cells the All units summary links to.
 
-export interface ReportRemittance { date: string; rentalCentavos: number; allowanceCentavos: number; driverName: string }
+/**
+ * One remittance on a report row. `depositCentavos` is the recorded deposit: its non-voided payments minus its allowance, so it is
+ * negative while the allowance is unpaid (feature 020). `latePayments` are the payments that arrived after `date`.
+ */
+export interface ReportRemittance { date: string; rentalCentavos: number; allowanceCentavos: number; depositCentavos: number; latePayments: LatePayment[]; driverName: string }
 export interface UnitDailyData { remittances: ReportRemittance[]; expensesByDate: Map<string, number> }
-export interface UnitYearData { months: { rentalCentavos: number; allowanceCentavos: number }[]; expenseCentavos: number }
+export interface UnitYearData { months: { rentalCentavos: number; allowanceCentavos: number; depositCentavos: number }[]; expenseCentavos: number }
+
+/**
+ * A row Deposit. A payload from before feature 020 (an old cached browser bundle after a deploy) has no depositCentavos;
+ * only then does it fall back to the old Rental - Allowance. Every current payload carries the recorded deposit.
+ */
+const depositOf = (row: { depositCentavos?: number; rentalCentavos: number; allowanceCentavos: number }) => row.depositCentavos ?? row.rentalCentavos - row.allowanceCentavos;
 
 export interface UnitTotals { rentalCentavos: number; depositCentavos: number; allowanceCentavos: number; expensesCentavos: number; netCentavos: number }
 /** A finished unit sheet and where the summary links to: Rental, Deposit, Allowance, Expenses, Net. */
@@ -46,38 +57,43 @@ function groupByDate(remittances: ReportRemittance[]) {
   return map;
 }
 
-interface Block { subtotalRow: number; expensesRow: number; rentalCentavos: number; allowanceCentavos: number; expensesCentavos: number }
+interface Block { subtotalRow: number; expensesRow: number; rentalCentavos: number; depositCentavos: number; allowanceCentavos: number; expensesCentavos: number }
 
 /** One block: its date rows, then Subtotal, Expenses, Allowance and Net (spec FR-051, FR-062). */
 function dailyBlock(rows: Row[], height: number, dates: string[], byDate: Map<string, ReportRemittance[]>, expensesCentavos: number, label: string): Block {
   const first = rows.length + 1;
   let rental = 0;
+  let deposit = 0;
   let allowance = 0;
   const row = (cells: (Cell | undefined)[]) => rows.push({ h: height, cells });
   for (const date of dates) {
     const onDay = byDate.get(date) ?? [];
-    if (!onDay.length) row([{ v: excelSerial(date), s: "date" }, blank("text"), blank("amount"), blank("amount"), blank("amount")]);
+    if (!onDay.length) row([{ v: excelSerial(date), s: "date" }, blank("text"), blank("amount"), blank("amount"), blank("amount"), blank("text")]);
     for (const item of onDay) {
-      const r = rows.length + 1;
+      const itemDeposit = depositOf(item);
+      const note = lateNote(item.latePayments ?? []);
       rental += item.rentalCentavos;
+      deposit += itemDeposit;
       allowance += item.allowanceCentavos;
-      row([{ v: excelSerial(date), s: "date" }, text(item.driverName, "text"), amount(item.rentalCentavos, "amount"), amount(item.rentalCentavos - item.allowanceCentavos, "amount", `C${r}-E${r}`), amount(item.allowanceCentavos, "amount")]);
+      // Deposit is recorded money (payments minus allowance), so it is a number, not a formula of Rental and Allowance.
+      // Notes names a payment that arrived after the service date; it takes no part in any total.
+      row([{ v: excelSerial(date), s: "date" }, text(item.driverName, "text"), amount(item.rentalCentavos, "amount"), amount(itemDeposit, "amount"), amount(item.allowanceCentavos, "amount"), note ? text(note, "text") : blank("text")]);
     }
   }
   const last = rows.length;
   const s = last + 1;
   const sum = (column: string) => `SUM(${column}${first}:${column}${last})`;
-  row([text(label, "subLabel"), blank("subAmount"), amount(rental, "subAmount", sum("C")), amount(rental - allowance, "subAmount", sum("D")), amount(allowance, "subAmount", sum("E"))]);
+  row([text(label, "subLabel"), blank("subAmount"), amount(rental, "subAmount", sum("C")), amount(deposit, "subAmount", sum("D")), amount(allowance, "subAmount", sum("E")), blank("subAmount")]);
   row([text("Expenses:", "lineLabelItalic"), undefined, amount(expensesCentavos, "lineAmountItalic")]);
   row([text("Allowance:", "lineLabelItalic"), undefined, amount(allowance, "lineAmountItalic", `E${s}`)]);
   row([text("Net:", "lineLabelBold"), undefined, amount(allowance - expensesCentavos, "lineAmountBold", `C${s + 2}-C${s + 1}`)]);
-  return { subtotalRow: s, expensesRow: s + 1, rentalCentavos: rental, allowanceCentavos: allowance, expensesCentavos };
+  return { subtotalRow: s, expensesRow: s + 1, rentalCentavos: rental, depositCentavos: deposit, allowanceCentavos: allowance, expensesCentavos };
 }
 
 const sumExpenses = (map: Map<string, number>, dates: string[]) => dates.reduce((total, date) => total + (map.get(date) ?? 0), 0);
-const dailyColumns = [36, 24, 17, 17, 17];
-const dailyHeaders = ["Date", "Driver", "Rental", "Deposit", "Allowance"];
-const dailyHeaderStyles: StyleName[] = ["headFirst", "headText", "headAmount", "headAmount", "headAmount"];
+const dailyColumns = [36, 24, 17, 17, 17, 44];
+const dailyHeaders = ["Date", "Driver", "Rental", "Deposit", "Allowance", "Notes"];
+const dailyHeaderStyles: StyleName[] = ["headFirst", "headText", "headAmount", "headAmount", "headAmount", "headText"];
 
 function dailySheet(sheetName: string, rows: Row[], merges: string[]): SheetModel {
   return { name: sheetName, tabColor: unitTabColor, columns: dailyColumns, rows, merges, hyperlinks: [], printTitles: true };
@@ -95,18 +111,19 @@ export function monthlyUnitSheet(sheetName: string, unitName: string, data: Unit
   const g = rows.length + 1;
   const total = (pick: (block: Block) => number) => blocks.reduce((sum, block) => sum + pick(block), 0);
   const rental = total((block) => block.rentalCentavos);
+  const deposit = total((block) => block.depositCentavos);
   const allowance = total((block) => block.allowanceCentavos);
   const expenses = total((block) => block.expensesCentavos);
   const join = (column: string, row: (block: Block) => number) => blocks.map((block) => `${column}${row(block)}`).join("+");
   const row = (cells: (Cell | undefined)[]) => rows.push({ h: dailyHeights.monthly, cells });
-  row([text("GRAND TOTAL", "grandLabel"), blank("grandAmount"), amount(rental, "grandAmount", join("C", (b) => b.subtotalRow)), amount(rental - allowance, "grandAmount", join("D", (b) => b.subtotalRow)), amount(allowance, "grandAmount", join("E", (b) => b.subtotalRow))]);
+  row([text("GRAND TOTAL", "grandLabel"), blank("grandAmount"), amount(rental, "grandAmount", join("C", (b) => b.subtotalRow)), amount(deposit, "grandAmount", join("D", (b) => b.subtotalRow)), amount(allowance, "grandAmount", join("E", (b) => b.subtotalRow)), blank("grandAmount")]);
   row([text("Expenses:", "grandLineLabelItalic"), undefined, amount(expenses, "grandLineAmountItalic", join("C", (b) => b.expensesRow))]);
   row([text("Allowance:", "grandLineLabelItalic"), undefined, amount(allowance, "grandLineAmountItalic", `E${g}`)]);
   row([text("Net:", "lineLabelBold"), undefined, amount(allowance - expenses, "lineAmountBold", `C${g + 2}-C${g + 1}`)]);
   return {
     sheet: dailySheet(sheetName, rows, header.merges),
     linkRefs: [`C${g}`, `D${g}`, `E${g}`, `C${g + 1}`, `C${g + 3}`],
-    totals: { rentalCentavos: rental, depositCentavos: rental - allowance, allowanceCentavos: allowance, expensesCentavos: expenses, netCentavos: allowance - expenses },
+    totals: { rentalCentavos: rental, depositCentavos: deposit, allowanceCentavos: allowance, expensesCentavos: expenses, netCentavos: allowance - expenses },
   };
 }
 
@@ -118,11 +135,11 @@ export function weeklyUnitSheet(sheetName: string, unitName: string, data: UnitD
   const dates = days(range).map((day) => day.date);
   const block = dailyBlock(rows, dailyHeights.weekly, dates, groupByDate(data.remittances), sumExpenses(data.expensesByDate, dates), `Week Subtotal  ·  ${rangeLabel(range.from, range.to)}`);
   const s = block.subtotalRow;
-  const { rentalCentavos: rental, allowanceCentavos: allowance, expensesCentavos: expenses } = block;
+  const { rentalCentavos: rental, depositCentavos: deposit, allowanceCentavos: allowance, expensesCentavos: expenses } = block;
   return {
     sheet: dailySheet(sheetName, rows, header.merges),
     linkRefs: [`C${s}`, `D${s}`, `E${s}`, `C${s + 1}`, `C${s + 3}`],
-    totals: { rentalCentavos: rental, depositCentavos: rental - allowance, allowanceCentavos: allowance, expensesCentavos: expenses, netCentavos: allowance - expenses },
+    totals: { rentalCentavos: rental, depositCentavos: deposit, allowanceCentavos: allowance, expensesCentavos: expenses, netCentavos: allowance - expenses },
   };
 }
 
@@ -132,28 +149,30 @@ export function yearlyUnitSheet(sheetName: string, unitName: string, data: UnitY
   const rows = header.rows;
   const row = (cells: (Cell | undefined)[]) => rows.push({ h: 16, cells });
   let rental = 0;
+  let deposit = 0;
   let allowance = 0;
   data.months.forEach((month, index) => {
-    const r = rows.length + 1;
+    const monthDeposit = depositOf(month);
     rental += month.rentalCentavos;
+    deposit += monthDeposit;
     allowance += month.allowanceCentavos;
-    row([{ v: excelSerial(`${year}-${String(index + 1).padStart(2, "0")}-01`), s: "month" }, amount(month.rentalCentavos, "amount"), amount(month.rentalCentavos - month.allowanceCentavos, "amount", `B${r}-D${r}`), amount(month.allowanceCentavos, "amount")]);
+    row([{ v: excelSerial(`${year}-${String(index + 1).padStart(2, "0")}-01`), s: "month" }, amount(month.rentalCentavos, "amount"), amount(monthDeposit, "amount"), amount(month.allowanceCentavos, "amount")]);
   });
   const expenses = data.expenseCentavos;
   const sub = rows.length + 1;
   const net = allowance - expenses;
-  row([text("Year Subtotal  ·  Jan–Dec", "subLabel"), amount(rental, "subAmount", `SUM(B5:B${sub - 1})`), amount(rental - allowance, "subAmount", `SUM(C5:C${sub - 1})`), amount(allowance, "subAmount", `SUM(D5:D${sub - 1})`)]);
+  row([text("Year Subtotal  ·  Jan–Dec", "subLabel"), amount(rental, "subAmount", `SUM(B5:B${sub - 1})`), amount(deposit, "subAmount", `SUM(C5:C${sub - 1})`), amount(allowance, "subAmount", `SUM(D5:D${sub - 1})`)]);
   row([text("Expenses:", "lineLabelItalic"), amount(expenses, "lineAmountItalic")]);
   row([text("Allowance:", "lineLabelItalic"), amount(allowance, "lineAmountItalic", `D${sub}`)]);
   row([text("Net:", "lineLabelBold"), amount(net, "lineAmountBold", `B${sub + 2}-B${sub + 1}`)]);
   const g = rows.length + 1;
-  row([text("GRAND TOTAL", "grandLabel"), amount(rental, "grandAmount", `B${sub}`), amount(rental - allowance, "grandAmount", `C${sub}`), amount(allowance, "grandAmount", `D${sub}`)]);
+  row([text("GRAND TOTAL", "grandLabel"), amount(rental, "grandAmount", `B${sub}`), amount(deposit, "grandAmount", `C${sub}`), amount(allowance, "grandAmount", `D${sub}`)]);
   row([text("Expenses:", "grandLineLabelItalic"), amount(expenses, "grandLineAmountItalic", `B${sub + 1}`)]);
   row([text("Allowance:", "grandLineLabelItalic"), amount(allowance, "grandLineAmountItalic", `D${g}`)]);
   row([text("Net:", "lineLabelBold"), amount(net, "lineAmountBold", `B${g + 2}-B${g + 1}`)]);
   return {
     sheet: { name: sheetName, tabColor: unitTabColor, columns: [30, 24, 24, 24], rows, merges: header.merges, hyperlinks: [], printTitles: true },
     linkRefs: [`B${g}`, `C${g}`, `D${g}`, `B${g + 1}`, `B${g + 3}`],
-    totals: { rentalCentavos: rental, depositCentavos: rental - allowance, allowanceCentavos: allowance, expensesCentavos: expenses, netCentavos: net },
+    totals: { rentalCentavos: rental, depositCentavos: deposit, allowanceCentavos: allowance, expensesCentavos: expenses, netCentavos: net },
   };
 }

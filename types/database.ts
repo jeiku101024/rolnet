@@ -203,7 +203,7 @@ export interface Database {
       // Feature 014.
       report_unit_month_totals: {
         Args: { p_from: string; p_to: string };
-        Returns: { unit_id: string; month: string; rental_centavos: number; allowance_centavos: number; remittance_count: number; expense_centavos: number }[];
+        Returns: { unit_id: string; month: string; rental_centavos: number; allowance_centavos: number; deposit_centavos: number; remittance_count: number; expense_centavos: number }[];
       };
       // Feature 012.
       save_driver_absence: {

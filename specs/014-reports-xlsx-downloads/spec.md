@@ -145,6 +145,8 @@ equals that month's monthly GRAND TOTAL for the unit.
 The Remittances daily card breakdown, the List view Deposit column, and stored records show
 Deposit = Rental − Allowance, so what the owner sees in the app equals what the export shows.
 
+> Superseded by feature 020 (`specs/020-report-deposit-from-payments/`): the app's Deposit is payments received minus allowance, and the report workbooks now show that same Deposit, so an unpaid remittance shows -₱40.00. This section describes what was true when 014 was built.
+
 **Why this priority**: Without it the app and the exports disagree, which undermines trust in both.
 
 **Independent Test**: On a Returned card with Rental ₱180.00, type 100 in Payment received: the

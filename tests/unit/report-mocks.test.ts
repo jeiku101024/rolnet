@@ -16,6 +16,21 @@ import { readWorkbook, type ReadCell, type ReadSheet, type ResolvedStyle } from 
 const mockData = JSON.parse(readFileSync(`${fixtureDir}mock-data.json`, "utf8")) as MockData;
 const readMock = (file: string) => readWorkbook(new Uint8Array(readFileSync(`${fixtureDir}${file}`)));
 
+// Feature 020 changed three things the mocks do not have, and only these are allowed to differ:
+//  1. Weekly and Monthly unit sheets have a sixth column, Notes (width 44, merges A1:F1 and A2:F2). stripNotes removes it from the
+//     generated sheet before comparing; the layout tests check the column itself.
+//  2. A row Deposit is the recorded deposit (payments minus allowance), a number, where the mocks hold the formula Rental - Allowance
+//     (C5-E5, B5-D5). The cached value is still compared; with every remittance paid in full the two are equal.
+//  3. The summary note lines that describe Deposit say payments received - Allowance. Their wording and row height may differ.
+const stripNotes = (sheet: ReadSheet, kind: ReportKind): ReadSheet => (kind === "yearly" ? sheet : {
+  ...sheet,
+  cells: new Map([...sheet.cells].filter(([ref]) => !/^F\d+$/.test(ref))),
+  widths: new Map([...sheet.widths].filter(([column]) => column !== 6)),
+  merges: sheet.merges.map((merge) => merge.replace(/^(A[12]):F([12])$/, "$1:E$2")),
+});
+const isDepositFormula = (formula: string | null) => formula !== null && /^[BC]\d+-[DE]\d+$/.test(formula);
+const isDepositNote = (value: ReadCell["value"] | undefined) => typeof value === "string" && value.includes("Deposit =");
+
 const stripQuotes = (formula: string | null) => (formula === null ? null : formula.replace(/'((?:[^']|'')+)'!/g, (_, name: string) => `${name.replace(/''/g, "'")}!`));
 const color = (value: string | null) => (value === null || value === "theme:1" ? "000000" : value);
 const border = (value: string | null) => (value === null ? null : value.replace(":auto", ":000000"));
@@ -39,8 +54,10 @@ const interesting = (cell: ReadCell) => cell.value !== null || cell.formula !== 
 
 function compareCell(label: string, actual: ReadCell | undefined, expected: ReadCell, out: string[], skipText = false) {
   if (!actual) { out.push(`${label}: missing`); return; }
+  // Allowed difference 2: a row Deposit is a number here, a formula in the mock (same cached value).
+  const skipFormula = isDepositFormula(expected.formula) && actual.formula === null;
   if (!skipText && actual.value !== expected.value && !(typeof actual.value === "number" && typeof expected.value === "number" && Math.abs(actual.value - expected.value) < 1e-9)) out.push(`${label}: value ${JSON.stringify(actual.value)} ≠ ${JSON.stringify(expected.value)}`);
-  if (!skipText && stripQuotes(actual.formula) !== stripQuotes(expected.formula)) out.push(`${label}: formula ${actual.formula} ≠ ${expected.formula}`);
+  if (!skipText && !skipFormula && stripQuotes(actual.formula) !== stripQuotes(expected.formula)) out.push(`${label}: formula ${actual.formula} ≠ ${expected.formula}`);
   const a = effective(actual);
   const e = effective(expected);
   for (const key of Object.keys(e) as (keyof typeof e)[]) {
@@ -106,19 +123,19 @@ function compareSummary(actual: ReadSheet, expected: ReadSheet, out: string[]) {
   const noteRows = hasMockLine ? lines.slice(1) : lines;
   noteRows.forEach((row, index) => {
     const target = notesRow + 1 + index;
-    const sample = String(expected.cells.get(`A${row}`)?.value).includes("sample");
+    const sample = String(expected.cells.get(`A${row}`)?.value).includes("sample") || isDepositNote(expected.cells.get(`A${row}`)?.value);
     compareCell(`${at}!note${index + 1}`, actual.cells.get(`A${target}`), expected.cells.get(`A${row}`)!, out, sample);
     if (!actual.merges.includes(`A${target}:F${target}`)) out.push(`${at}: note ${index + 1} is not merged A:F`);
     const wanted = expected.rowHeights.get(row);
     const got = actual.rowHeights.get(target);
-    if (wanted && (!got || Math.abs(got.height - wanted.height) > 0.5)) out.push(`${at}: note ${index + 1} height ${got?.height} ≠ ${wanted.height}`);
+    if (!isDepositNote(expected.cells.get(`A${row}`)?.value) && wanted && (!got || Math.abs(got.height - wanted.height) > 0.5)) out.push(`${at}: note ${index + 1} height ${got?.height} ≠ ${wanted.height}`);
   });
   const lastNote = notesRow + noteRows.length;
   if (actual.cells.get(`A${lastNote + 1}`)?.value) out.push(`${at}: extra note line`);
 }
 
-const daily = (units: MockData["monthly"]["units"]) => new Map<string, UnitDailyData>(units.map((unit) => [unit.name, { remittances: unit.remittances, expensesByDate: new Map(Object.entries(unit.expensesByDate)) }]));
-const yearly = (units: MockData["yearly"]["units"]) => new Map<string, UnitYearData>(units.map((unit) => [unit.name, { months: unit.months, expenseCentavos: unit.expenseCentavos }]));
+const daily = (units: MockData["monthly"]["units"]) => new Map<string, UnitDailyData>(units.map((unit) => [unit.name, { remittances: unit.remittances.map((item) => ({ ...item, depositCentavos: item.rentalCentavos - item.allowanceCentavos, latePayments: [] })), expensesByDate: new Map(Object.entries(unit.expensesByDate)) }]));
+const yearly = (units: MockData["yearly"]["units"]) => new Map<string, UnitYearData>(units.map((unit) => [unit.name, { months: unit.months.map((month) => ({ ...month, depositCentavos: month.rentalCentavos - month.allowanceCentavos })), expenseCentavos: unit.expenseCentavos }]));
 
 async function generate(kind: ReportKind, only: string | null) {
   const section = mockData[kind];
@@ -149,7 +166,7 @@ describe.each(["monthly", "weekly", "yearly"] as ReportKind[])("%s report agains
     for (const sheet of expected.sheets.slice(1)) {
       const match = actual.sheets.find((item) => item.name === sheet.name);
       if (!match) { out.push(`missing sheet ${sheet.name}`); continue; }
-      compareUnitSheet(match, sheet, out);
+      compareUnitSheet(stripNotes(match, kind), sheet, out);
     }
     expect(out).toEqual([]);
   });
@@ -159,7 +176,7 @@ describe.each(["monthly", "weekly", "yearly"] as ReportKind[])("%s report agains
     const expected = readMock(files[kind].one);
     const out: string[] = [];
     if (actual.sheets.length !== 1) out.push(`${actual.sheets.length} sheets`);
-    compareUnitSheet(actual.sheets[0], expected.sheets[0], out);
+    compareUnitSheet(stripNotes(actual.sheets[0], kind), expected.sheets[0], out);
     expect(out).toEqual([]);
   });
 
@@ -182,7 +199,7 @@ describe("the mock comparison itself", () => {
     sheet.tabColor = "000000";
     sheet.rowHeights.set(5, { height: 20, custom: true });
     const out: string[] = [];
-    compareUnitSheet(sheet, expected.sheets[0], out);
+    compareUnitSheet(stripNotes(sheet, "monthly"), expected.sheets[0], out);
     expect(out.length).toBeGreaterThanOrEqual(5);
     expect(out.some((line) => line.includes("C9: value"))).toBe(true);
     expect(out.some((line) => line.includes("D5: formula"))).toBe(true);

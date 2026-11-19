@@ -122,6 +122,20 @@ test.describe("XLSX reports (feature 014)", () => {
     expect(summary.cells.get("B5")?.formula).toMatch(new RegExp(`^'${units[0]}'!C\\d+$`));
   });
 
+  test("feature 020: unit sheets have a Notes column, Deposit cells are numbers, and the Yearly sheet keeps four columns", async ({ page }) => {
+    await openReport(page);
+    const monthly = await download(page);
+    const unit = monthly.workbook.sheets[1];
+    expect([1, 2, 3, 4, 5, 6].map((column) => unit.cells.get(`${String.fromCharCode(64 + column)}4`)?.value)).toEqual(["Date", "Driver", "Rental", "Deposit", "Allowance", "Notes"]);
+    // Every day row's Deposit is recorded money (payments minus allowance), a number and not a formula of Rental and Allowance.
+    const dayRows = [...unit.cells].filter(([ref, cell]) => /^D\d+$/.test(ref) && cell.formula === null && typeof cell.value === "number");
+    expect(dayRows.length).toBeGreaterThan(0);
+    await reportKind(page, "Yearly");
+    const yearly = await download(page);
+    expect([1, 2, 3, 4, 5].map((column) => yearly.workbook.sheets[1].cells.get(`${String.fromCharCode(64 + column)}4`)?.value ?? null)).toEqual(["Month", "Rental", "Deposit", "Allowance", null]);
+    expect(yearly.workbook.sheets[1].cells.get("C5")?.formula).toBeNull();
+  });
+
   test("downloads the Weekly and Yearly reports", async ({ page }) => {
     await openReport(page);
     await reportKind(page, "Weekly");

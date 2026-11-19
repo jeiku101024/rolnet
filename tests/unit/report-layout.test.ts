@@ -13,7 +13,7 @@ function cell(sheet: SheetModel, ref: string): Cell | undefined {
 const value = (sheet: SheetModel, ref: string) => cell(sheet, ref)?.v;
 const formula = (sheet: SheetModel, ref: string) => cell(sheet, ref)?.f;
 
-const remittance = (date: string, rentalCentavos = 18000, allowanceCentavos = 4000, driverName = "Juan Dela Cruz"): ReportRemittance => ({ date, rentalCentavos, allowanceCentavos, driverName });
+const remittance = (date: string, rentalCentavos = 18000, allowanceCentavos = 4000, driverName = "Juan Dela Cruz"): ReportRemittance => ({ date, rentalCentavos, allowanceCentavos, depositCentavos: rentalCentavos - allowanceCentavos, latePayments: [], driverName });
 const daily = (remittances: ReportRemittance[], expenses: Record<string, number> = {}): UnitDailyData => ({ remittances, expensesByDate: new Map(Object.entries(expenses)) });
 const everyDay = (from: number, to: number, month = "2026-10") => Array.from({ length: to - from + 1 }, (_, index) => remittance(`${month}-${String(from + index).padStart(2, "0")}`));
 
@@ -37,7 +37,9 @@ describe("monthly unit sheet (spec Section 6)", () => {
   });
 
   it("writes the worked-example formulas", () => {
-    expect(formula(sheet, "D5")).toBe("C5-E5");
+    // Feature 020: a day Deposit is the recorded deposit (payments minus allowance), a number, not a formula of Rental and Allowance.
+    expect(formula(sheet, "D5")).toBeUndefined();
+    expect(value(sheet, "D5")).toBe(140);
     expect(formula(sheet, "C9")).toBe("SUM(C5:C8)");
     expect(formula(sheet, "D9")).toBe("SUM(D5:D8)");
     expect(formula(sheet, "E9")).toBe("SUM(E5:E8)");
@@ -78,8 +80,8 @@ describe("monthly unit sheet (spec Section 6)", () => {
   });
 
   it("sets column widths, merges, tab colour, print titles and fixed row heights", () => {
-    expect(sheet.columns).toEqual([36, 24, 17, 17, 17]);
-    expect(sheet.merges).toEqual(["A1:E1", "A2:E2"]);
+    expect(sheet.columns).toEqual([36, 24, 17, 17, 17, 44]);
+    expect(sheet.merges).toEqual(["A1:F1", "A2:F2"]);
     expect(sheet.tabColor).toBe("2F5496");
     expect(sheet.printTitles).toBe(true);
     expect(sheet.rows.slice(0, 4).map((row) => row.h)).toEqual([30, 20, 10, 20]);
@@ -147,7 +149,7 @@ describe("weekly unit sheet (spec Section 7)", () => {
   });
 
   it("uses height 16 from row 5 and the same columns as the monthly sheet", () => {
-    expect(sheet.columns).toEqual([36, 24, 17, 17, 17]);
+    expect(sheet.columns).toEqual([36, 24, 17, 17, 17, 44]);
     expect(sheet.rows.slice(4).every((row) => row.h === 16)).toBe(true);
   });
 
@@ -168,7 +170,7 @@ describe("weekly unit sheet (spec Section 7)", () => {
 });
 
 describe("yearly unit sheet (spec Section 8)", () => {
-  const months = Array.from({ length: 12 }, (_, index) => (index === 9 ? { rentalCentavos: 540000, allowanceCentavos: 120000 } : { rentalCentavos: 0, allowanceCentavos: 0 }));
+  const months = Array.from({ length: 12 }, (_, index) => (index === 9 ? { rentalCentavos: 540000, allowanceCentavos: 120000, depositCentavos: 420000 } : { rentalCentavos: 0, allowanceCentavos: 0, depositCentavos: 0 }));
   const data: UnitYearData = { months, expenseCentavos: 17000 };
   const { sheet, linkRefs, totals } = yearlyUnitSheet("rolnet-1", "rolnet-1", data, 2026);
 
@@ -186,7 +188,8 @@ describe("yearly unit sheet (spec Section 8)", () => {
   });
 
   it("writes the worked-example formulas and links", () => {
-    expect(formula(sheet, "C5")).toBe("B5-D5");
+    expect(formula(sheet, "C5")).toBeUndefined();
+    expect(value(sheet, "C5")).toBe(0);
     expect(formula(sheet, "B17")).toBe("SUM(B5:B16)");
     expect(formula(sheet, "C17")).toBe("SUM(C5:C16)");
     expect(formula(sheet, "D17")).toBe("SUM(D5:D16)");
@@ -219,7 +222,7 @@ describe("yearly unit sheet (spec Section 8)", () => {
 
   it("matches the monthly grand total for the same data", () => {
     const month = monthlyUnitSheet("u", "u", daily(everyDay(1, 31), { "2026-10-06": 17000 }), "2026-10");
-    const year = yearlyUnitSheet("u", "u", { months: months.map((item, index) => (index === 9 ? { rentalCentavos: month.totals.rentalCentavos, allowanceCentavos: month.totals.allowanceCentavos } : item)), expenseCentavos: 17000 }, 2026);
+    const year = yearlyUnitSheet("u", "u", { months: months.map((item, index) => (index === 9 ? { rentalCentavos: month.totals.rentalCentavos, allowanceCentavos: month.totals.allowanceCentavos, depositCentavos: month.totals.depositCentavos } : item)), expenseCentavos: 17000 }, 2026);
     expect(value(year.sheet, "B14")).toBe(value(month.sheet, "C56"));
     expect(value(year.sheet, "C14")).toBe(value(month.sheet, "D56"));
     expect(value(year.sheet, "D14")).toBe(value(month.sheet, "E56"));

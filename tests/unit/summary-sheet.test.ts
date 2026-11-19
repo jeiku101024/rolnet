@@ -74,7 +74,7 @@ describe("All units summary sheet (spec Section 5)", () => {
 });
 
 describe("buildReportSheets (feature 014)", () => {
-  const remittance = (date: string): ReportRemittance => ({ date, rentalCentavos: 18000, allowanceCentavos: 4000, driverName: "Juan" });
+  const remittance = (date: string): ReportRemittance => ({ date, rentalCentavos: 18000, allowanceCentavos: 4000, depositCentavos: 14000, latePayments: [], driverName: "Juan" });
   const data = (dates: string[]): UnitDailyData => ({ remittances: dates.map(remittance), expensesByDate: new Map() });
   const units = [{ id: "a", name: "rolnet-1" }, { id: "b", name: "rolnet-2" }, { id: "c", name: "All units" }];
   const daily = new Map([["a", data(["2026-10-01"])], ["b", data(["2026-10-01", "2026-10-02"])]]);
