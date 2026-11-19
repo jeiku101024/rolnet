@@ -42,11 +42,10 @@ describe("All units summary Deposit (feature 020)", () => {
 
   it("describes the new Deposit rule in the notes and drops the old sentence", () => {
     for (const kind of ["monthly", "weekly"] as const) {
-      expect(summaryNotes[kind].some((line) => line.includes("Deposit = payments received - Allowance"))).toBe(true);
+      expect(summaryNotes[kind].some((line) => line.includes("Rental is the money actually received") && line.includes("Deposit = Rental - Allowance"))).toBe(true);
       expect(summaryNotes[kind].some((line) => line.includes("whatever was paid that day"))).toBe(false);
     }
-    expect(summaryNotes.yearly.some((line) => line.includes("Deposit = payments received - Allowance"))).toBe(true);
-    expect(summaryNotes.yearly.some((line) => line.includes("Deposit = Rental - Allowance"))).toBe(false);
+    expect(summaryNotes.yearly.some((line) => line.includes("Rental is the money actually received") && line.includes("Deposit = Rental - Allowance"))).toBe(true);
   });
 
   it("builds a Yearly summary from the month deposits", () => {

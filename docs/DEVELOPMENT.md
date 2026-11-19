@@ -111,10 +111,12 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   (triggers `remittances_zz_set_deposit`, named to fire after `remittances_validate`, and
   `remittance_payments_sync_deposit`), so it is correct for every entry path. Feature 014 briefly made it
   rental − allowance; migration `20261103000300_restore_payments_deposit_rule.sql` restored paid − allowance.
-  Since feature 020 the report workbooks show the same Deposit (paid − allowance, so an unpaid remittance shows
-  −₱40.00), not Rental − Allowance: Weekly and Monthly read `remittances.deposit_centavos`, Yearly reads the
-  month's sum from `report_unit_month_totals()` (migration `20261119000200_report_month_deposits.sql`). A day's
-  Deposit cell is therefore a number, while every subtotal, total, summary link and Net stays a live formula. The
+  Since feature 020 the report workbooks show money actually received: their **Rental** column is the payments
+  received (not the amount charged), so an unpaid remittance reads Rental 0, Allowance 40 and Deposit −40, and
+  Deposit is again the live formula Rental − Allowance. Weekly and Monthly derive Rental as the recorded
+  `remittances.deposit_centavos` plus the allowance; Yearly reads the month's deposit sum from
+  `report_unit_month_totals()` (migration `20261119000200_report_month_deposits.sql`). The amount charged is no
+  longer printed in the reports. The
   Weekly and Monthly unit sheets have a sixth column, **Notes**, that says when a payment arrived after the
   service date ("Received later: ₱180.00 on Nov 22", or "Received later: 3 payments, ₱540.00 (last Nov 22)");
   the Deposit still sits on the remittance's own service-date row, as in the List view. A payment can't take a remittance's total above its rental; the database rejects

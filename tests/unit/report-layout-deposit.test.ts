@@ -3,8 +3,9 @@ import { excelSerial } from "@/lib/reports/periods";
 import { monthlyUnitSheet, weeklyUnitSheet, yearlyUnitSheet, type ReportRemittance, type UnitDailyData, type UnitYearData } from "@/lib/reports/report-layout";
 import type { SheetModel } from "@/lib/reports/xlsx";
 
-// Feature 020: Deposit is what was actually received (payments minus allowance), not Rental minus Allowance, and the Weekly and
-// Monthly unit sheets note a payment that arrived after the service date in a new Notes column.
+// Feature 020: the Rental column is the money actually received (payments), not the amount charged, so Deposit = Rental - Allowance is
+// negative while a day is unpaid; the Weekly and Monthly unit sheets note a payment that arrived after the service date in a new
+// Notes column.
 
 const at = (sheet: SheetModel, ref: string) => {
   const match = /^([A-Z]+)(\d+)$/.exec(ref)!;
@@ -31,10 +32,10 @@ describe("Deposit on the Monthly and Weekly unit sheets (feature 020)", () => {
   const monthly = monthlyUnitSheet("u", "u", daily(week, { "2026-10-06": 1000 }), "2026-10");
   const weekly = weeklyUnitSheet("u", "u", daily(week, { "2026-10-06": 1000 }), "2026-10-05");
 
-  it("shows an unpaid day as a negative Deposit while Rental stays the charge", () => {
+  it("shows an unpaid day as Rental 0 and a negative Deposit, because Rental is the money received", () => {
     for (const sheet of [monthly.sheet, weekly.sheet]) {
       const row = rowOf(sheet, "2026-10-06");
-      expect(value(sheet, `C${row}`)).toBe(180);
+      expect(value(sheet, `C${row}`)).toBe(0);
       expect(value(sheet, `D${row}`)).toBe(-40);
       expect(value(sheet, `E${row}`)).toBe(40);
     }
@@ -43,13 +44,16 @@ describe("Deposit on the Monthly and Weekly unit sheets (feature 020)", () => {
   it("shows a part-paid day and a fully paid day from the payments", () => {
     const row7 = rowOf(monthly.sheet, "2026-10-07");
     const row8 = rowOf(monthly.sheet, "2026-10-08");
+    expect(value(monthly.sheet, `C${row7}`)).toBe(100);
     expect(value(monthly.sheet, `D${row7}`)).toBe(60);
+    expect(value(monthly.sheet, `C${row8}`)).toBe(180);
     expect(value(monthly.sheet, `D${row8}`)).toBe(140);
   });
 
-  it("writes a day Deposit as a plain number, not a formula of Rental and Allowance", () => {
+  it("writes a day Deposit as the live formula Rental - Allowance, with the cached value", () => {
     const row = rowOf(monthly.sheet, "2026-10-06");
-    expect(formula(monthly.sheet, `D${row}`)).toBeUndefined();
+    expect(formula(monthly.sheet, `D${row}`)).toBe(`C${row}-E${row}`);
+    expect(value(monthly.sheet, `D${row}`)).toBe(-40);
   });
 
   it("adds the Deposit cells in the week subtotal and the grand total, with live sums", () => {
@@ -64,7 +68,7 @@ describe("Deposit on the Monthly and Weekly unit sheets (feature 020)", () => {
   it("reports the summed deposits as the unit total, and Net stays Allowance minus Expenses", () => {
     expect(monthly.totals.depositCentavos).toBe(30000);
     expect(weekly.totals.depositCentavos).toBe(30000);
-    expect(monthly.totals.rentalCentavos).toBe(72000);
+    expect(monthly.totals.rentalCentavos).toBe(46000);
     expect(monthly.totals.allowanceCentavos).toBe(16000);
     expect(monthly.totals.netCentavos).toBe(16000 - 1000);
   });
@@ -82,7 +86,7 @@ describe("Notes column on the Monthly and Weekly unit sheets (feature 020)", () 
     for (const sheet of sheets) {
       expect(sheet.rows[3].cells.map((cell) => cell?.v)).toEqual(["Date", "Driver", "Rental", "Deposit", "Allowance", "Notes"]);
       expect(sheet.merges).toEqual(["A1:F1", "A2:F2"]);
-      expect(sheet.columns).toEqual([36, 24, 17, 17, 17, 44]);
+      expect(sheet.columns).toEqual([36, 24, 17, 17, 17, 40]);
     }
   });
 
@@ -124,13 +128,15 @@ describe("Deposit on the Yearly unit sheet (feature 020)", () => {
   const data: UnitYearData = { months, expenseCentavos: 1000 };
   const { sheet, totals } = yearlyUnitSheet("u", "u", data, 2026);
 
-  it("writes a month Deposit from the payments, as a plain number", () => {
+  it("writes a month Rental as the money received and Deposit as Rental - Allowance", () => {
+    expect(value(sheet, "B14")).toBe(460);
     expect(value(sheet, "C14")).toBe(300);
-    expect(formula(sheet, "C14")).toBeUndefined();
+    expect(formula(sheet, "C14")).toBe("B14-D14");
   });
 
   it("shows an unpaid month as a negative Deposit", () => {
     const unpaid = yearlyUnitSheet("u", "u", { months: months.map((month, index) => (index === 0 ? { rentalCentavos: 18000, allowanceCentavos: 4000, depositCentavos: -4000 } : month)), expenseCentavos: 0 }, 2026);
+    expect(value(unpaid.sheet, "B5")).toBe(0);
     expect(value(unpaid.sheet, "C5")).toBe(-40);
   });
 

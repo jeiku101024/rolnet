@@ -15,7 +15,7 @@ export interface SummaryUnit {
 }
 
 const same = [
-  "Rental and Allowance come from the remittance records (Allowance is 40 per remittance). Deposit = payments received - Allowance. It is negative when less than the allowance was paid. A payment received after the service date is counted on that day's row and noted in the Notes column.",
+  "Rental is the money actually received (payments on the remittance), not the amount charged; Allowance is 40 per remittance. Deposit = Rental - Allowance, so it is negative when less than the allowance was paid. A payment received after the service date is counted on that day's row and noted in the Notes column.",
 ];
 const noRemittance = "Days with no remittance (unassigned, day-off, repair) are listed with the date and blank amounts.";
 
@@ -40,7 +40,7 @@ export const summaryNotes: Record<ReportKind, string[]> = {
   yearly: [
     "Layout: one sheet per unit (tab name = unit name) plus this All units summary. Each sheet has the year as its header.",
     "Months: January to December, one row each. Months with no remittances show as -.",
-    "Rental and Allowance are the month's totals from the remittance records. Deposit = payments received - Allowance for the month's remittances.",
+    "Rental is the money actually received in the month's remittances; Allowance is the month's total. Deposit = Rental - Allowance.",
     "Expenses: total from the Expenses table for that unit and year.",
     "Net = Allowance - Expenses. Subtotals and Net are live formulas. Green numbers on this sheet link to the unit sheets.",
   ],

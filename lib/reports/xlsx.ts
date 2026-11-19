@@ -61,6 +61,7 @@ export const styleDefs = {
   headAmount: { ...head, h: "right" },
   date: { ...body, bottom: thin, h: "left", indent: 1, numFmt: DATE_FORMAT },
   dateShort: { ...body, bottom: thin, h: "left", indent: 1, numFmt: SHORT_DATE_FORMAT },
+  textIndent: { ...body, bottom: thin, h: "left", indent: 1 },
   textWrap: { ...body, bottom: thin, h: "left", v: "top", wrap: true },
   month: { ...body, bottom: thin, h: "left", indent: 1, numFmt: MONTH_FORMAT },
   text: { ...body, bottom: thin, h: "left" },

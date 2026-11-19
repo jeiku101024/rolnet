@@ -37,8 +37,8 @@ describe("monthly unit sheet (spec Section 6)", () => {
   });
 
   it("writes the worked-example formulas", () => {
-    // Feature 020: a day Deposit is the recorded deposit (payments minus allowance), a number, not a formula of Rental and Allowance.
-    expect(formula(sheet, "D5")).toBeUndefined();
+    // Feature 020: Rental is the money received, so a day Deposit is again Rental - Allowance (140 when paid in full).
+    expect(formula(sheet, "D5")).toBe("C5-E5");
     expect(value(sheet, "D5")).toBe(140);
     expect(formula(sheet, "C9")).toBe("SUM(C5:C8)");
     expect(formula(sheet, "D9")).toBe("SUM(D5:D8)");
@@ -80,7 +80,7 @@ describe("monthly unit sheet (spec Section 6)", () => {
   });
 
   it("sets column widths, merges, tab colour, print titles and fixed row heights", () => {
-    expect(sheet.columns).toEqual([36, 24, 17, 17, 17, 44]);
+    expect(sheet.columns).toEqual([36, 24, 17, 17, 17, 40]);
     expect(sheet.merges).toEqual(["A1:F1", "A2:F2"]);
     expect(sheet.tabColor).toBe("2F5496");
     expect(sheet.printTitles).toBe(true);
@@ -149,7 +149,7 @@ describe("weekly unit sheet (spec Section 7)", () => {
   });
 
   it("uses height 16 from row 5 and the same columns as the monthly sheet", () => {
-    expect(sheet.columns).toEqual([36, 24, 17, 17, 17, 44]);
+    expect(sheet.columns).toEqual([36, 24, 17, 17, 17, 40]);
     expect(sheet.rows.slice(4).every((row) => row.h === 16)).toBe(true);
   });
 
@@ -188,7 +188,7 @@ describe("yearly unit sheet (spec Section 8)", () => {
   });
 
   it("writes the worked-example formulas and links", () => {
-    expect(formula(sheet, "C5")).toBeUndefined();
+    expect(formula(sheet, "C5")).toBe("B5-D5");
     expect(value(sheet, "C5")).toBe(0);
     expect(formula(sheet, "B17")).toBe("SUM(B5:B16)");
     expect(formula(sheet, "C17")).toBe("SUM(C5:C16)");

@@ -12,6 +12,7 @@
 
 ### Session 2026-11-19
 
+- Q (after first download, 2026-11-19): What does the Rental column show? → A: The money actually received that day (payments), not the amount charged: an unpaid day shows Rental 0, Allowance 40, Deposit -40; a part-paid day (₱100) shows Rental 100, Deposit 60; a paid day shows 180, 40, 140. Deposit is again the formula Rental - Allowance. This replaces the earlier rule that Rental keeps showing the charge (FR-002).
 - Q: How does the Notes cell read when one remittance has several late payments? → A: A short summary that always fits the column: "Received later: 3 payments, ₱540.00 (last Nov 22)". A single late payment reads "Received later: ₱180.00 on Nov 22".
 - Q: When a payment is made on a later day than the remittance's service date, where does the report show it? → A: Deposit stays on the remittance's own service-date row (matching the List view), and the sheet also notes the late payment. The note goes in a new column named "Notes" (not "Received later") on the Weekly and Monthly unit sheets.
 
@@ -85,7 +86,7 @@ Only the Deposit values and the new Notes column on the Weekly and Monthly unit 
 ### Functional Requirements
 
 - **FR-001**: In the Weekly and Monthly workbooks, each daily row's Deposit MUST equal that remittance's payments received (payments still counted, not voided) minus its Allowance, and MAY be negative.
-- **FR-002**: The Rental column MUST keep showing the amount charged (the amount due), and the Allowance column MUST keep showing the allowance, unchanged.
+- **FR-002**: The Rental column MUST show the money actually received (the remittance's counted payments), not the amount charged; an unpaid day shows 0. The Allowance column MUST keep showing the allowance, unchanged. (Changed by the clarification of 2026-11-19; see Clarifications.)
 - **FR-003**: Subtotal and total rows of the Weekly and Monthly unit sheets MUST add up the Deposit cells above them (live sums), so they agree with the daily rows.
 - **FR-004**: In the Yearly workbook, each month row's Deposit and the year total MUST be built from payments received minus allowance for the remittances of that unit and month.
 - **FR-005**: On the "All units" summary sheet, each unit's Rental, Deposit, Allowance, Expenses and Net, and the totals row, MUST come from the same figures as that unit's sheet, with Net still meaning Allowance minus Expenses.

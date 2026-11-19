@@ -9,7 +9,8 @@ import type { Cell, Row, SheetModel, StyleName } from "@/lib/reports/xlsx";
 
 /**
  * One remittance on a report row. `depositCentavos` is the recorded deposit: its non-voided payments minus its allowance, so it is
- * negative while the allowance is unpaid (feature 020). `latePayments` are the payments that arrived after `date`.
+ * negative while the allowance is unpaid (feature 020). `latePayments` are the payments that arrived after `date`. `rentalCentavos`
+ * is the amount charged; the sheets show the money actually received (`paidOf`) in their Rental column.
  */
 export interface ReportRemittance { date: string; rentalCentavos: number; allowanceCentavos: number; depositCentavos: number; latePayments: LatePayment[]; driverName: string }
 export interface UnitDailyData { remittances: ReportRemittance[]; expensesByDate: Map<string, number> }
@@ -20,6 +21,12 @@ export interface UnitYearData { months: { rentalCentavos: number; allowanceCenta
  * only then does it fall back to the old Rental - Allowance. Every current payload carries the recorded deposit.
  */
 const depositOf = (row: { depositCentavos?: number; rentalCentavos: number; allowanceCentavos: number }) => row.depositCentavos ?? row.rentalCentavos - row.allowanceCentavos;
+
+/**
+ * The Rental column shows the money actually received, not the charge: payments received = Deposit + Allowance, because the recorded
+ * deposit is payments minus allowance. An unpaid day is Rental 0, Allowance 40, Deposit -40; a fully paid one is 180, 40, 140.
+ */
+const paidOf = (row: { depositCentavos?: number; rentalCentavos: number; allowanceCentavos: number }) => depositOf(row) + row.allowanceCentavos;
 
 export interface UnitTotals { rentalCentavos: number; depositCentavos: number; allowanceCentavos: number; expensesCentavos: number; netCentavos: number }
 /** A finished unit sheet and where the summary links to: Rental, Deposit, Allowance, Expenses, Net. */
@@ -68,16 +75,17 @@ function dailyBlock(rows: Row[], height: number, dates: string[], byDate: Map<st
   const row = (cells: (Cell | undefined)[]) => rows.push({ h: height, cells });
   for (const date of dates) {
     const onDay = byDate.get(date) ?? [];
-    if (!onDay.length) row([{ v: excelSerial(date), s: "date" }, blank("text"), blank("amount"), blank("amount"), blank("amount"), blank("text")]);
+    if (!onDay.length) row([{ v: excelSerial(date), s: "date" }, blank("text"), blank("amount"), blank("amount"), blank("amount"), blank("textIndent")]);
     for (const item of onDay) {
-      const itemDeposit = depositOf(item);
+      const r = rows.length + 1;
+      const paid = paidOf(item);
       const note = lateNote(item.latePayments ?? []);
-      rental += item.rentalCentavos;
-      deposit += itemDeposit;
+      rental += paid;
+      deposit += paid - item.allowanceCentavos;
       allowance += item.allowanceCentavos;
-      // Deposit is recorded money (payments minus allowance), so it is a number, not a formula of Rental and Allowance.
+      // Rental is the money received (payments), so Deposit is again Rental - Allowance and is negative while unpaid.
       // Notes names a payment that arrived after the service date; it takes no part in any total.
-      row([{ v: excelSerial(date), s: "date" }, text(item.driverName, "text"), amount(item.rentalCentavos, "amount"), amount(itemDeposit, "amount"), amount(item.allowanceCentavos, "amount"), note ? text(note, "text") : blank("text")]);
+      row([{ v: excelSerial(date), s: "date" }, text(item.driverName, "text"), amount(paid, "amount"), amount(paid - item.allowanceCentavos, "amount", `C${r}-E${r}`), amount(item.allowanceCentavos, "amount"), note ? text(note, "textIndent") : blank("textIndent")]);
     }
   }
   const last = rows.length;
@@ -91,9 +99,9 @@ function dailyBlock(rows: Row[], height: number, dates: string[], byDate: Map<st
 }
 
 const sumExpenses = (map: Map<string, number>, dates: string[]) => dates.reduce((total, date) => total + (map.get(date) ?? 0), 0);
-const dailyColumns = [36, 24, 17, 17, 17, 44];
+const dailyColumns = [36, 24, 17, 17, 17, 40];
 const dailyHeaders = ["Date", "Driver", "Rental", "Deposit", "Allowance", "Notes"];
-const dailyHeaderStyles: StyleName[] = ["headFirst", "headText", "headAmount", "headAmount", "headAmount", "headText"];
+const dailyHeaderStyles: StyleName[] = ["headFirst", "headText", "headAmount", "headAmount", "headAmount", "headFirst"];
 
 function dailySheet(sheetName: string, rows: Row[], merges: string[]): SheetModel {
   return { name: sheetName, tabColor: unitTabColor, columns: dailyColumns, rows, merges, hyperlinks: [], printTitles: true };
@@ -152,11 +160,12 @@ export function yearlyUnitSheet(sheetName: string, unitName: string, data: UnitY
   let deposit = 0;
   let allowance = 0;
   data.months.forEach((month, index) => {
-    const monthDeposit = depositOf(month);
-    rental += month.rentalCentavos;
-    deposit += monthDeposit;
+    const r = rows.length + 1;
+    const paid = paidOf(month);
+    rental += paid;
+    deposit += paid - month.allowanceCentavos;
     allowance += month.allowanceCentavos;
-    row([{ v: excelSerial(`${year}-${String(index + 1).padStart(2, "0")}-01`), s: "month" }, amount(month.rentalCentavos, "amount"), amount(monthDeposit, "amount"), amount(month.allowanceCentavos, "amount")]);
+    row([{ v: excelSerial(`${year}-${String(index + 1).padStart(2, "0")}-01`), s: "month" }, amount(paid, "amount"), amount(paid - month.allowanceCentavos, "amount", `B${r}-D${r}`), amount(month.allowanceCentavos, "amount")]);
   });
   const expenses = data.expenseCentavos;
   const sub = rows.length + 1;

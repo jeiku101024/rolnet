@@ -5,8 +5,9 @@ import type { SheetModel } from "@/lib/reports/xlsx";
 import { workbookBytes } from "@/lib/reports/xlsx";
 import { readWorkbook } from "@/tests/support/xlsx-read";
 
-// Feature 020 (spec Story 3, FR-009): only Deposit values, the cells that add them, and the new Notes column change. A paid-in-full
-// month and the same month with one unpaid remittance differ in nothing else.
+// Feature 020 (spec Story 3, FR-009): the Rental column is the money received, so an unpaid remittance changes its Rental and Deposit
+// cells and the cells that add them, and nothing else. A paid-in-full month and the same month with one unpaid remittance differ in
+// no other column (Allowance, Expenses and Net are unchanged).
 
 const remittance = (date: string, paid: boolean): ReportRemittance => ({ date, rentalCentavos: 18000, allowanceCentavos: 4000, depositCentavos: paid ? 14000 : -4000, latePayments: [], driverName: "Juan" });
 const units = [{ id: "a", name: "rolnet-1" }, { id: "b", name: "rolnet-2" }];
@@ -33,7 +34,7 @@ function changedCells(a: SheetModel, b: SheetModel) {
 
 describe("only Deposit and the cells that add it change (feature 020)", () => {
   for (const kind of ["monthly", "weekly"] as const) {
-    it(`${kind}: an unpaid remittance changes its Deposit cell and the Deposit totals, nothing else`, () => {
+    it(`${kind}: an unpaid remittance changes only its Rental and Deposit cells and the totals that add them`, () => {
       const key = kind === "monthly" ? "2026-10" : "2026-10-05";
       const paid = buildReportSheets({ kind, key, units, daily: dailyOf(null), withSummary: true });
       const unpaid = buildReportSheets({ kind, key, units, daily: dailyOf("2026-10-08"), withSummary: true });
@@ -44,18 +45,19 @@ describe("only Deposit and the cells that add it change (feature 020)", () => {
         expect(sheet.merges).toEqual(paid[index].merges);
         const columns = new Set(changedCells(sheet, paid[index]).map((ref) => ref.replace(/\d+$/, "")));
         // Sheet 0 is the All units summary (Deposit is column C there); unit sheets keep Deposit in column D.
-        expect([...columns].every((column) => column === (index === 0 ? "C" : "D"))).toBe(true);
+        const allowed = index === 0 ? ["B", "C"] : ["C", "D"];
+        expect([...columns].every((column) => allowed.includes(column))).toBe(true);
       }
     });
   }
 
-  it("yearly: an unpaid month changes its Deposit cell and the Deposit totals, nothing else", () => {
+  it("yearly: an unpaid month changes only its Rental and Deposit cells and the totals that add them", () => {
     const withMonths = (unpaid: boolean) => buildReportSheets({ kind: "yearly", key: "2026", units, yearly: new Map([["a", { months: monthsOf(unpaid), expenseCentavos: 0 }], ["b", { months: monthsOf(false), expenseCentavos: 0 }]]), withSummary: true });
     const paid = withMonths(false);
     const unpaid = withMonths(true);
     for (const [index, sheet] of unpaid.entries()) {
       const columns = new Set(changedCells(sheet, paid[index]).map((ref) => ref.replace(/\d+$/, "")));
-      expect([...columns].every((column) => column === (index === 0 ? "C" : "C"))).toBe(true);
+      expect([...columns].every((column) => (index === 0 ? ["B", "C"] : ["B", "C"]).includes(column))).toBe(true);
     }
   });
 
