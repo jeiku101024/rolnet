@@ -1,5 +1,6 @@
 "use client";
 
+import { useSaveFeedback } from "@/components/ui/save-feedback";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Info, Plus } from "lucide-react";
@@ -11,6 +12,7 @@ import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { useToast } from "@/components/ui/toast";
 import { clientErrorMessage } from "@/components/forms/use-action-form";
 import type { DriverKind } from "@/types/database";
+import { SavingLabel } from "@/components/forms/form-status";
 
 type Field = "fullName" | "phone" | "licenseNumber" | "licenseExpiryDate";
 const required: { field: Field; message: string }[] = [
@@ -27,6 +29,7 @@ function FieldError({ message }: { message?: string }) {
 /** "Add a driver" opens the Add driver form in a modal (feature 012, FR-010–FR-013). */
 export function AddDriverDialog({ disabled }: { disabled?: boolean }) {
   const router = useRouter();
+  const markSaved = useSaveFeedback();
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [role, setRole] = useState<DriverKind>("primary");
@@ -52,6 +55,7 @@ export function AddDriverDialog({ disabled }: { disabled?: boolean }) {
       });
       if (!result.ok) { setFailure(result.message); return; }
       setOpen(false);
+      if (result.data && typeof (result.data as { id?: unknown }).id === "string") markSaved((result.data as { id: string }).id, { created: true });
       toast("Driver added");
       router.refresh();
     } catch (reason) {
@@ -82,7 +86,7 @@ export function AddDriverDialog({ disabled }: { disabled?: boolean }) {
         <ValidationSummary message={failure} />
         <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save driver"}</Button>
+          <Button type="submit" disabled={pending}>{pending ? <SavingLabel /> : "Save driver"}</Button>
         </div>
       </form>
     </DialogContent>

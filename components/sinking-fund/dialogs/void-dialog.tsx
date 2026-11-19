@@ -7,6 +7,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea, ValidationSummary } from "@/components/ui/form-field";
 import { Field, useSfSubmit } from "@/components/sinking-fund/form-kit";
 import { sfMessages } from "@/lib/sinking-fund/messages";
+import { SavingLabel } from "@/components/forms/form-status";
 
 export type VoidTarget = { kind: "transaction" | "distribution"; id: string; updatedAt: string; summary: string };
 
@@ -42,7 +43,7 @@ export function VoidDialog({ target, open, onOpenChange }: { target: VoidTarget;
         <ValidationSummary message={form.failure} />
         <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="submit" variant="destructive" disabled={form.pending}>{form.pending ? "Saving…" : `Void ${noun}`}</Button>
+          <Button type="submit" variant="destructive" disabled={form.pending}>{form.pending ? <SavingLabel /> : `Void ${noun}`}</Button>
         </div>
       </form>
     </DialogContent>

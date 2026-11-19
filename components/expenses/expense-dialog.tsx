@@ -1,5 +1,6 @@
 "use client";
 
+import { useSaveFeedback } from "@/components/ui/save-feedback";
 import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
@@ -13,6 +14,7 @@ import { clientErrorMessage } from "@/components/forms/use-action-form";
 import { isMainCategory, type ExpenseCategory } from "@/lib/expenses/categories";
 import { attachReceipt, prepareChosenReceipt } from "@/components/expenses/receipt";
 import { emptyExpenseValues, expenseValuesFrom, ExpenseFormFields, readExpenseForm, type ExpenseFormErrors, type ExpenseFormValues, type ExpenseUnitOption } from "@/components/expenses/expense-form-fields";
+import { SavingLabel } from "@/components/forms/form-status";
 
 export type EditableExpense = {
   id: string;
@@ -33,6 +35,7 @@ type Mode = { kind: "add" } | { kind: "edit"; expense: EditableExpense };
 /** The modal form for both Add and Edit (contracts/ui.md). Mounted only while open, so each opening starts fresh. */
 function ExpenseDialogForm({ mode, units, onDone }: { mode: Mode; units: ExpenseUnitOption[]; onDone: () => void }) {
   const router = useRouter();
+  const markSaved = useSaveFeedback();
   const toast = useToast();
   const saved = mode.kind === "edit" ? mode.expense : null;
   const [values, setValues] = useState<ExpenseFormValues>(() => (saved ? expenseValuesFrom(saved) : emptyExpenseValues()));
@@ -90,6 +93,7 @@ function ExpenseDialogForm({ mode, units, onDone }: { mode: Mode; units: Expense
         }
       }
       onDone();
+      markSaved(result.data.id, { created: mode.kind !== "edit" });
       toast(mode.kind === "edit" ? "Expense updated" : "Expense added");
       router.refresh();
     } catch (reason) {
@@ -104,7 +108,7 @@ function ExpenseDialogForm({ mode, units, onDone }: { mode: Mode; units: Expense
       <ExpenseFormFields values={values} errors={errors} units={units} archivedUnit={archivedUnit} hasReceipt={Boolean(saved?.receipt_object_path)} onChange={change} onCategoryChange={changeCategory} />
       <ValidationSummary message={failure} />
       {stale ? <Button type="button" variant="outline" onClick={() => { router.refresh(); onDone(); }}>Reload</Button> : null}
-      <Button type="submit" disabled={pending}>{pending ? "Saving…" : mode.kind === "edit" ? "Save changes" : "Save expense"}</Button>
+      <Button type="submit" disabled={pending}>{pending ? <SavingLabel /> : mode.kind === "edit" ? "Save changes" : "Save expense"}</Button>
     </form>
     <RemoveLastReplacedDialog open={confirmOthers} onCancel={() => setConfirmOthers(false)} onContinue={() => { setConfirmOthers(false); change({ category: "others" }); }} />
   </>;

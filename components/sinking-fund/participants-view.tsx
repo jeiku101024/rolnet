@@ -95,6 +95,6 @@ export function ParticipantsView() {
       <PrimaryActions />
     </div>
     {rows.length === 0 ? <EmptyState title={params.q ? "No participants match this search." : "No participants yet. Add your first participant."} /> :
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Participants">{rows.map((participant) => <li key={participant.participant_id}><ParticipantCard participant={participant} /></li>)}</ul>}
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Participants">{rows.map((participant) => <li key={participant.participant_id} data-record-id={participant.participant_id} data-record-kind="card"><ParticipantCard participant={participant} /></li>)}</ul>}
   </div>;
 }

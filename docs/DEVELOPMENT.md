@@ -361,3 +361,8 @@ The remaining integration checkpoints are tracked in specs/001-fleet-management/
 4. Build and deploy through the vinext Cloudflare workflow.
 5. Smoke-test login, one mutation, private upload/download, dashboard, and an XLSX report download.
 
+## UI conventions (feature 018)
+
+- Theme: the choice is stored per device under `localStorage["rolnet-theme"]` (`light` or `dark`; absent means follow the device). New colors must be tokens with a dark value in `:root.dark`.
+- Save feedback: give a saved row or card `data-record-id="<id>"` and call `markSaved(id, { created })` from `useSaveFeedback()` (or return `recordId` from a `useActionForm` handler) after a successful save only.
+- Animation budget: `opacity`, `scale` and `translate` only; enter at most 250 ms, exit at most 150 ms; no looping animation inside lists or tables.

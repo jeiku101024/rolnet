@@ -6,7 +6,7 @@ import type { DriverKind } from "@/types/database";
 // (FR-005), Status today with its second line (FR-006, FR-052), the next absence (FR-007), the
 // availability count (FR-008), and the stale-leave banner (FR-053).
 
-export interface ListDriver { id: string; full_name: string; driver_kind: DriverKind; phone: string; license_number: string; license_expiry_date: string; is_active: boolean }
+export interface ListDriver { id: string; full_name: string; driver_kind: DriverKind; phone: string; license_number: string; license_expiry_date: string; is_active: boolean; created_at?: string | null }
 export interface TodayAssignment { driver_id: string; unit_id: string; unitName: string }
 
 export type StatusLine =

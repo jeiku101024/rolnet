@@ -1,5 +1,6 @@
 "use client";
 
+import { useSaveFeedback } from "@/components/ui/save-feedback";
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { SectionHeading } from "@/components/ui/page-header";
 import { FormField, Input, ValidationSummary } from "@/components/ui/form-field";
 import { clientErrorMessage } from "@/components/forms/use-action-form";
+import { SavingLabel } from "@/components/forms/form-status";
 
 type Unit = { id: string; name: string; body_number: string; plate_number: string; make_model: string; current_mileage: number; updated_at: string };
 
@@ -19,6 +21,7 @@ type Unit = { id: string; name: string; body_number: string; plate_number: strin
  */
 export function UnitDetailsSection({ unit, currentDriver, canEdit }: { unit: Unit; currentDriver: string; canEdit: boolean }) {
   const router = useRouter();
+  const markSaved = useSaveFeedback();
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -34,6 +37,7 @@ export function UnitDetailsSection({ unit, currentDriver, canEdit }: { unit: Uni
       const result = await updateUnit(unit.id, { name: value("name"), bodyNumber: value("bodyNumber"), plateNumber: value("plateNumber").toUpperCase(), makeModel: value("makeModel"), expectedUpdatedAt: unit.updated_at });
       if (!result.ok) { setError(result.message); return; }
       setEditing(false);
+      markSaved(unit.id);
       router.refresh();
     } catch (reason) {
       setError(clientErrorMessage(reason));
@@ -47,7 +51,7 @@ export function UnitDetailsSection({ unit, currentDriver, canEdit }: { unit: Uni
     ? <FormField label={label} required><Input name={name} defaultValue={value} maxLength={maxLength} required className={className} /></FormField>
     : fixed(label, value);
 
-  return <form className="grid gap-4" onSubmit={save}>
+  return <form data-record-id={unit.id} className="grid gap-4" onSubmit={save}>
     <SectionHeading title="Details" action={canEdit && !editing ? <Button type="button" variant="outline" onClick={() => { setError(undefined); setEditing(true); }}>Edit details</Button> : undefined} />
     <dl className="grid grid-cols-2 gap-4 md:grid-cols-3">
       {field("Unit name", "name", unit.name, 40)}
@@ -59,7 +63,7 @@ export function UnitDetailsSection({ unit, currentDriver, canEdit }: { unit: Uni
     </dl>
     <ValidationSummary message={error} />
     {editing ? <div className="flex flex-wrap gap-2">
-      <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save details"}</Button>
+      <Button type="submit" disabled={pending}>{pending ? <SavingLabel /> : "Save details"}</Button>
       <Button type="button" variant="outline" disabled={pending} onClick={() => { setError(undefined); setEditing(false); }}>Cancel</Button>
     </div> : null}
     <Link className="muted-link w-fit text-body-sm font-semibold" href={`/expenses?unit=${unit.id}`}>Expenses</Link>

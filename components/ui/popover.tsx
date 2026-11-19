@@ -17,7 +17,7 @@ function PopoverContent({ className, align = "start", side = "bottom", sideOffse
       <PopoverPrimitive.Positioner className="z-50" align={align} side={side} sideOffset={sideOffset}>
         <PopoverPrimitive.Popup
           data-slot="popover-content"
-          className={cn("max-w-sm rounded-md border border-rule bg-surface p-3 text-body-sm text-ink outline-none", className)}
+          className={cn("motion-popup motion-popup-origin max-w-sm rounded-md border border-rule bg-surface p-3 text-body-sm text-ink outline-none", className)}
           {...props}
         >
           {children}

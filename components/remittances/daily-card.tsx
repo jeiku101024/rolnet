@@ -1,5 +1,6 @@
 "use client";
 
+import { useSaveFeedback } from "@/components/ui/save-feedback";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Lock, MoreHorizontal, UserPlus, Wrench } from "lucide-react";
@@ -21,6 +22,7 @@ import { ALLOWANCE_CENTAVOS, depositFor, exceedsRental, overRentalMessage } from
 import { dueFor, type DailyCard as Card, type Disposition, type SavedCard } from "@/lib/remittances/daily-board";
 import { unitStatusLabel } from "@/lib/status/record-status";
 import { unitsDailyHref } from "@/lib/units/view-params";
+import { SavingLabel } from "@/components/forms/form-status";
 
 export type CardView = Card & { notice?: string };
 
@@ -72,6 +74,7 @@ function RecordCard({ card, date, isToday, isOwner, onSaved, onDirty, onReload }
   card: Extract<CardView, { kind: "saved" | "unrecorded" }>; date: string; isToday: boolean; isOwner: boolean;
   onSaved: (card: SavedCard & { notice?: string }) => void; onDirty: (key: string, dirty: boolean) => void; onReload: (key: string) => void;
 }) {
+  const markSaved = useSaveFeedback();
   const saved = card.kind === "saved" ? card : null;
   const [editing, setEditing] = useState(!saved);
   const [disposition, setDisposition] = useState<Disposition>(saved?.disposition ?? "returned");
@@ -127,11 +130,13 @@ function RecordCard({ card, date, isToday, isOwner, onSaved, onDirty, onReload }
         if (!result.ok) { setError({ message: result.message, reload: result.code === "DUPLICATE_REMITTANCE" || result.code === "DUPLICATE_RECORD" }); return; }
         keys.current = {};
         onSaved({ ...card, kind: "saved", remittanceId: result.data.id, updatedAt: result.data.updatedAt, disposition, dueCentavos: dueFor(disposition), receivedCentavos: result.data.receivedCentavos, allowanceCentavos: ALLOWANCE_CENTAVOS, depositCentavos: result.data.depositCentavos, notes: notes.trim(), notice: result.data.partial ?? undefined });
+        markSaved(card.unitId, { created: true });
       } else if (saved) {
         const result = await editDailyRemittance({ remittanceId: saved.remittanceId, expectedUpdatedAt: saved.updatedAt, notes: notes.trim(), targetPaymentCentavos: amount, reason: lowerReason, paymentKey: key("payment") });
         if (!result.ok) { setError({ message: result.message, reload: result.code === "STALE_RECORD" || result.code === "PARTIAL" }); return; }
         keys.current = {};
         onSaved({ ...saved, updatedAt: result.data.updatedAt, receivedCentavos: result.data.receivedCentavos, depositCentavos: result.data.depositCentavos, notes: notes.trim() });
+        markSaved(card.unitId, { created: false });
       }
     } catch (reasonThrown) {
       setError({ message: clientErrorMessage(reasonThrown) });
@@ -146,7 +151,7 @@ function RecordCard({ card, date, isToday, isOwner, onSaved, onDirty, onReload }
   const allowance = saved ? saved.allowanceCentavos : ALLOWANCE_CENTAVOS;
   const deposit = locked && saved ? saved.depositCentavos : typed === null || overRental ? null : depositFor(typed, allowance);
 
-  return <article className={`${shell} ${locked ? "bg-muted" : "bg-surface"}`} aria-label={card.unitName}>
+  return <article data-record-id={card.unitId} className={`${shell} ${locked ? "bg-muted" : "bg-surface"}`} aria-label={card.unitName}>
     <div className="flex min-w-0 items-start justify-between gap-2">
       <div className="grid min-w-0 gap-1">
         <UnitName name={card.unitName} />
@@ -189,7 +194,7 @@ function RecordCard({ card, date, isToday, isOwner, onSaved, onDirty, onReload }
       <BalanceBadge balance={totals.balance} />
       <span className="inline-flex items-center gap-1 text-body-sm font-semibold text-muted"><Lock aria-hidden="true" size={14} />Saved</span>
     </div> : <div className="flex flex-wrap gap-2">
-      <Button type="button" className="flex-1" disabled={pending} onClick={() => submit()}>{pending ? "Saving…" : "Save remittance"}</Button>
+      <Button type="button" className="flex-1" disabled={pending} onClick={() => submit()}>{pending ? <SavingLabel /> : "Save remittance"}</Button>
       {saved ? <Button type="button" variant="outline" disabled={pending} onClick={cancelEdit}>Cancel</Button> : null}
     </div>}
 

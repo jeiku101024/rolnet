@@ -1,5 +1,6 @@
 "use client";
 
+import { SavingLabel } from "@/components/forms/form-status";
 import { useState } from "react";
 import { AlertDialog, AlertDialogContent, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -66,7 +67,7 @@ export function ConfirmVersionDialog({ variant, first, second, onCancel, onConfi
           setPending(true);
           setError(null);
           try { setError(await onConfirm()); } catch (reason) { setError(clientErrorMessage(reason)); } finally { setPending(false); }
-        }}>{pending ? "Working…" : text.confirm}</Button>
+        }}>{pending ? <SavingLabel label="Working…" /> : text.confirm}</Button>
       </AlertDialogFooter>
     </AlertDialogContent> : null}
   </AlertDialog>;

@@ -1,5 +1,6 @@
 "use client";
 
+import { useSaveFeedback } from "@/components/ui/save-feedback";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronsDownUp, ChevronsUpDown, TriangleAlert } from "lucide-react";
@@ -37,6 +38,7 @@ interface Confirm { variant: ConfirmVariant; first?: ConfirmFile; second?: Confi
 
 export function DocumentsWorkspace({ data, initial }: { data: DocumentsPageData; initial: DocumentsUrlState }) {
   const router = useRouter();
+  const markSaved = useSaveFeedback();
   const toast = useToast();
   const [state, setState] = useState(initial);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
@@ -123,6 +125,7 @@ export function DocumentsWorkspace({ data, initial }: { data: DocumentsPageData;
     if (saved.unitId) expand(saved.unitId);
     const message = saved.renewed ? `Renewed ${typeName(saved.documentType)} for ${saved.holderName}. Previous file kept in history.` : `Document uploaded for ${saved.holderName}.`;
     toast(message, { action: { label: "Undo", onClick: () => undo(saved.id) }, timeout: 7000 });
+    markSaved(saved.id, { created: !saved.renewed });
     refresh();
   }
 

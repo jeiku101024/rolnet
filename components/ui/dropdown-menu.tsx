@@ -15,7 +15,7 @@ function DropdownMenuContent({ className, align = "end", sideOffset = 4, ...prop
   return (
     <MenuPrimitive.Portal>
       <MenuPrimitive.Positioner className="z-50" align={align} sideOffset={sideOffset}>
-        <MenuPrimitive.Popup data-slot="dropdown-menu-content" className={cn("min-w-44 rounded-md border border-rule bg-surface p-1 text-body-sm text-ink outline-none", className)} {...props} />
+        <MenuPrimitive.Popup data-slot="dropdown-menu-content" className={cn("motion-popup motion-popup-origin min-w-44 rounded-md border border-rule bg-surface p-1 text-body-sm text-ink outline-none", className)} {...props} />
       </MenuPrimitive.Positioner>
     </MenuPrimitive.Portal>
   );

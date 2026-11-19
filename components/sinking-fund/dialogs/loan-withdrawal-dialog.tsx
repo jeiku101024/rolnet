@@ -9,6 +9,7 @@ import { formatPesos } from "@/lib/money/centavos";
 import { formatListDate } from "@/lib/sinking-fund/format";
 import { sfMessages } from "@/lib/sinking-fund/messages";
 import type { SfLoan } from "@/lib/sinking-fund/types";
+import { SavingLabel } from "@/components/forms/form-status";
 
 /** "Mark this loan as withdrawal?" (spec section 8), owner only, overdue loans only. Savings do not change. */
 export function LoanWithdrawalDialog({ loan, participantName, savingsCentavos, open, onOpenChange }: { loan: SfLoan; participantName: string; savingsCentavos: number; open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -33,7 +34,7 @@ export function LoanWithdrawalDialog({ loan, participantName, savingsCentavos, o
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
         <Button type="button" variant="destructive" disabled={form.pending}
           onClick={() => form.submit(() => markLoanWithdrawal({ loanId: loan.id, expectedBalanceCentavos: loan.balance_centavos }), () => sfMessages.loanClosed)}>
-          {form.pending ? "Saving…" : "Mark as withdrawal"}
+          {form.pending ? <SavingLabel /> : "Mark as withdrawal"}
         </Button>
       </div>
     </DialogContent>

@@ -14,10 +14,10 @@ const DialogClose = DialogPrimitive.Close;
 function DialogContent({ className, title, description, children, fixedHeader = false, ...props }: Omit<DialogPrimitive.Popup.Props, "title"> & { title: ReactNode; description?: ReactNode; fixedHeader?: boolean }) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-ink/20" />
+      <DialogPrimitive.Backdrop className="motion-backdrop fixed inset-0 z-50 bg-ink/20" />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
-        className={cn("fixed inset-x-4 top-1/2 z-50 mx-auto grid max-h-svh max-w-lg -translate-y-1/2 gap-4 overflow-y-auto rounded-md border border-rule bg-surface p-5 text-ink outline-none", className)}
+        className={cn("motion-popup fixed inset-x-4 top-1/2 z-50 mx-auto grid max-h-svh max-w-lg -translate-y-1/2 gap-4 overflow-y-auto rounded-md border border-rule bg-surface p-5 text-ink outline-none", className)}
         {...props}
       >
         <div className={cn("flex items-start justify-between gap-3", fixedHeader && "sticky -top-5 z-10 -mx-5 -mt-5 border-b border-rule bg-surface px-5 pt-5 pb-3")}>

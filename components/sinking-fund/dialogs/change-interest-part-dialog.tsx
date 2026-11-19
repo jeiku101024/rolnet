@@ -10,6 +10,7 @@ import { formatPesos } from "@/lib/money/centavos";
 import { formatListDate, pesoText } from "@/lib/sinking-fund/format";
 import { interestRangeMessage, sfMessages } from "@/lib/sinking-fund/messages";
 import type { SfLedgerRow } from "@/lib/sinking-fund/types";
+import { SavingLabel } from "@/components/forms/form-status";
 
 const signed = (centavos: number) => `${centavos >= 0 ? "+" : "-"}${formatPesos(Math.abs(centavos))}`;
 
@@ -59,7 +60,7 @@ export function ChangeInterestPartDialog({ payment, open, onOpenChange }: { paym
         </Field>
         <p className="rounded-md bg-canvas p-3 text-body-sm" role="status">Interest fund <strong>{signed(delta)}</strong> · Total savings <strong>{signed(-delta)}</strong></p>
         <ValidationSummary message={form.failure} />
-        <Button type="submit" disabled={form.pending || !range}>{form.pending ? "Saving…" : "Save interest part"}</Button>
+        <Button type="submit" disabled={form.pending || !range}>{form.pending ? <SavingLabel /> : "Save interest part"}</Button>
       </form>
     </DialogContent>
   </Dialog>;

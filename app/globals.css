@@ -90,7 +90,60 @@
   --token-radius-md: 0.375rem;
   --shadow-none: none;
   --shadow-focus: 0 0 0 3px color-mix(in srgb, var(--token-focus) 28%, transparent);
+
+  /* Feature 018: shared motion language. Only opacity, scale and translate ever animate. */
+  --motion-enter: 180ms;
+  --motion-exit: 120ms;
+  --motion-swap: 320ms;
+  --motion-highlight: 900ms;
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* The signed-in top bar and the sidebar header share this height so their bottom borders line up. */
+  --shell-header-height: 6.25rem;
 }
+
+/* Feature 018: dark theme. The class is set before first paint by lib/theme/theme-script.ts.
+   Screen only, so printing always uses the light tokens above. */
+@media screen {
+  :root.dark {
+    color-scheme: dark;
+    --muted: #1c2a40;
+    --token-canvas: #0b1422;
+    --token-surface: #142033;
+    --token-ink: #f3efe3;
+    --token-muted: #a9b6c6;
+    --token-subtle: #8e9cae;
+    --token-rule: #2b3a52;
+    --token-control-border: #7f8da1;
+    --token-brand: #ffc72c;
+    --token-brand-dark: #ffd666;
+    --token-brand-soft: #33290d;
+    --token-focus: #ffd666;
+    --token-ok: #6fcf9a;
+    --token-ok-soft: #12301f;
+    --token-warn: #f0b35a;
+    --token-warn-soft: #35260c;
+    --token-danger: #f08a85;
+    --token-danger-soft: #3a1816;
+    --token-info: #86b6e8;
+    --token-info-soft: #12263d;
+    --token-violet: #b9a2ea;
+    --token-violet-soft: #271d3f;
+    --token-orange: #f2a56a;
+    --token-orange-soft: #38200c;
+    --token-gold: #f0cd5c;
+    --token-gold-soft: #33290a;
+    --token-silver: #b9c3d1;
+    --token-silver-soft: #232c39;
+    --token-bronze: #d9a57c;
+    --token-bronze-soft: #33200f;
+    --token-chart-deposit: #3ec585;
+    --token-chart-loan: #f0a23b;
+    --token-chart-payment: #6ea0f5;
+  }
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -223,7 +276,9 @@
   .table-min { min-width: var(--space-table-min); }
   .logo-mark { width: 2.75rem; height: 2.75rem; }
   .logo-full-header { width: 7.5rem; height: auto; }
-  .logo-full-auth { width: 11rem; height: auto; }
+  .logo-full-auth { width: min(20rem, 92%); height: auto; }
+  @media (min-width: 48rem) { .logo-full-auth { width: 26rem; } }
+  .logo-horizontal { width: 13.5rem; height: auto; max-width: 100%; }
   .touch-target { min-height: var(--space-touch); }
   .ledger-row { border-bottom: 1px solid var(--token-rule); padding-block: var(--space-3); }
   .status-badge { display: inline-flex; align-items: center; gap: var(--space-1); border-radius: var(--token-radius-sm); padding: var(--space-1) var(--space-2); font-size: var(--token-text-label); font-weight: 700; line-height: 1.2; }
@@ -241,4 +296,67 @@
   .workspace-grid-wide { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
   .panel-rows > li:nth-child(n + 4) { display: flex; }
   .panel-more-phone { display: none; }
+}
+
+/* Feature 018: pop-ups. Base UI sets data-starting-style on mount and data-ending-style on close;
+   only opacity, scale and translate are animated (individual properties, so a popup's own
+   centering transform is never overwritten). */
+.motion-backdrop { transition: opacity var(--motion-enter) var(--motion-ease-out); }
+.motion-backdrop[data-starting-style], .motion-backdrop[data-ending-style] { opacity: 0; }
+.motion-backdrop[data-ending-style] { transition-duration: var(--motion-exit); }
+.motion-popup {
+  transition: opacity var(--motion-enter) var(--motion-ease-out), scale var(--motion-enter) var(--motion-ease-out), translate var(--motion-enter) var(--motion-ease-out);
+}
+.motion-popup[data-starting-style], .motion-popup[data-ending-style] { opacity: 0; scale: 0.96; }
+.motion-popup[data-ending-style] { transition-duration: var(--motion-exit); }
+.motion-popup-origin { transform-origin: var(--transform-origin); }
+.motion-fade { transition: opacity 100ms linear; }
+.motion-fade[data-starting-style], .motion-fade[data-ending-style] { opacity: 0; }
+
+/* Feature 018: save feedback. */
+@keyframes row-saved { from { background-color: var(--token-brand-soft); } to { background-color: transparent; } }
+@keyframes row-slide-in { from { opacity: 0; translate: -1.5rem 0; } to { opacity: 1; translate: 0 0; } }
+@keyframes row-pop { from { opacity: 0; scale: 0.92; } to { opacity: 1; scale: 1; } }
+@keyframes status-in { from { opacity: 0; translate: 0 0.25rem; } to { opacity: 1; translate: 0 0; } }
+.row-saved { animation: row-saved var(--motion-highlight) var(--motion-ease-out); }
+.row-new { animation: row-slide-in 280ms var(--motion-ease-out), row-saved 1000ms var(--motion-ease-out); }
+[data-record-kind="card"].row-new { animation: row-pop 260ms var(--motion-ease-out), row-saved 1000ms var(--motion-ease-out); }
+.status-in { animation: status-in 150ms var(--motion-ease-out); }
+
+/* Feature 018: sign-in and register screen. */
+.auth-viewport { overflow: hidden; width: 100%; }
+.auth-track { display: flex; width: 100%; transition: translate var(--motion-swap) var(--motion-ease-out); }
+.auth-track[data-ready="false"] { transition: none; }
+.auth-track[data-active="register"] { translate: -100% 0; }
+.auth-panel { flex: 0 0 100%; min-width: 0; padding: var(--space-1); transition: opacity var(--motion-swap) var(--motion-ease-out); }
+.auth-panel[inert] { opacity: 0; }
+@keyframes auth-drift-a { from { translate: -6% -4%; } to { translate: 8% 6%; } }
+@keyframes auth-drift-b { from { translate: 6% 4%; } to { translate: -8% -6%; } }
+@keyframes auth-drift-c { from { translate: 0 6%; } to { translate: 6% -8%; } }
+.auth-blob { position: absolute; border-radius: 9999px; will-change: translate; animation-duration: 26s; animation-timing-function: ease-in-out; animation-iteration-count: infinite; animation-direction: alternate; }
+.auth-blob-a { top: -12%; left: -10%; width: 34rem; height: 34rem; background: radial-gradient(closest-side, color-mix(in srgb, var(--token-brand) 38%, transparent), transparent); animation-name: auth-drift-a; }
+.auth-blob-b { right: -12%; bottom: -14%; width: 38rem; height: 38rem; background: radial-gradient(closest-side, color-mix(in srgb, var(--token-brand-dark) 22%, transparent), transparent); animation-name: auth-drift-b; animation-duration: 32s; }
+.auth-blob-c { top: 38%; left: 52%; width: 24rem; height: 24rem; background: radial-gradient(closest-side, color-mix(in srgb, var(--token-brand-soft) 90%, transparent), transparent); animation-name: auth-drift-c; animation-duration: 28s; }
+.auth-background[data-paused="true"] .auth-blob { animation-play-state: paused; }
+
+/* Feature 018: reduced motion removes movement and looping; only short fades remain. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-blob { animation: none; }
+  .auth-track { transition: none; }
+  .auth-panel { transition-duration: 100ms; }
+  .motion-popup { transition: opacity 100ms linear; }
+  .motion-popup[data-starting-style], .motion-popup[data-ending-style] { scale: 1; translate: none; }
+  .motion-backdrop { transition-duration: 100ms; }
+  .row-new, [data-record-kind="card"].row-new { animation: row-saved var(--motion-highlight) linear; }
+  .status-in { animation: none; }
+  [data-slot="sheet-content"] { transition-duration: 100ms; }
+}
+
+/* Feature 018: each logo ships in light and dark artwork; the theme class picks one and print always uses the light one. */
+.brand-dark-only { display: none; }
+:root.dark .brand-dark-only { display: block; }
+:root.dark .brand-light-only { display: none; }
+@media print {
+  .brand-dark-only { display: none !important; }
+  :root.dark .brand-light-only { display: block !important; }
 }

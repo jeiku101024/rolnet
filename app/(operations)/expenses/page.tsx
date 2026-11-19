@@ -82,7 +82,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         {expenses.map((expense) => {
           const unit = one(expense.units);
           const editable: EditableExpense = { ...expense, units: unit ? { body_number: unit.body_number, plate_number: unit.plate_number } : null };
-          return <tr key={expense.id}>
+          return <tr key={expense.id} data-record-id={expense.id}>
             <td className="font-data whitespace-nowrap">{formatShortDate(expense.expense_date)}</td>
             <td className="whitespace-nowrap">{unit ? (isOwner ? <Link className="muted-link font-semibold" href={`/units/${expense.unit_id}`}>Body {unit.body_number}</Link> : <span className="font-semibold">Body {unit.body_number}</span>) : "Unit"}</td>
             <td><CategoryCell expense={expense} /></td>

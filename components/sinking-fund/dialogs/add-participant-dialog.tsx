@@ -8,6 +8,7 @@ import { Input, Textarea, ValidationSummary } from "@/components/ui/form-field";
 import { Field, SearchableSelect, useSfSubmit } from "@/components/sinking-fund/form-kit";
 import { sfMessages } from "@/lib/sinking-fund/messages";
 import type { SfDriverOption } from "@/lib/sinking-fund/queries";
+import { SavingLabel } from "@/components/forms/form-status";
 
 /** "Add participant" (spec section 5): a name, optionally imported from a driver who is not already a participant. */
 export function AddParticipantDialog({ drivers, open, onOpenChange }: { drivers: SfDriverOption[]; open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -45,7 +46,7 @@ export function AddParticipantDialog({ drivers, open, onOpenChange }: { drivers:
           <Textarea id="sf-notes" value={notes} onChange={(event) => setNotes(event.target.value)} maxLength={500} />
         </Field>
         <ValidationSummary message={form.failure} />
-        <Button type="submit" disabled={form.pending}>{form.pending ? "Saving…" : "Save participant"}</Button>
+        <Button type="submit" disabled={form.pending}>{form.pending ? <SavingLabel /> : "Save participant"}</Button>
       </form>
     </DialogContent>
   </Dialog>;

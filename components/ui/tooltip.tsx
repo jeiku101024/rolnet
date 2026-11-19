@@ -19,7 +19,7 @@ function TooltipContent({ className, sideOffset = 6, ...props }: TooltipPrimitiv
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Positioner className="z-50" sideOffset={sideOffset}>
-        <TooltipPrimitive.Popup data-slot="tooltip-content" className={cn("max-w-64 rounded-sm bg-brand-dark px-2 py-1 text-label font-semibold text-surface", className)} {...props} />
+        <TooltipPrimitive.Popup data-slot="tooltip-content" className={cn("motion-fade max-w-64 rounded-sm bg-brand-dark px-2 py-1 text-label font-semibold text-surface", className)} {...props} />
       </TooltipPrimitive.Positioner>
     </TooltipPrimitive.Portal>
   );

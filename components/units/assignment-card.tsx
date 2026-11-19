@@ -1,5 +1,6 @@
 "use client";
 
+import { useSaveFeedback } from "@/components/ui/save-feedback";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,6 +17,7 @@ import { formatShortDate } from "@/lib/dates/fleet-date";
 import { unitStatusLabel } from "@/lib/status/record-status";
 import { RecordMileageDialog } from "@/components/units/record-mileage-dialog";
 import type { AssignmentCard as Card } from "@/lib/units/assignment-board";
+import { SavingLabel } from "@/components/forms/form-status";
 
 const pastEditFlag = "rolnet.pastAssignmentEditOk";
 const shell = "grid min-w-0 content-start gap-3 rounded-md border border-rule p-4";
@@ -52,6 +54,7 @@ export function AssignmentCard({ card, date, today, isOwner }: { card: Card; dat
 
 function EditableCard({ card, date, today }: { card: Exclude<Card, { kind: "blocked" }>; date: string; today: string }) {
   const router = useRouter();
+  const markSaved = useSaveFeedback();
   const saved = card.kind === "open" ? null : card;
   const initialDriver = saved ? saved.driverId : card.kind === "open" ? card.prefillDriverId ?? "" : "";
   const [editing, setEditing] = useState(!saved);
@@ -91,6 +94,7 @@ function EditableCard({ card, date, today }: { card: Exclude<Card, { kind: "bloc
         return;
       }
       setEditing(false);
+      markSaved(card.unitId);
       router.refresh();
     } catch (reason) {
       setError({ message: clientErrorMessage(reason) });
@@ -99,7 +103,7 @@ function EditableCard({ card, date, today }: { card: Exclude<Card, { kind: "bloc
     }
   }
 
-  return <article className={`${shell} ${locked ? "bg-muted" : "bg-surface"}`} aria-label={card.unitName}>
+  return <article data-record-id={card.unitId} className={`${shell} ${locked ? "bg-muted" : "bg-surface"}`} aria-label={card.unitName}>
     <div className="flex min-w-0 items-start justify-between gap-2">
       <div className="grid min-w-0 gap-1">
         <Truncated text={card.unitName} className="text-section-title font-bold text-ink" />
@@ -133,7 +137,7 @@ function EditableCard({ card, date, today }: { card: Exclude<Card, { kind: "bloc
       </div>
       {card.kind === "locked" ? <p className="text-body-sm text-muted">A remittance is already recorded for this day.</p> : null}
     </div> : <div className="flex flex-wrap gap-2">
-      <Button type="button" className="flex-1" disabled={pending || (noOptions && !saved)} onClick={submit}>{pending ? "Saving…" : "Save assignment"}</Button>
+      <Button type="button" className="flex-1" disabled={pending || (noOptions && !saved)} onClick={submit}>{pending ? <SavingLabel /> : "Save assignment"}</Button>
       {saved ? <Button type="button" variant="outline" disabled={pending} onClick={cancelEdit}>Cancel</Button> : null}
     </div>}
 

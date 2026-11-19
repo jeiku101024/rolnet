@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { BrandLogo } from "@/components/navigation/brand-logo";
 import Link from "next/link";
 import type { SessionProfile } from "@/lib/auth/guards";
 import { getNavigationGroups } from "@/lib/navigation/items";
@@ -14,11 +14,11 @@ export function AppSidebar({ profile }: { profile: SessionProfile }) {
 
   return (
     <Sidebar>
-      <SidebarHeader className="pr-14 md:pr-4">
-        <Link aria-label="ROLNET home" className="touch-target inline-flex items-center" href={homeHref}>
-          <Image className="logo-full-header" src="/brand/rolnet-logo.svg" alt="ROLNET" width={300} height={225} priority />
+      <SidebarHeader className="justify-center gap-2 pr-14 md:h-(--shell-header-height) md:py-0 md:pr-4">
+        <Link aria-label="ROLNET home" className="flex min-h-10 items-center justify-center" href={homeHref}>
+          <BrandLogo variant="horizontal" className="logo-horizontal" priority />
         </Link>
-        <p className="text-label font-semibold text-muted">Fleet operations ledger</p>
+        <p className="text-center text-label font-semibold text-muted">Fleet operations ledger</p>
       </SidebarHeader>
       <SidebarContent>
         <NavigationItems groups={groups} />
