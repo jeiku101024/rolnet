@@ -14,6 +14,8 @@ export type SfParticipant = {
   driver_id: string | null;
   notes: string | null;
   archived_at: string | null;
+  /** When the participant was added. Optional: only the demo data and the standings twin read it. */
+  created_at?: string;
   updated_at: string;
 };
 
@@ -121,6 +123,18 @@ export type SfDistributionDetail = {
   /** Sorted by ended total savings, highest first; ties by name; rows without an ended total last. */
   rows: SfDistributionRow[];
   totals: { ended_total_centavos: number | null; share_centavos: number };
+};
+
+/** One row of the monthly standings (feature 019, `sf_standings`): figures as of a date. */
+export type SfStandingRow = {
+  participant_id: string;
+  name: string;
+  savings_centavos: number;
+  /** Principal of loans open or overdue on the date. */
+  loans_centavos: number;
+  /** Still owed on those loans, interest included. */
+  balance_to_pay_centavos: number;
+  has_overdue: boolean;
 };
 
 export type SfMonthlyFlow = { month: string; deposits_centavos: number; loans_centavos: number; payments_centavos: number };

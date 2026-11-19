@@ -268,7 +268,7 @@ test.describe("Distribution and year-end close (feature 016)", () => {
     await expect(details.getByTestId("sf-dist-totals")).toContainText("Total");
     expect(await details.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
 
-    const link = details.getByRole("link", { name: "Download Excel" });
+    const link = details.getByRole("link", { name: "Download year-end distribution (Excel)" });
     const href = await link.getAttribute("href");
     expect(href).toMatch(/^\/api\/sinking-fund\/distributions\/[0-9a-f-]{36}\/xlsx$/);
     const response = await page.request.get(href!);

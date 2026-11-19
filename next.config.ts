@@ -2,6 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Feature 019: the Reports page moved into the Remittances download overlay; old bookmarks land on Remittances.
+  async redirects() {
+    return [
+      { source: "/reports", destination: "/remittances", permanent: false },
+      { source: "/reports/:path*", destination: "/remittances", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

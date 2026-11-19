@@ -15,7 +15,7 @@ type Client = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 const pageSize = 1000;
 const chunkSize = 40;
 
-async function allPages<T>(read: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>) {
+export async function allPages<T>(read: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>) {
   const rows: T[] = [];
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await read(from, from + pageSize - 1);

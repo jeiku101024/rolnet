@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import type { SessionProfile } from "@/lib/auth/guards";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -21,7 +22,7 @@ import { listView } from "@/components/ui/paged-list";
 const searchText = "Search by driver or unit";
 
 /** List view (feature 008, User Story 4): the read-only remittance history, newest first, with the stored allowance and deposit (feature 009). */
-export async function RemittancesList({ profile, searchParams }: { profile: SessionProfile; searchParams: SearchParams }) {
+export async function RemittancesList({ profile, searchParams, reportButton }: { profile: SessionProfile; searchParams: SearchParams; reportButton?: ReactNode }) {
   // Every link built from these params (search, filters, pages) keeps List view.
   const params: SearchParams = { ...searchParams, view: "list" };
   const request = parseListPage(params);
@@ -45,7 +46,7 @@ export async function RemittancesList({ profile, searchParams }: { profile: Sess
     })
     : pageRows(controlRows(demoRemittances.filter((r) => !unpaidOnly || remittanceTotals(r.amount_due_centavos, r.remittance_payments).balance > 0), controls), request, (r) => `${r.service_date} ${one(r.units)?.body_number} ${one(r.drivers)?.full_name} ${dispositionLabels[r.disposition]} ${r.notes}`);
   const note = <>Turn on <Link className="muted-link" href={dailyHref()}>Daily view</Link> to record or correct each unit&apos;s remittance. List view shows all records, newest to oldest.</>;
-  const list = listView("/remittances", params, request, result, { searchLabel: searchText, searchPlaceholder: searchText, controls: controlsView(controls), note });
+  const list = listView("/remittances", params, request, result, { searchLabel: searchText, searchPlaceholder: searchText, controls: controlsView(controls), note, action: reportButton });
   return <DataTable list={list} headers={["Date", "Unit / driver", "Disposition", "Rental", "Paid", "Balance", "Allowance", "Deposit"]} empty={<p className="p-6 text-muted">No remittances recorded yet.</p>}>{result.rows.map((r) => { const totals = remittanceTotals(r.amount_due_centavos, r.remittance_payments); return <tr key={r.id}>
     <td className="font-data"><Link className="muted-link" href={dailyHref(r.service_date)} aria-label={`Open ${formatLongDate(r.service_date)} in Daily view`}>{r.service_date}</Link></td>
     <td><p className="font-semibold">Body {one(r.units)?.body_number ?? "Unknown"}</p><p className="text-body-sm text-muted">{one(r.drivers)?.full_name ?? "Unknown"}</p></td>

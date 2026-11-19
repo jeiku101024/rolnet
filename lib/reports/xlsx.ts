@@ -9,8 +9,12 @@ import { buildZip, zipEntry, type ZipEntry } from "@/lib/reports/zip";
 export const AMOUNT_FORMAT = '#,##0;[Red]-#,##0;"-"';
 /** Two decimals, zero shown as 0.00 (feature 016: the Sinking fund workbook shows centavos). */
 export const CENTS_FORMAT = "#,##0.00;[Red]-#,##0.00;0.00";
+/** Two decimals followed by the word Overdue; the cell stays a number (feature 019, standings). */
+export const OVERDUE_FORMAT = '#,##0.00" Overdue";[Red]-#,##0.00" Overdue";0.00" Overdue"';
 export const DATE_FORMAT = 'ddd", "mmm d';
 export const MONTH_FORMAT = "mmmm";
+/** "Nov 3", the way the Expenses page shows a date (feature 019). */
+export const SHORT_DATE_FORMAT = "mmm d";
 
 interface Border { style: "thin" | "medium"; color: string }
 interface StyleDef {
@@ -40,6 +44,9 @@ const linkBlue = "0563C1";
 const thin: Border = { style: "thin", color: "BFBFBF" };
 const medium: Border = { style: "medium", color: black };
 
+const overdueRed = "9C0006";
+const overdueFill = "FFC7CE";
+
 const body = { size: 10, color: black };
 const head = { size: 10, bold: true, color: white, fill: blue, v: "center" as const };
 const sub = { ...body, bold: true, fill: lightBlue };
@@ -53,6 +60,8 @@ export const styleDefs = {
   headText: { ...head, h: "left" },
   headAmount: { ...head, h: "right" },
   date: { ...body, bottom: thin, h: "left", indent: 1, numFmt: DATE_FORMAT },
+  dateShort: { ...body, bottom: thin, h: "left", indent: 1, numFmt: SHORT_DATE_FORMAT },
+  textWrap: { ...body, bottom: thin, h: "left", v: "top", wrap: true },
   month: { ...body, bottom: thin, h: "left", indent: 1, numFmt: MONTH_FORMAT },
   text: { ...body, bottom: thin, h: "left" },
   amount: { ...body, bottom: thin, h: "right", numFmt: AMOUNT_FORMAT },
@@ -69,6 +78,7 @@ export const styleDefs = {
   amountCents: { ...body, bottom: thin, h: "right", numFmt: CENTS_FORMAT },
   subAmountCents: { ...sub, h: "right", numFmt: CENTS_FORMAT },
   grandAmountCents: { ...grand, h: "right", numFmt: CENTS_FORMAT },
+  overdueAmountCents: { ...body, bold: true, color: overdueRed, fill: overdueFill, bottom: thin, h: "right", numFmt: OVERDUE_FORMAT },
   link: { ...body, color: linkBlue, underline: true, bottom: thin, h: "left", indent: 1 },
   linkAmount: { ...body, color: green, bottom: thin, h: "right", numFmt: AMOUNT_FORMAT },
   notesHead: { ...body, bold: true },
@@ -103,6 +113,10 @@ export interface SheetModel {
   hyperlinks: { ref: string; sheet: string }[];
   /** Repeat rows 1:4 on every printed page. */
   printTitles: boolean;
+  /** Page orientation. Omit for portrait (feature 019). */
+  orientation?: "portrait" | "landscape";
+  /** Pages tall: 1 (the default) fits the sheet on one page; 0 lets it run over as many pages as it needs (feature 019). */
+  fitToHeight?: number;
 }
 
 export const xlsxContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -213,7 +227,7 @@ export function sheetXml(sheet: SheetModel, styles: StyleRegistry, selected = fa
   if (sheet.hyperlinks.length) out.push(`<hyperlinks>${sheet.hyperlinks.map((link) => `<hyperlink ref="${link.ref}" location="${escapeXml(sheetRef(link.sheet))}!A1" display="${escapeXml(link.sheet)}"/>`).join("")}</hyperlinks>`);
   out.push('<printOptions horizontalCentered="1"/>');
   out.push('<pageMargins left="0.25" right="0.25" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>');
-  out.push('<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>');
+  out.push(`<pageSetup paperSize="9" orientation="${sheet.orientation ?? "portrait"}" fitToWidth="1" fitToHeight="${sheet.fitToHeight ?? 1}"/>`);
   out.push("</worksheet>");
   return out.join("");
 }

@@ -131,7 +131,7 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
   disposition never changes (the owner reverses it on its details page); raising the payment adds the
   difference, and only the owner can lower it, which voids the earlier payments with a reason and
   records the new total.
-- Reports (`/reports`, owner only, feature 014) download Weekly (Monday to Sunday of any date), Monthly
+- Reports (feature 014, moved in feature 019: there is no Reports page; the owner opens the workbook button at the end of the Remittances toolbar, in Daily and List view, and `/reports` redirects to `/remittances`) download Weekly (Monday to Sunday of any date), Monthly
   and Yearly .xlsx workbooks for **all units** (an "All units" summary sheet, then one sheet per unit in
   natural name order: rolnet-2 before rolnet-10) or a **single unit** (that unit's sheet only). Every
   non-archived unit gets a sheet; an archived unit only when it has a remittance or expense in the
@@ -149,6 +149,14 @@ All schema, RLS, Storage policies, triggers, and query functions belong in supab
     the mocks with `UPDATE_MOCK_DATA=1 corepack pnpm exec vitest run tests/unit/report-mock-data.test.ts`.
   - The old monthly CSV download is gone; the `monthly_report` SQL function and its pgTAP tests remain in
     the database but the app no longer calls it.
+- Page downloads (feature 019): each page has a workbook icon button at the end of its content toolbar that opens a
+  download overlay (`components/reports/download-report-button.tsx`). Remittances holds the report card above.
+  **Sinking fund** (owner only) downloads the monthly standings, `rolnet-sinking-fund-standings-YYYY-MM.xlsx`, from
+  `GET /api/sinking-fund/standings?month=YYYY-MM` (built on the server; figures come from the owner-only database
+  function `sf_standings(date)`, as of the month's last day or today). **Expenses** (any approved user) downloads
+  `rolnet-expenses-YYYY-MM.xlsx`, one sheet per unit, from `GET /api/expenses/month?month=YYYY-MM` (JSON; the browser
+  builds the workbook). The year-end distribution download keeps its own button in the distribution details.
+  New workbooks print on A4 with Narrow margins, one page wide (standings portrait, expenses landscape).
 - Business rows have timestamps, actor IDs, and soft deletion.
 - Driver profile license expiry must match the current license document. Uploading, renewing,
   reverting, restoring or bringing back a license sets the profile date in the same transaction

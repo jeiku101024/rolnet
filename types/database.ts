@@ -9,7 +9,7 @@ export type DocumentType = "or_cr" | "driver_license" | "mtop_franchise" | "insu
 export type DocumentLifecycle = "current" | "superseded" | "void" | "reverted";
 export type DocumentEventKind = "uploaded" | "renewed" | "reverted" | "removed" | "brought_back" | "restored";
 
-import type { SfDistribution, SfDistributionRow, SfFundSummary, SfInterestSetBy, SfParticipantSummary, SfPrefill, SfRankingRow, SfTransactionType } from "@/lib/sinking-fund/types";
+import type { SfDistribution, SfDistributionRow, SfFundSummary, SfInterestSetBy, SfParticipantSummary, SfPrefill, SfRankingRow, SfStandingRow, SfTransactionType } from "@/lib/sinking-fund/types";
 
 export interface Database {
   public: {
@@ -242,6 +242,7 @@ export interface Database {
       sf_participant_summaries: { Args: { p_as_of?: string | null }; Returns: SfParticipantSummary[] };
       sf_ranking: { Args: { p_rank_by: "savings" | "deposits"; p_start?: string | null; p_end?: string | null }; Returns: SfRankingRow[] };
       sf_monthly_flows: { Args: { p_months?: number }; Returns: { month: string; deposits_centavos: number; loans_centavos: number; payments_centavos: number }[] };
+      sf_standings: { Args: { p_as_of: string }; Returns: SfStandingRow[] };
       sf_distribution_history: { Args: Record<string, never>; Returns: (SfDistribution & { void_reason: string | null })[] };
       sf_distribution_details: { Args: { p_id: string }; Returns: SfDistributionRow[] };
     };
