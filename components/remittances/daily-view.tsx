@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -18,7 +18,7 @@ import { isCountable, type DailyBoard, type SavedCard } from "@/lib/remittances/
 const dayCheckInterval = 30_000;
 
 /** Daily view: one card per scheduled unit for the selected date (feature 008, User Stories 1–3). */
-export function DailyView({ board, isOwner }: { board: DailyBoard; isOwner: boolean }) {
+export function DailyView({ board, isOwner, reportButton }: { board: DailyBoard; isOwner: boolean; reportButton?: ReactNode }) {
   const router = useRouter();
   const { setGuard } = useUnsavedGuard();
   const [navigating, startTransition] = useTransition();
@@ -84,11 +84,14 @@ export function DailyView({ board, isOwner }: { board: DailyBoard; isOwner: bool
     <div className="grid gap-4" aria-busy={navigating}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <DateControl date={board.date} today={board.today} onChange={goTo} />
-        <p role="status" className="flex flex-wrap gap-x-4 gap-y-1 text-body-sm text-muted">
-          <span><span className="font-data font-bold text-ink">{recorded} of {countable}</span> recorded</span>
-          <span><span className="font-data font-bold text-ink">{formatPesos(received)}</span> received</span>
-          {navigating ? <span>Loading…</span> : null}
-        </p>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <p role="status" className="flex flex-wrap gap-x-4 gap-y-1 text-body-sm text-muted">
+            <span><span className="font-data font-bold text-ink">{recorded} of {countable}</span> recorded</span>
+            <span><span className="font-data font-bold text-ink">{formatPesos(received)}</span> received</span>
+            {navigating ? <span>Loading…</span> : null}
+          </p>
+          {reportButton}
+        </div>
       </div>
       <Progress value={countable ? Math.round((recorded / countable) * 100) : 0} aria-label="Recorded" />
 

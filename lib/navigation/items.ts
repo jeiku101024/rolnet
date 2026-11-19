@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   BusFront,
-  FileChartColumn,
   Files,
   Gauge,
   HandCoins,
@@ -55,7 +54,6 @@ export const navigationDestinations: readonly NavigationDestination[] = [
   { id: "expenses", label: pageContext.expenses.title, href: "/expenses", icon: ReceiptText, group: "operations", order: 2, access: "approved", matchDescendants: true },
   { id: "sinkingFund", label: pageContext.sinkingFund.title, href: "/sinking-fund", icon: PiggyBank, group: "operations", order: 3, access: "approved", matchDescendants: true },
   { id: "documents", label: pageContext.documents.title, href: "/documents", icon: Files, group: "operations", order: 4, access: "manage_documents", matchDescendants: true },
-  { id: "reports", label: pageContext.reports.title, href: "/reports", icon: FileChartColumn, group: "operations", order: 5, access: "export_reports", matchDescendants: true },
   { id: "audit", label: "Audit History", href: "/audit", icon: History, group: "administration", order: 1, access: "view_audit", matchDescendants: true },
   { id: "staff", label: "Staff Accounts", href: "/settings/staff", icon: UserCog, group: "administration", order: 2, access: "manage_users", matchDescendants: true },
 ] as const;

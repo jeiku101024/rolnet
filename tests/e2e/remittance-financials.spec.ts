@@ -54,6 +54,14 @@ async function download(page: Page) {
   return { name: file.suggestedFilename(), workbook, sheets: workbook.sheets.map((sheet) => sheet.name) };
 }
 
+// Feature 019: the Reports page is now a download overlay on Remittances.
+const openReport = async (page: Page) => {
+  await page.goto("/remittances");
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Download report" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+};
+
 const reportKind = async (page: Page, label: string) => {
   const select = page.getByRole("combobox", { name: "Report" });
   if (await select.isVisible()) await select.selectOption({ label });
@@ -62,7 +70,7 @@ const reportKind = async (page: Page, label: string) => {
 
 test.describe("XLSX reports (feature 014)", () => {
   test("offers Weekly, Monthly and Yearly downloads for all units or a single unit, and no CSV", async ({ page }) => {
-    await page.goto("/reports");
+    await openReport(page);
     await expect(page.getByRole("combobox", { name: "Report" })).toBeVisible();
     await expect(page.getByRole("combobox", { name: "Month" })).toBeVisible();
     const scope = page.getByRole("combobox", { name: "Scope" });
@@ -70,8 +78,21 @@ test.describe("XLSX reports (feature 014)", () => {
     await expect(page.getByText(/CSV/)).toHaveCount(0);
   });
 
-  test("lists the units for the period in natural order", async ({ page }) => {
+  test("sends the old Reports address to Remittances and leaves no Reports item in the sidebar", async ({ page }) => {
     await page.goto("/reports");
+    await expect(page).toHaveURL(/\/remittances/);
+    await expect(page.getByRole("link", { name: "Reports", exact: true })).toHaveCount(0);
+  });
+
+  test("opens on Monthly, this month and year, all units", async ({ page }) => {
+    await openReport(page);
+    await expect(page.getByRole("combobox", { name: "Month" })).toHaveValue(today.slice(5, 7));
+    await expect(page.getByRole("combobox", { name: "Year" })).toHaveValue(today.slice(0, 4));
+    await expect(page.getByRole("combobox", { name: "Scope" })).toHaveValue("all");
+  });
+
+  test("lists the units for the period in natural order", async ({ page }) => {
+    await openReport(page);
     await page.getByRole("combobox", { name: "Scope" }).selectOption({ label: "Single unit" });
     const unit = page.getByRole("combobox", { name: "Unit" });
     await expect(unit.locator("option", { hasText: "ROLNET-10" })).toHaveCount(1);
@@ -82,14 +103,14 @@ test.describe("XLSX reports (feature 014)", () => {
   });
 
   test("shows the week range under the weekly date", async ({ page }) => {
-    await page.goto("/reports");
+    await openReport(page);
     await reportKind(page, "Weekly");
     await page.getByLabel("Any date in the week").fill("2026-10-28");
     await expect(page.getByText("Oct 26 – Nov 1, 2026")).toBeVisible();
   });
 
   test("downloads the Monthly report for all units: the summary first, then a sheet per unit in natural order", async ({ page }) => {
-    await page.goto("/reports");
+    await openReport(page);
     const monthly = await download(page);
     expect(monthly.name).toBe(`rolnet-monthly-${today.slice(0, 7)}-all-units.xlsx`);
     expect(monthly.sheets[0]).toBe("All units");
@@ -102,7 +123,7 @@ test.describe("XLSX reports (feature 014)", () => {
   });
 
   test("downloads the Weekly and Yearly reports", async ({ page }) => {
-    await page.goto("/reports");
+    await openReport(page);
     await reportKind(page, "Weekly");
     const weekly = await download(page);
     expect(weekly.name).toMatch(/^rolnet-weekly-\d{4}-\d{2}-\d{2}-all-units\.xlsx$/);
@@ -116,7 +137,7 @@ test.describe("XLSX reports (feature 014)", () => {
   });
 
   test("downloads a single unit's report, named for the unit, with only that sheet", async ({ page }) => {
-    await page.goto("/reports");
+    await openReport(page);
     await page.getByRole("combobox", { name: "Scope" }).selectOption({ label: "Single unit" });
     const unit = page.getByRole("combobox", { name: "Unit" });
     await expect(unit.locator("option", { hasText: "ROLNET-1" })).not.toHaveCount(0);
@@ -127,7 +148,7 @@ test.describe("XLSX reports (feature 014)", () => {
   });
 
   test("shows an error with Retry when the data can't be fetched, and Retry downloads", async ({ page }) => {
-    await page.goto("/reports");
+    await openReport(page);
     await page.waitForLoadState("networkidle");
     let calls = 0;
     await page.route("**/api/reports/monthly?*", (route) => (calls++ === 0 ? route.abort() : route.continue()));
@@ -139,7 +160,7 @@ test.describe("XLSX reports (feature 014)", () => {
 
   test("fits a 360 px screen without sideways scrolling", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });
-    await page.goto("/reports");
+    await openReport(page);
     await page.getByRole("combobox", { name: "Scope" }).selectOption({ label: "Single unit" });
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);

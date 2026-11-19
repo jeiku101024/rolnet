@@ -1,0 +1,18 @@
+{
+  "weekly": {
+    "fileName": "rolnet-weekly-2026-10-26-all-units.xlsx",
+    "sha256": "c37ba96e538ffde8ab13a243e39df120792c6d378b0805dc1e237274d105ec26"
+  },
+  "monthly": {
+    "fileName": "rolnet-monthly-2026-10-all-units.xlsx",
+    "sha256": "8ecf2113bec32f169df3a8d2587a0ece981a61c18e10a5c3102522f785ec0713"
+  },
+  "monthlySingleUnit": {
+    "fileName": "rolnet-monthly-2026-10-ROLNET-1.xlsx",
+    "sha256": "6faeacc70bd2e969be6fff3b1ee0ee8a8b9e9561c5cdb80632929c7f731a2ba0"
+  },
+  "yearly": {
+    "fileName": "rolnet-yearly-2026-all-units.xlsx",
+    "sha256": "777c794c18f1c7ccf21f3355c4a43c21f32ab3aa27368e94fcd6cd540cf2d0d0"
+  }
+}

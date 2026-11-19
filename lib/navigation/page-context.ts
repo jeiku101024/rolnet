@@ -6,7 +6,6 @@ export const pageContext = {
   expenses: { title: "Expenses", eyebrow: "Costs and upkeep", description: "Record fuel, parts, repairs and other unit costs." },
   sinkingFund: { title: "Sinking fund", eyebrow: "Savings and loans", description: "Track savings, loans at 5% interest, and the shared interest fund." },
   documents: { title: "Documents", eyebrow: "Compliance register", description: "Keep OR/CR, licenses, franchise, and insurance records current." },
-  reports: { title: "Reports", eyebrow: "Monthly reporting", description: "Download a reconciled monthly summary for bookkeeping." },
   audit: { title: "Audit history", eyebrow: "Accountability", description: "Review who changed important fleet records and when." },
   staff: { title: "Staff accounts", eyebrow: "Owner settings", description: "Approve pending registrations and manage staff access." },
 } as const;

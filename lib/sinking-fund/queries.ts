@@ -4,11 +4,12 @@ import { fleetToday } from "@/lib/dates/fleet-date";
 import { applyFilters, applySort, controlRows, controlsView, parseControls, prepareSpec, type ListControlsView, type ParsedControls } from "@/lib/pagination/list-controls";
 import { listControlSpecs } from "@/lib/pagination/list-control-specs";
 import type { SearchParams } from "@/lib/pagination/list-page";
-import { buildLoans, distributionDetail, distributionTotals, fundSummary, ledgerRows, monthlyFlows, openLoans, participantSummaries, rankingFor } from "@/lib/sinking-fund/aggregate";
+import { buildLoans, distributionDetail, distributionTotals, fundSummary, ledgerRows, monthlyFlows, openLoans, participantSummaries, rankingFor, standingsFor } from "@/lib/sinking-fund/aggregate";
 import { demoSfData, demoSfSettings } from "@/lib/sinking-fund/demo-data";
 import { periodRange } from "@/lib/sinking-fund/rankings";
+import { yearChoices } from "@/lib/reports/download-years";
 import type { SfPageParams } from "@/lib/sinking-fund/url-state";
-import type { SfDistribution, SfDistributionDetail, SfDistributionRow, SfFundSummary, SfLedgerRow, SfLoan, SfMonthlyFlow, SfParticipantSummary, SfPrefill, SfRankingRow } from "@/lib/sinking-fund/types";
+import type { SfDistribution, SfDistributionDetail, SfDistributionRow, SfFundSummary, SfLedgerRow, SfLoan, SfMonthlyFlow, SfParticipantSummary, SfPrefill, SfRankingRow, SfStandingRow } from "@/lib/sinking-fund/types";
 
 export type SfDriverOption = { id: string; full_name: string };
 
@@ -34,7 +35,27 @@ export type SfPageData = {
   ranking?: SfRankingRow[];
   period?: ReturnType<typeof periodRange>;
   flows?: SfMonthlyFlow[];
+  /** Years offered by the owner's monthly standings download (feature 019). Empty for staff. */
+  standingsYears: number[];
 };
+
+/** The figures behind the monthly standings workbook, as of `asOf` (owner only: the database function checks the caller). */
+export async function loadStandings(asOf: string): Promise<SfStandingRow[]> {
+  if (demoMode) return standingsFor(demoSfData, asOf);
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("sf_standings", { p_as_of: asOf });
+  if (error) throw error;
+  return (data ?? []) as SfStandingRow[];
+}
+
+/** Years the standings download offers: from the earliest ledger year (or ten years back) to this year. Owner only. */
+async function loadStandingsYears(isOwner: boolean): Promise<number[]> {
+  if (!isOwner) return [];
+  const earliest = demoMode
+    ? demoSfData.transactions.map((row) => row.tx_date).sort()[0] ?? null
+    : await (await createSupabaseServerClient()).from("sf_transactions").select("tx_date").order("tx_date").limit(1).maybeSingle().then(({ data }) => (data?.tx_date as string | undefined) ?? null);
+  return yearChoices(earliest);
+}
 
 const one = <T,>(rows: T[] | null) => (rows ?? [])[0];
 
@@ -49,7 +70,7 @@ type LedgerQuery = {
   range(from: number, to: number): PromiseLike<{ data: SfLedgerRow[] | null; count: number | null }>;
 };
 
-async function loadFromDatabase(params: SfPageParams, controls: ParsedControls, isOwner: boolean): Promise<Omit<SfPageData, "controls" | "today">> {
+async function loadFromDatabase(params: SfPageParams, controls: ParsedControls, isOwner: boolean): Promise<Omit<SfPageData, "controls" | "today" | "standingsYears">> {
   const supabase = await createSupabaseServerClient();
   const [summaries, summaryResult, loansResult, settings, distributions, linked, driverRows] = await Promise.all([
     supabase.rpc("sf_participant_summaries", {}),
@@ -97,7 +118,7 @@ const emptySummary: SfFundSummary = {
   interest_collected_centavos: 0, interest_distributed_centavos: 0, interest_available_centavos: 0, interest_expected_centavos: 0, participant_count: 0, cycle_start: null,
 };
 
-function loadFromDemo(params: SfPageParams, controls: ParsedControls, today: string, isOwner: boolean): Omit<SfPageData, "controls" | "today"> {
+function loadFromDemo(params: SfPageParams, controls: ParsedControls, today: string, isOwner: boolean): Omit<SfPageData, "controls" | "today" | "standingsYears"> {
   const data = demoSfData;
   const participants = participantSummaries(data, today);
   const range = controls.active.find((filter) => filter.def.kind === "range");
@@ -132,13 +153,14 @@ export async function loadSinkingFund(params: SfPageParams, searchParams: Search
   // Participant filter options come from the people on the page, so load the shared pieces first.
   const optionSource = demoMode ? participantSummaries(demoSfData, today) : null;
   let controls = parseControls(searchParams, prepareSpec(listControlSpecs.sinkingFund, { options: { participant: (optionSource ?? []).map((item) => ({ value: item.participant_id, label: item.name })) } }), today);
-  if (demoMode) return { ...loadFromDemo(params, controls, today, isOwner), controls: controlsView(controls), today };
+  const standingsYears = await loadStandingsYears(isOwner);
+  if (demoMode) return { ...loadFromDemo(params, controls, today, isOwner), controls: controlsView(controls), today, standingsYears };
 
   // A first pass reads the participants so the Participant filter can offer them, then the real pass runs.
   const supabase = await createSupabaseServerClient();
   const { data: names } = await supabase.from("sf_participants").select("id, name").is("archived_at", null).is("deleted_at", null).order("name");
   controls = parseControls(searchParams, prepareSpec(listControlSpecs.sinkingFund, { options: { participant: (names ?? []).map((item) => ({ value: item.id, label: item.name })) } }), today);
-  return { ...(await loadFromDatabase(params, controls, isOwner)), controls: controlsView(controls), today };
+  return { ...(await loadFromDatabase(params, controls, isOwner)), controls: controlsView(controls), today, standingsYears };
 }
 
 /** One participant's pop-up data: figures, loans, and the first `historyCount` history rows (feature 016: read on open, not through the page address). */

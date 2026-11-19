@@ -6,6 +6,8 @@ import { Plus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { DownloadReportButton } from "@/components/reports/download-report-button";
+import { StandingsDownloadForm } from "@/components/reports/standings-download-form";
 import { listHref, type SearchParams } from "@/lib/pagination/list-page";
 import { pageContext } from "@/lib/navigation/page-context";
 import type { SfPageData } from "@/lib/sinking-fund/queries";
@@ -74,6 +76,7 @@ export function PrimaryActions() {
   return <div className="flex flex-wrap items-center gap-2">
     <Button type="button" variant="outline" onClick={actions.addParticipant}><Plus aria-hidden="true" size={16} />Add participant</Button>
     <Button type="button" onClick={() => actions.addTransaction()}><Plus aria-hidden="true" size={16} />Add transaction</Button>
+    {actions.isOwner ? <DownloadReportButton label="Download monthly standings" title="Monthly standings"><StandingsDownloadForm years={actions.data.standingsYears} /></DownloadReportButton> : null}
   </div>;
 }
 

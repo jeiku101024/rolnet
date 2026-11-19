@@ -33,6 +33,7 @@ export const demoSfParticipants: SfParticipant[] = people.map((person, index) =>
   driver_id: person.driver,
   notes: null,
   archived_at: person.archived ? stamp(-3, 0) : null,
+  created_at: stamp(-400, index),
   updated_at: stamp(-60, index),
 }));
 const [ana, ben, cora, dino, elena, felix, hugo, iris] = demoSfParticipants.map((participant) => participant.id);

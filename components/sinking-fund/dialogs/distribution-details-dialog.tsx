@@ -15,7 +15,7 @@ type State = { status: "loading" } | { status: "error"; message: string } | { st
 /**
  * One distribution (feature 016, owner only): the Sinking fund total for the year, and every participant who took
  * part with the ended total savings saved at the time and the share they received, highest first. Each participant is a
- * stacked row so it reads at 360 px without sideways scrolling. "Download Excel" saves the same table.
+ * stacked row so it reads at 360 px without sideways scrolling. "Download year-end distribution (Excel)" saves the same table (feature 019 made the label say which report it is).
  */
 export function DistributionDetailsDialog({ distribution, onVoid, open, onOpenChange }: { distribution: SfDistribution; onVoid: (distribution: SfDistribution) => void; open: boolean; onOpenChange: (open: boolean) => void }) {
   const [state, setState] = useState<State>({ status: "loading" });
@@ -81,7 +81,7 @@ export function DistributionDetailsDialog({ distribution, onVoid, open, onOpenCh
         {!distribution.voided_at ? <Button type="button" variant="outline" onClick={() => onVoid(distribution)}>Void distribution</Button> : null}
         <a className="touch-target inline-flex items-center gap-2 rounded-md bg-brand px-4 text-body-sm font-semibold text-surface hover:bg-brand-dark"
           href={`/api/sinking-fund/distributions/${distribution.id}/xlsx`} download>
-          <Download aria-hidden="true" size={16} />Download Excel
+          <Download aria-hidden="true" size={16} />Download year-end distribution (Excel)
         </a>
       </div>
     </DialogContent>

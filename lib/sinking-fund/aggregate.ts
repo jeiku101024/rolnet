@@ -1,7 +1,7 @@
 import { addDays } from "@/lib/dates/fleet-date";
 import { isLive, loanState } from "@/lib/sinking-fund/rules";
 import { fundAt, savingsAt, savingsDelta } from "@/lib/sinking-fund/ledger";
-import type { SfDistribution, SfDistributionDetail, SfDistributionRow, SfFundSummary, SfLedgerRow, SfLoan, SfMonthlyFlow, SfParticipant, SfParticipantSummary, SfRankingRow, SfTransaction } from "@/lib/sinking-fund/types";
+import type { SfDistribution, SfDistributionDetail, SfDistributionRow, SfFundSummary, SfLedgerRow, SfLoan, SfMonthlyFlow, SfParticipant, SfParticipantSummary, SfRankingRow, SfStandingRow, SfTransaction } from "@/lib/sinking-fund/types";
 
 /**
  * Pure TypeScript twin of the SQL read model (views sf_loans_v and sf_ledger_v and the sf_* read functions).
@@ -90,6 +90,32 @@ export function rankingFor(data: SfData, by: "savings" | "deposits", startDate: 
       : rows.filter((row) => isLive(row) && row.type === "deposit" && (!start || row.tx_date >= start) && (!end || row.tx_date <= end)).reduce((sum, row) => sum + row.amount_centavos, 0);
     return { participant_id: participant.id, name: participant.name, driver_id: participant.driver_id, amount_centavos: amount };
   }).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Feature 019: the monthly standings as of `asOf` (YYYY-MM-DD). TypeScript twin of `sf_standings`: active participants who had
+ * joined by `asOf`; savings from rows dated on or before it; loans that were made by then, not withdrawn by then, and still owing
+ * after the payments dated by then; overdue judged on `asOf`. Voided rows never count. Sorted by name (ranking is applied by the caller).
+ */
+export function standingsFor(data: SfData, asOf: string): SfStandingRow[] {
+  const joined = (participant: SfParticipant) => !participant.created_at || participant.created_at.slice(0, 10) <= asOf;
+  const upToDate = data.transactions.filter((row) => row.tx_date <= asOf);
+  const openAt = buildLoansAsOf(upToDate, asOf).filter((loan) => loan.status === "open");
+  return data.participants.filter((participant) => active(participant) && joined(participant)).map((participant) => {
+    const mine = openAt.filter((loan) => loan.participant_id === participant.id);
+    return {
+      participant_id: participant.id,
+      name: participant.name,
+      savings_centavos: savingsAt(data.transactions.filter((row) => row.participant_id === participant.id), asOf),
+      loans_centavos: mine.reduce((sum, loan) => sum + loan.principal_centavos, 0),
+      balance_to_pay_centavos: mine.reduce((sum, loan) => sum + loan.balance_centavos, 0),
+      has_overdue: mine.some((loan) => loan.due_date < asOf),
+    };
+  }).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function buildLoansAsOf(rowsUpToDate: SfTransaction[], asOf: string): SfLoan[] {
+  return rowsUpToDate.filter((row) => isLive(row) && row.type === "loan").map((row) => loanState(row, rowsUpToDate, asOf));
 }
 
 /** Deposits, loans, and payments per month for the last `months` months, oldest first (archived participants included). */

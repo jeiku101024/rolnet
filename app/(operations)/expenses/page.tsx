@@ -19,6 +19,9 @@ import { listView } from "@/components/ui/paged-list";
 import { AddExpenseDialog, type EditableExpense } from "@/components/expenses/expense-dialog";
 import { ExpenseRowMenu } from "@/components/expenses/expense-row-menu";
 import { CategoryCell, LastReplacedCell, NotesCell } from "@/components/expenses/expense-cells";
+import { DownloadReportButton } from "@/components/reports/download-report-button";
+import { ExpensesDownloadForm } from "@/components/reports/expenses-download-form";
+import { yearChoices } from "@/lib/reports/download-years";
 
 const expenseColumns = "id, unit_id, category, custom_category, replaced_date, expense_date, amount_centavos, notes, needs_review, source_table, updated_at, receipt_object_path, units(body_number, plate_number, name)";
 
@@ -65,12 +68,17 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
     totalCentavos = sumAmounts(matching);
   }
   const expenses = result.rows;
+  // Feature 019: the monthly download offers the years from the earliest recorded expense.
+  const earliest = supabase
+    ? await supabase.from("expenses").select("expense_date").is("deleted_at", null).order("expense_date").limit(1).maybeSingle().then(({ data }) => (data?.expense_date as string | undefined) ?? null)
+    : demoExpenses.map((expense) => expense.expense_date).sort()[0] ?? null;
+  const downloadButton = <DownloadReportButton title="Download report"><ExpensesDownloadForm years={yearChoices(earliest)} /></DownloadReportButton>;
   const filtered = Boolean(request.q) || controls.count > 0;
   const list = listView("/expenses", params, request, result, {
     searchLabel: "Search expenses",
     searchPlaceholder: "Search notes, unit, or category",
     controls: controlsView(controls),
-    action: <AddExpenseDialog units={activeUnits} />,
+    action: <div className="flex items-start gap-2"><AddExpenseDialog units={activeUnits} />{downloadButton}</div>,
     hint: formatPesos(totalCentavos),
     emptyText: "No expenses match these filters.",
   });

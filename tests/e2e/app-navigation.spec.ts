@@ -37,13 +37,13 @@ test.describe("app navigation", () => {
     await expect(page.getByRole("button", { name: "Logout" })).toHaveCount(0);
   });
 
-  test("owner receives ten grouped destinations and an active page", async ({ page }) => {
+  test("owner receives nine grouped destinations and an active page", async ({ page }) => {
     await signIn(page, ownerEmail, ownerPassword);
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
     const navigation = await openNavigation(page);
-    await expect(navigation.getByRole("link")).toHaveCount(11); // Brand home plus ten destinations (features 011 and 015).
+    await expect(navigation.getByRole("link")).toHaveCount(10); // Brand home plus nine destinations (features 011, 015 and 019: Reports moved into Remittances).
     await expect(navigation.getByRole("link", { name: "Dashboard" })).toHaveAttribute("aria-current", "page");
-    for (const label of ["Dashboard", "Units", "Drivers", "Remittances", "Expenses", "Sinking fund", "Documents", "Reports", "Audit History", "Staff Accounts"]) {
+    for (const label of ["Dashboard", "Units", "Drivers", "Remittances", "Expenses", "Sinking fund", "Documents", "Audit History", "Staff Accounts"]) {
       await expect(navigation.getByRole("link", { name: label })).toBeVisible();
     }
   });
