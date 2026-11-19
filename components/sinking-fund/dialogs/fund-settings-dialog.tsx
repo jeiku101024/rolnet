@@ -10,6 +10,7 @@ import { formatPesos } from "@/lib/money/centavos";
 import { sfMessages } from "@/lib/sinking-fund/messages";
 import { SF_INTEREST_RATE_BP, SF_LOAN_STEP_CENTAVOS, SF_LOAN_TERM_MONTHS } from "@/lib/sinking-fund/rules";
 import type { SfPrefill } from "@/lib/sinking-fund/types";
+import { SavingLabel } from "@/components/forms/form-status";
 
 /** "Fund settings" (spec section 10), owner only. The default only pre-fills the payment form and is used for payments recorded by others. */
 export function FundSettingsDialog({ prefill, open, onOpenChange }: { prefill: SfPrefill; open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -42,7 +43,7 @@ export function FundSettingsDialog({ prefill, open, onOpenChange }: { prefill: S
           <dt className="text-muted">Loan term</dt><dd className="text-right">{SF_LOAN_TERM_MONTHS} month</dd>
         </dl>
         <ValidationSummary message={form.failure} />
-        <Button type="submit" disabled={form.pending}>{form.pending ? "Saving…" : "Save settings"}</Button>
+        <Button type="submit" disabled={form.pending}>{form.pending ? <SavingLabel /> : "Save settings"}</Button>
       </form>
     </DialogContent>
   </Dialog>;

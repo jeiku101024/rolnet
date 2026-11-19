@@ -1,5 +1,6 @@
 "use client";
 
+import { SavingLabel } from "@/components/forms/form-status";
 import { useRef, useState, type FormEvent } from "react";
 import { Info, X } from "lucide-react";
 import { finalizeDocumentUpload, prepareDocumentUpload } from "@/app/actions/documents";
@@ -146,7 +147,7 @@ export function DocumentForm({ scope, units, drivers, preset, currentByKey, onSa
     <ValidationSummary message={failure} />
     <div className="flex flex-wrap justify-end gap-2">
       <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-      <Button type="submit" disabled={pending}>{pending ? "Uploading…" : currentId ? "Renew document" : "Upload document"}</Button>
+      <Button type="submit" disabled={pending}>{pending ? <SavingLabel label="Uploading…" /> : currentId ? "Renew document" : "Upload document"}</Button>
     </div>
   </form>;
 }

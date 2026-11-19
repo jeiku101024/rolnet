@@ -12,6 +12,7 @@ import { formatListDate, pesoText } from "@/lib/sinking-fund/format";
 import { formatLoanToast, formatPaymentToast, interestRangeMessage, loanTooHighMessage, paymentBeforeLoanMessage, paymentTooHighMessage, savingsWithdrawalTooHighMessage, sfMessages } from "@/lib/sinking-fund/messages";
 import { allowedInterestRange, defaultInterestPart, isLoanStep, loanAmountDue, loanDueDate, loanInterest, SF_LOAN_STEP_CENTAVOS } from "@/lib/sinking-fund/rules";
 import type { SfLoan, SfParticipantSummary, SfPrefill } from "@/lib/sinking-fund/types";
+import { SavingLabel } from "@/components/forms/form-status";
 
 export type TransactionFormType = "deposit" | "loan" | "payment" | "savings_withdrawal";
 export type TransactionDialogInitial = { participantId?: string; type?: TransactionFormType; loanId?: string };
@@ -169,7 +170,7 @@ export function AddTransactionDialog({ participants, openLoans, prefill, isOwner
         </p> : null}
 
         <ValidationSummary message={form.failure} />
-        <Button type="submit" disabled={form.pending}>{form.pending ? "Saving…" : "Save transaction"}</Button>
+        <Button type="submit" disabled={form.pending}>{form.pending ? <SavingLabel /> : "Save transaction"}</Button>
       </form>
     </DialogContent>
   </Dialog>;

@@ -56,7 +56,7 @@ export function UnitTree({ folders, isOpen, onToggle, onOpenDocument, onUpload, 
             : folder.shown.map((doc, docIndex) => {
               const Icon = isPdf(doc.mimeType) ? FileText : FileImage;
               const type = documentTypeLabels[doc.documentType] ?? doc.documentType;
-              return <li key={doc.id} role="treeitem" aria-selected={false} aria-level={2} aria-setsize={folder.shown.length} aria-posinset={docIndex + 1} aria-label={`${type}, expires ${doc.expiresOn}`}
+              return <li key={doc.id} data-record-id={doc.id} role="treeitem" aria-selected={false} aria-level={2} aria-setsize={folder.shown.length} aria-posinset={docIndex + 1} aria-label={`${type}, expires ${doc.expiresOn}`}
                 {...itemProps(rowById.get(doc.id)!)} className={`${row} flex-col items-stretch gap-0.5`} onClick={(event) => { event.stopPropagation(); onOpenDocument(doc.id); }}>
                 <span className="flex min-w-0 items-center gap-2">
                   <Icon aria-hidden="true" size={16} className="shrink-0 text-muted" />

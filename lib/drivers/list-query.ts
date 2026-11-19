@@ -32,7 +32,7 @@ export async function loadDriverList(supabase: Supabase | null, today: string): 
     };
   }
   const [drivers, absences, assignments, settings] = await Promise.all([
-    supabase.from("drivers").select("id, full_name, driver_kind, phone, license_number, license_expiry_date, is_active").is("deleted_at", null),
+    supabase.from("drivers").select("id, full_name, driver_kind, phone, license_number, license_expiry_date, is_active, created_at").is("deleted_at", null),
     supabase.from("driver_absences").select(absenceColumns).is("deleted_at", null).is("cancelled_at", null).or(`end_date.is.null,end_date.gte.${today}`),
     supabase.from("unit_assignments").select("driver_id, unit_id, units(name, body_number)").eq("service_date", today).is("deleted_at", null),
     loadStaleSettings(supabase),

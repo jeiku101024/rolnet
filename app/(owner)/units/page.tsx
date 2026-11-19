@@ -58,7 +58,7 @@ async function UnitsList({ supabase, params, today }: { supabase: Supabase | nul
   const [allUnits, archivedCount] = await Promise.all([
     supabase
       ? (async () => {
-        let query = supabase.from("units").select("id, name, body_number, plate_number, make_model, status, current_mileage, archived, updated_at").is("deleted_at", null);
+        let query = supabase.from("units").select("id, name, body_number, plate_number, make_model, status, current_mileage, archived, created_at, updated_at").is("deleted_at", null);
         if (!showArchived) query = query.eq("archived", false);
         query = applyFilters(query, controls);
         const { data, error } = await applySort(query, controls);
@@ -81,7 +81,7 @@ async function UnitsList({ supabase, params, today }: { supabase: Supabase | nul
   const rows: LocalRow[] = units.map((unit) => ({
     key: unit.id,
     text: `${unit.name} ${unit.body_number} ${unit.plate_number} ${unit.make_model} ${unitStatusLabels[unit.status as UnitStatus]}`.toLowerCase(),
-    node: <tr className={unit.archived ? "opacity-60" : undefined}>
+    node: <tr data-record-id={unit.id} className={unit.archived ? "opacity-60" : undefined}>
       <td className="whitespace-nowrap font-semibold"><span className="inline-flex items-center gap-2"><Link className="muted-link" href={`/units/${unit.id}`}>{unit.name}</Link>{unit.archived ? <StatusBadge label="Archived" /> : null}</span></td>
       <td className="whitespace-nowrap font-data">{unit.body_number}</td>
       <td className="font-data">{unit.plate_number}</td>

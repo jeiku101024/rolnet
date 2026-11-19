@@ -11,6 +11,7 @@ import { formatPesos } from "@/lib/money/centavos";
 import { distributeWarning, formatDistributionToast } from "@/lib/sinking-fund/messages";
 import { proportionalShares } from "@/lib/sinking-fund/rules";
 import type { SfLoan, SfParticipantSummary } from "@/lib/sinking-fund/types";
+import { SavingLabel } from "@/components/forms/form-status";
 
 /**
  * "Distribute interest" (feature 016), owner only. The Interest fund is shared in proportion to savings:
@@ -94,7 +95,7 @@ export function DistributeDialog({ participants, openLoans, availableCentavos, t
         <ValidationSummary message={form.failure} />
         <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="submit" disabled={!canConfirm}>{form.pending ? "Saving…" : `Distribute and close the year · ${formatPesos(result.total)}`}</Button>
+          <Button type="submit" disabled={!canConfirm}>{form.pending ? <SavingLabel /> : `Distribute and close the year · ${formatPesos(result.total)}`}</Button>
         </div>
       </form>
     </DialogContent>

@@ -10,10 +10,10 @@ const AlertDialogClose = AlertDialogPrimitive.Close;
 function AlertDialogContent({ className, title, description, children, ...props }: Omit<AlertDialogPrimitive.Popup.Props, "title"> & { title: ReactNode; description?: ReactNode }) {
   return (
     <AlertDialogPrimitive.Portal>
-      <AlertDialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-ink/20" />
+      <AlertDialogPrimitive.Backdrop className="motion-backdrop fixed inset-0 z-50 bg-ink/20" />
       <AlertDialogPrimitive.Popup
         data-slot="alert-dialog-content"
-        className={cn("fixed inset-x-4 top-1/2 z-50 mx-auto grid max-w-md -translate-y-1/2 gap-4 rounded-md border border-rule bg-surface p-5 text-ink outline-none", className)}
+        className={cn("motion-popup fixed inset-x-4 top-1/2 z-50 mx-auto grid max-w-md -translate-y-1/2 gap-4 rounded-md border border-rule bg-surface p-5 text-ink outline-none", className)}
         {...props}
       >
         <AlertDialogPrimitive.Title className="text-section-title font-bold">{title}</AlertDialogPrimitive.Title>

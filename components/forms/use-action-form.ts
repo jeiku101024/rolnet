@@ -2,10 +2,11 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import type { ActionFailure } from "@/lib/actions/result";
+import { useSaveFeedback } from "@/components/ui/save-feedback";
 
 export type FormStatus = { kind: "success" | "error"; message: string } | null;
 /** What a submit handler reports: a success message (the form is then reset) or a failure. */
-export type FormOutcome = { ok: true; message: string; keepValues?: boolean } | ActionFailure | { ok: false; message: string };
+export type FormOutcome = { ok: true; message: string; keepValues?: boolean; recordId?: string; created?: boolean } | ActionFailure | { ok: false; message: string };
 
 type SubmitContext = {
   form: HTMLFormElement;
@@ -31,6 +32,7 @@ export function clientErrorMessage(error: unknown) {
 export function useActionForm() {
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<FormStatus>(null);
+  const markSaved = useSaveFeedback();
   const busy = useRef(false);
   const keys = useRef<Record<string, string>>({});
 
@@ -54,6 +56,7 @@ export function useActionForm() {
           keys.current = {};
           if (!outcome.keepValues) form.reset();
           setStatus({ kind: "success", message: outcome.message });
+          if (outcome.recordId) markSaved(outcome.recordId, { created: outcome.created });
         } else {
           setStatus({ kind: "error", message: outcome.message });
         }

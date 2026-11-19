@@ -4,6 +4,8 @@ import { Suspense, type ReactNode } from "react";
 import { AppShell } from "@/components/navigation/app-shell";
 import { getSessionProfile } from "@/lib/auth/guards";
 import { ToastProvider } from "@/components/ui/toast";
+import { themeScript } from "@/lib/theme/theme-script";
+import { SaveFeedbackProvider } from "@/components/ui/save-feedback";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,12 +30,18 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html
       lang="en"
       className={`${GeistSans.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <ToastProvider>
-          <Suspense fallback={<div className="min-h-screen bg-canvas" />}>
-            <SessionShell>{children}</SessionShell>
-          </Suspense>
+          <SaveFeedbackProvider>
+            <Suspense fallback={<div className="min-h-screen bg-canvas" />}>
+              <SessionShell>{children}</SessionShell>
+            </Suspense>
+          </SaveFeedbackProvider>
         </ToastProvider>
       </body>
     </html>

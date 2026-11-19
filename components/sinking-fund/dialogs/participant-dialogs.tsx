@@ -8,6 +8,7 @@ import { Input, ValidationSummary } from "@/components/ui/form-field";
 import { Field, useSfSubmit } from "@/components/sinking-fund/form-kit";
 import { sfMessages } from "@/lib/sinking-fund/messages";
 import type { SfParticipantSummary } from "@/lib/sinking-fund/types";
+import { SavingLabel } from "@/components/forms/form-status";
 
 /** "Edit name": a linked participant's driver link is removed, so it asks first (spec section 15). */
 export function EditNameDialog({ participant, open, onOpenChange }: { participant: SfParticipantSummary; open: boolean; onOpenChange: (open: boolean) => void }) {
@@ -39,7 +40,7 @@ export function EditNameDialog({ participant, open, onOpenChange }: { participan
         </Field>
         {confirming ? <p role="alert" className="border border-warn/30 bg-warn-soft p-3 text-body-sm text-warn">This participant is linked to a driver record. Changing the name removes that link. Save again to continue.</p> : null}
         <ValidationSummary message={form.failure} />
-        <Button type="submit" disabled={form.pending}>{form.pending ? "Saving…" : confirming ? "Change name and remove link" : "Save name"}</Button>
+        <Button type="submit" disabled={form.pending}>{form.pending ? <SavingLabel /> : confirming ? "Change name and remove link" : "Save name"}</Button>
       </form>
     </DialogContent>
   </Dialog>;
@@ -59,7 +60,7 @@ export function ArchiveDialog({ participant, open, onOpenChange }: { participant
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
         <Button type="button" variant="destructive" disabled={Boolean(blocker) || form.pending}
           onClick={() => form.submit(() => archiveParticipant({ id: participant.participant_id, expectedUpdatedAt: participant.updated_at }), () => sfMessages.participantArchived)}>
-          {form.pending ? "Saving…" : "Archive participant"}
+          {form.pending ? <SavingLabel /> : "Archive participant"}
         </Button>
       </div>
     </DialogContent>

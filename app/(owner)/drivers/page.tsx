@@ -50,7 +50,7 @@ export default async function DriversPage({ searchParams }: { searchParams: Prom
   const tableRows: LocalRow[] = shownRows.map((row) => ({
     key: row.id,
     text: `${row.full_name} ${row.phone} ${row.license_number}`.toLowerCase(),
-    node: <tr>
+    node: <tr data-record-id={row.id}>
       <td className="font-semibold"><Link className="muted-link" href={`/drivers/${row.id}`}>{row.full_name}</Link></td>
       <td><RoleTag role={row.driver_kind} /></td>
       <td>{row.currentUnit ? isOwner ? <Link className="muted-link" href={`/units/${row.currentUnit.id}`}>{row.currentUnit.name}</Link> : row.currentUnit.name : <span className="text-muted">{row.unitLabel}</span>}</td>

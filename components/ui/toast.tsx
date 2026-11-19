@@ -22,7 +22,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 function ToastList() {
   const { toasts } = ToastPrimitive.useToastManager();
-  return toasts.map((toast) => <ToastPrimitive.Root key={toast.id} toast={toast} className="flex items-center gap-2 rounded-md border border-rule bg-brand-dark px-4 py-3 text-body-sm font-semibold text-surface">
+  return toasts.map((toast) => <ToastPrimitive.Root key={toast.id} toast={toast} className="motion-popup flex items-center gap-2 rounded-md border border-rule bg-brand-dark px-4 py-3 text-body-sm font-semibold text-surface">
     <CircleCheck aria-hidden="true" size={16} className="shrink-0" />
     <ToastPrimitive.Title className="min-w-0 flex-1" />
     {toast.actionProps ? <ToastPrimitive.Action className="touch-target -my-2 shrink-0 rounded-sm px-2 text-body-sm font-bold text-surface underline underline-offset-2 hover:bg-surface/10" /> : null}

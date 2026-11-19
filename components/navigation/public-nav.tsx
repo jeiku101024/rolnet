@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpenText, LogIn, UserPlus } from "lucide-react";
+import { LogIn, UserPlus } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const publicItems = [
-  { href: "/", label: "Ledger", icon: BookOpenText },
   { href: "/login", label: "Sign in", icon: LogIn },
   { href: "/register", label: "Register", icon: UserPlus },
 ] as const;

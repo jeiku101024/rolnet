@@ -22,6 +22,7 @@ export const auditEntityLabels: Record<string, string> = {
 export const listControlSpecs = {
   units: {
     sorts: [
+      { value: "newest", label: "Newest first", column: "created_at", ascending: false, then: [{ column: "name", ascending: true }] },
       { value: "name", label: "Name, A to Z", column: "name", ascending: true, then: [{ column: "body_number", ascending: true }] },
       { value: "name-desc", label: "Name, Z to A", column: "name", ascending: false, then: [{ column: "body_number", ascending: true }] },
       { value: "body", label: "Body number, A to Z", column: "body_number", ascending: true },
@@ -33,6 +34,7 @@ export const listControlSpecs = {
   },
   drivers: {
     sorts: [
+      { value: "newest", label: "Newest first", column: "created_at", ascending: false, then: [{ column: "full_name", ascending: true }] },
       { value: "name", label: "Name, A to Z", column: "full_name", ascending: true },
       { value: "name-desc", label: "Name, Z to A", column: "full_name", ascending: false },
       { value: "license", label: "License expiry, soonest first", column: "license_expiry_date", ascending: true, then: [{ column: "full_name", ascending: true }] },

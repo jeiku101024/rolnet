@@ -1,5 +1,6 @@
 "use client";
 
+import { useSaveFeedback } from "@/components/ui/save-feedback";
 import { useId, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronsUpDown, X } from "lucide-react";
@@ -34,6 +35,7 @@ export function useSfSubmit(onDone: () => void) {
   const [failure, setFailure] = useState<string | undefined>();
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [key] = useState(() => crypto.randomUUID());
+  const markSaved = useSaveFeedback();
 
   async function submit<T>(action: () => Promise<ActionResult<T>>, message: (data: T) => string) {
     if (pending) return;
@@ -49,6 +51,8 @@ export function useSfSubmit(onDone: () => void) {
         return;
       }
       onDone();
+      const savedId = (result.data as { id?: unknown } | null)?.id;
+      if (typeof savedId === "string") markSaved(savedId, { created: true });
       toast(message(result.data));
       router.refresh();
     } catch (reason) {

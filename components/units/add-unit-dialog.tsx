@@ -1,5 +1,6 @@
 "use client";
 
+import { useSaveFeedback } from "@/components/ui/save-feedback";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
@@ -9,6 +10,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { FormField, Input, Select, ValidationSummary } from "@/components/ui/form-field";
 import { useToast } from "@/components/ui/toast";
 import { clientErrorMessage } from "@/components/forms/use-action-form";
+import { SavingLabel } from "@/components/forms/form-status";
 
 type Field = "name" | "bodyNumber" | "plateNumber" | "makeModel";
 const required: { field: Field; label: string }[] = [
@@ -25,6 +27,7 @@ function FieldError({ message }: { message?: string }) {
 /** "Add a unit" opens the add-unit form in a modal (feature 010, FR-006). */
 export function AddUnitDialog() {
   const router = useRouter();
+  const markSaved = useSaveFeedback();
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
@@ -45,6 +48,7 @@ export function AddUnitDialog() {
       const result = await createUnit({ name: value("name"), bodyNumber: value("bodyNumber"), plateNumber: value("plateNumber").toUpperCase(), makeModel: value("makeModel"), status: data.get("status") });
       if (!result.ok) { setFailure(result.message); return; }
       setOpen(false);
+      markSaved(result.data.id, { created: true });
       toast("Unit added");
       router.refresh();
     } catch (reason) {
@@ -66,7 +70,7 @@ export function AddUnitDialog() {
         <FormField label="Motorcycle" required><Input name="makeModel" maxLength={120} placeholder="e.g. Yamaha YTX" aria-invalid={Boolean(errors.makeModel) || undefined} /><FieldError message={errors.makeModel} /></FormField>
         <FormField label="Status"><Select name="status" defaultValue="active"><option value="active">Active</option><option value="in_repair">In repair</option><option value="retired">Retired</option></Select></FormField>
         <ValidationSummary message={failure} />
-        <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save unit"}</Button>
+        <Button type="submit" disabled={pending}>{pending ? <SavingLabel /> : "Save unit"}</Button>
       </form>
     </DialogContent>
   </Dialog>;

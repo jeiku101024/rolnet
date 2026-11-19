@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { formatShortDate } from "@/lib/dates/fleet-date";
+import { SavingLabel } from "@/components/forms/form-status";
 
 /**
  * The "Release assignments?" step (feature 012, FR-042, FR-043): lists each date and unit that will be
@@ -24,7 +25,7 @@ export function ReleaseConfirm({ rows, pending, onBack, onConfirm, confirmLabel 
     </ul>
     <div className="flex flex-wrap justify-end gap-2">
       <Button type="button" variant="outline" onClick={onBack} disabled={pending}>Back</Button>
-      <Button type="button" onClick={onConfirm} disabled={pending}>{pending ? "Saving…" : confirmLabel}</Button>
+      <Button type="button" onClick={onConfirm} disabled={pending}>{pending ? <SavingLabel /> : confirmLabel}</Button>
     </div>
   </div>;
 }

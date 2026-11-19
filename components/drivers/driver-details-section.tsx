@@ -1,5 +1,6 @@
 "use client";
 
+import { useSaveFeedback } from "@/components/ui/save-feedback";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { updateDriver } from "@/app/actions/drivers";
@@ -9,6 +10,7 @@ import { FormField, Input, Textarea, ValidationSummary } from "@/components/ui/f
 import { useToast } from "@/components/ui/toast";
 import { clientErrorMessage } from "@/components/forms/use-action-form";
 import { formatShortDate, fleetToday } from "@/lib/dates/fleet-date";
+import { SavingLabel } from "@/components/forms/form-status";
 
 type Driver = { id: string; full_name: string; phone: string; license_number: string; license_expiry_date: string; address: string | null; notes: string | null; created_at: string; updated_at: string };
 
@@ -19,6 +21,7 @@ type Driver = { id: string; full_name: string; phone: string; license_number: st
  */
 export function DriverDetailsSection({ driver, role, status, canEdit }: { driver: Driver; role: string; status: string; canEdit: boolean }) {
   const router = useRouter();
+  const markSaved = useSaveFeedback();
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [pending, setPending] = useState(false);
@@ -38,6 +41,7 @@ export function DriverDetailsSection({ driver, role, status, canEdit }: { driver
       });
       if (!result.ok) { setError(result.message); return; }
       setEditing(false);
+      markSaved(driver.id);
       toast("Details saved");
       router.refresh();
     } catch (reason) {
@@ -52,7 +56,7 @@ export function DriverDetailsSection({ driver, role, status, canEdit }: { driver
     ? <FormField label={label} required={options.required ?? true}><Input name={name} type={options.type} defaultValue={value} maxLength={maxLength} required={options.required ?? true} /></FormField>
     : fixed(label, value || "—");
 
-  return <form className="grid gap-4" onSubmit={save}>
+  return <form data-record-id={driver.id} className="grid gap-4" onSubmit={save}>
     <SectionHeading title="Details" action={canEdit && !editing ? <Button type="button" variant="outline" onClick={() => { setError(undefined); setEditing(true); }}>Edit details</Button> : undefined} />
     <dl className="grid grid-cols-2 gap-4 md:grid-cols-3">
       {field("Full name", "fullName", driver.full_name, 160)}
@@ -69,7 +73,7 @@ export function DriverDetailsSection({ driver, role, status, canEdit }: { driver
     </dl>
     <ValidationSummary message={error} />
     {editing ? <div className="flex flex-wrap gap-2">
-      <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save details"}</Button>
+      <Button type="submit" disabled={pending}>{pending ? <SavingLabel /> : "Save details"}</Button>
       <Button type="button" variant="outline" disabled={pending} onClick={() => { setError(undefined); setEditing(false); }}>Cancel</Button>
     </div> : null}
   </form>;

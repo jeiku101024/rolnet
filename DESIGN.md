@@ -78,3 +78,26 @@ The yellow brand accent never carries white text. Status colors are deliberately
 - Do not use all-caps eyebrow labels as generic decoration.
 - Do not use middle-dot strings as a substitute for information hierarchy.
 - Do not introduce component-level hex colors, arbitrary font sizes, or arbitrary spacing values; consume the variables in `app/globals.css`.
+
+## Motion (feature 018)
+
+- Motion is minimal and never delays input. Only `opacity`, `scale` and `translate` animate; nothing animates `width`, `height`, `top` or `left`.
+- Timings come from the `--motion-*` tokens in `app/globals.css`: enter 180 ms, exit 120 ms, form swap 320 ms, row highlight 900 ms, all on `--motion-ease-out`.
+- Pop-ups (dialog, alert dialog, sheet, popover, menu, toast) use the `motion-popup` / `motion-backdrop` classes with Base UI's `data-starting-style` and `data-ending-style`. Tooltips fade only (`motion-fade`).
+- Save feedback: the submit button shows a spinner while saving (`SavingLabel`); a successful save tints only the changed row through `markSaved(id)` and the row's `data-record-id`; a failed save plays nothing.
+- The sign-in/register cards slide in a two-panel track; the background is three drifting shapes that pause when the tab is hidden.
+- `prefers-reduced-motion: reduce` removes movement and looping; only short fades remain.
+
+## Dark theme (feature 018)
+
+- The `dark` class on `<html>` is set before first paint by `lib/theme/theme-script.ts` from the saved choice (`localStorage` key `rolnet-theme`) or the device setting.
+- Every `--token-*` has a dark value in the `:root.dark` block (screen only, so printing stays light). `tests/unit/dark-token-contrast.test.ts` keeps text at 4.5:1 and control borders and chart colors at 3:1.
+- The toggle is a Light/Dark button with a "Match my device" menu item, in the public and signed-in headers.
+- The navy logo sits on a light `brand-chip` in dark mode. Status meaning still comes from the icon and the label, never color alone.
+
+## Logo placement (feature 018)
+
+- Sign-in and registration: the animated full logo with the tricycle, ROLNET and JEFMAEJAKE (`rolnet-logo-jefmaejake-animated.svg`), centered above the card. The top-left of the signed-out header shows only the tricycle mark (`rolnet-mark.svg`).
+- Signed-in app: the horizontal logo, tricycle with ROLNET at its side (`rolnet-logo-horizontal-animated.svg`), centered in the sidebar header and, on phones, in the top bar.
+- Every logo has a light and a dark artwork (`*-dark.svg`); `BrandLogo` renders both and the `dark` class on `<html>` shows the right one. Printing always uses the light artwork.
+- The signed-in top bar and the sidebar header share `--shell-header-height` (6.25rem) so their bottom borders line up.
