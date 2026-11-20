@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import { EmptyState } from "@/components/ui/feedback";
 import { SegmentedToggle } from "@/components/ui/segmented-toggle";
 import { DriverTag } from "@/components/sinking-fund/type-tag";
-import { PrimaryActions, useSfActions } from "@/components/sinking-fund/sinking-fund-page";
+import { PrimaryActions, useSfActions } from "@/components/sinking-fund/sinking-fund-shell";
 import { listHref } from "@/lib/pagination/list-page";
 import { formatPesos } from "@/lib/money/centavos";
 import { placeLabel, rankRows, trophyFor, type RankPeriod } from "@/lib/sinking-fund/rankings";

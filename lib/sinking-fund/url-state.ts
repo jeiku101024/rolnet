@@ -9,36 +9,26 @@ export const participantSorts = ["savings", "name", "balance"] as const;
 export type ParticipantSort = (typeof participantSorts)[number];
 export type RankBy = "savings" | "deposits";
 
-export const loadMoreStep = 25;
-export const historyStep = 10;
-const maxRows = 1000;
-
 function first(value: string | string[] | undefined) {
   return (Array.isArray(value) ? value[0] : value) ?? "";
-}
-
-function stepped(raw: string, step: number) {
-  const value = /^\d+$/.test(raw) ? Number(raw) : step;
-  if (!Number.isSafeInteger(value) || value < step) return step;
-  return Math.min(Math.ceil(value / step) * step, maxRows);
 }
 
 export type SfPageParams = {
   view: SfView;
   q: string;
-  /** How many Transactions rows to show (25, 50, 75...). */
-  n: number;
   rank: RankBy;
   period: RankPeriod;
   at: string | undefined;
   psort: ParticipantSort;
-  /** The participant whose detail sheet is open. */
+  /** Legacy (feature 016) address of the participant pop-up. It now only redirects to the participant's page. */
   detail: string | undefined;
-  /** How many history rows the detail sheet shows (10, 20...). */
-  hn: number;
 };
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuid(value: string) {
+  return uuidPattern.test(value);
+}
 
 export function parseSfParams(searchParams: SearchParams): SfPageParams {
   const view = first(searchParams.view);
@@ -50,24 +40,22 @@ export function parseSfParams(searchParams: SearchParams): SfPageParams {
   return {
     view: (sfViews as readonly string[]).includes(view) ? (view as SfView) : "transactions",
     q: first(searchParams.q).trim().slice(0, 100),
-    n: stepped(first(searchParams.n), loadMoreStep),
     rank: rank === "deposits" ? "deposits" : "savings",
     period: period === "month" || period === "week" ? period : "all",
     at: at || undefined,
     psort: (participantSorts as readonly string[]).includes(psort) ? (psort as ParticipantSort) : "savings",
     detail: uuidPattern.test(detail) ? detail : undefined,
-    hn: stepped(first(searchParams.hn), historyStep),
   };
 }
 
 /** Params that belong to one view only; switching views drops the others so links stay tidy. */
 const viewParams: Record<SfView, string[]> = {
-  transactions: ["q", "type", "participant", "from", "to", "loan_status", "sort", "n"],
+  transactions: ["q", "type", "participant", "from", "to", "loan_status", "sort"],
   top: ["rank", "period", "at"],
   participants: ["q", "psort"],
 };
 
-/** The URL for a view, keeping only that view's parameters (and an open detail sheet). */
+/** The URL for a view, keeping only that view's parameters. */
 export function viewHref(pathname: string, current: SearchParams, view: SfView) {
   const next = new URLSearchParams();
   if (view !== "transactions") next.set("view", view);
@@ -75,8 +63,27 @@ export function viewHref(pathname: string, current: SearchParams, view: SfView) 
     const value = first(current[key]);
     if (value) next.set(key, value);
   }
-  const detail = first(current.detail);
-  if (detail) next.set("detail", detail);
   const query = next.toString();
   return query ? `${pathname}?${query}` : pathname;
+}
+
+const participantsHome = "/sinking-fund?view=participants";
+
+/**
+ * Where a participant page's back control goes (feature 021). Only an address inside /sinking-fund is accepted, so the
+ * `return` parameter can never send the owner somewhere else.
+ */
+export function safeReturn(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (!raw || !/^\/sinking-fund(?:[?#]|$)/.test(raw)) return participantsHome;
+  return raw;
+}
+
+/** The link to a participant's own page. `fromQuery` is the query string (with or without "?") of the screen it was opened from. */
+export function participantHref(id: string, fromQuery = "") {
+  const query = fromQuery.replace(/^\?/, "");
+  const params = new URLSearchParams();
+  if (query) params.set("return", `/sinking-fund?${query}`);
+  const tail = params.toString();
+  return `/sinking-fund/participants/${id}${tail ? `?${tail}` : ""}`;
 }

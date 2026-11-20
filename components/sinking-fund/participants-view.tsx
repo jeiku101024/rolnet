@@ -16,7 +16,7 @@ import { participantSorts, type ParticipantSort } from "@/lib/sinking-fund/url-s
 import type { SfParticipantSummary } from "@/lib/sinking-fund/types";
 import { MonthlyBars, SavingsDonut } from "@/components/sinking-fund/charts/charts";
 import { DriverTag } from "@/components/sinking-fund/type-tag";
-import { PrimaryActions, useSfActions } from "@/components/sinking-fund/sinking-fund-page";
+import { PrimaryActions, useSfActions } from "@/components/sinking-fund/sinking-fund-shell";
 import { ParticipantsSummary } from "@/components/sinking-fund/summary-strip";
 
 const sortLabels: Record<ParticipantSort, string> = { savings: "Highest savings", name: "Name A to Z", balance: "Highest balance to pay" };

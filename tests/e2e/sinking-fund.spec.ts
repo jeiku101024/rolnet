@@ -35,8 +35,9 @@ test.describe("Sinking fund (feature 015)", () => {
     await expect(page.getByRole("button", { name: "Add participant" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Add transaction" })).toBeVisible();
     await expect(page.getByRole("button", { name: /^Filters/ })).toBeVisible();
-    await expect(page.getByTestId("sf-row")).toHaveCount(25);
-    await expect(page.getByRole("link", { name: "Load more" })).toBeVisible();
+    await expect(page.getByTestId("sf-row")).toHaveCount(10);
+    await expect(page.getByRole("navigation", { name: "Pagination" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Load more" })).toHaveCount(0);
     await noSidewaysScroll(page);
   });
 
@@ -162,18 +163,15 @@ test.describe("Sinking fund (feature 015)", () => {
     await noSidewaysScroll(page);
   });
 
-  test("the participant detail opens from a card, lists loans and history, and closes", async ({ page }) => {
-    await open(page, "/sinking-fund?view=participants");
-    await page.getByRole("button", { name: "Options for Ana Reyes" }).click();
-    await page.getByRole("menuitem", { name: "View details" }).click();
-    const popup = page.getByRole("dialog", { name: "Ana Reyes" });
-    await expect(popup).toBeVisible();
-    await expect(page).toHaveURL(/detail=/);
-    await expect(popup.getByTestId("sf-detail-loan").first()).toBeVisible();
-    await expect(popup.getByRole("button", { name: "Add transaction" })).toBeVisible();
-    await popup.getByRole("button", { name: "Close", exact: true }).click();
-    await expect(popup).toHaveCount(0);
-    await expect(page).not.toHaveURL(/detail=/);
+  test("the Transactions list pages ten rows at a time and a new search returns to page 1", async ({ page }) => {
+    await open(page);
+    await page.getByRole("link", { name: "Next page" }).click();
+    await expect(page).toHaveURL(/page=2/);
+    await expect(page.getByTestId("sf-row").first()).toBeVisible();
+    await page.getByRole("searchbox", { name: "Search transactions" }).fill("a");
+    await expect(page).not.toHaveURL(/page=2/);
+    await open(page, "/sinking-fund?page=999");
+    await expect(page.getByRole("navigation", { name: "Pagination" })).toContainText(/Page d+ of d+/);
   });
 
   test("owner tools: Fund settings, Distribute, and the row menu", async ({ page }) => {
@@ -294,110 +292,86 @@ test.describe("Distribution and year-end close (feature 016)", () => {
   });
 });
 
-// Feature 016: the participant details are a centered pop-up that fits its content and closes without rendering the page.
-test.describe("Participant pop-up (feature 016)", () => {
+// Feature 021: a participant opens on their own page (not a pop-up) with the old details and a History like the main list.
+test.describe("Participant page (feature 021)", () => {
   test.describe.configure({ timeout: 90_000 });
 
-  async function openAna(page: Page, name = "Ana Reyes") {
+  async function openParticipant(page: Page, name = "Ana Reyes") {
     await open(page, "/sinking-fund?view=participants");
     await page.getByRole("button", { name: "Options for " + name }).click();
     await page.getByRole("menuitem", { name: "View details" }).click();
-    const popup = page.getByRole("dialog", { name });
-    await expect(popup.getByRole("heading", { name: "History" })).toBeVisible();
-    await expect(popup.getByTestId("sf-detail-row").first()).toBeVisible();
-    return popup;
+    await expect(page.getByRole("heading", { name, level: 1 })).toBeVisible();
+    await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => undefined);
   }
 
+  test("View details opens the participant's own page, not a pop-up, and Back restores the participants view", async ({ page }) => {
+    await open(page, "/sinking-fund?view=participants");
+    await page.getByRole("searchbox", { name: "Search participants" }).fill("Ana");
+    await expect(page.getByTestId("sf-participant-card")).toHaveCount(1);
+    await page.getByRole("button", { name: "Options for Ana Reyes" }).click();
+    await page.getByRole("menuitem", { name: "View details" }).click();
+    await expect(page).toHaveURL(/\/sinking-fund\/participants\/[0-9a-f-]{36}/);
+    await expect(page.getByRole("heading", { name: "Ana Reyes", level: 1 })).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.getByRole("link", { name: "Back to Sinking fund" }).click();
+    await expect(page).toHaveURL(/view=participants/);
+    await expect(page.getByRole("searchbox", { name: "Search participants" })).toHaveValue("Ana");
+  });
+
   for (const width of [360, 1280]) {
-    test("opens centered with every detail and no sideways scrolling at " + width + "px", async ({ page }) => {
+    test("shows the figures, buttons, loans, and History with no sideways scrolling at " + width + "px", async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
-      const popup = await openAna(page);
-      for (const label of ["Total savings", "Total loans", "Balance to pay"]) await expect(popup.getByText(label, { exact: true })).toBeVisible();
-      await expect(popup.getByRole("button", { name: "Add transaction" })).toBeVisible();
-      await expect(popup.getByRole("button", { name: "Withdraw savings" })).toBeVisible();
-      await expect(popup.getByRole("heading", { name: "Loans" })).toBeVisible();
-      await expect(popup.getByRole("heading", { name: "History" })).toBeVisible();
-      expect(await popup.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
+      await openParticipant(page);
+      for (const label of ["Total savings", "Total loans", "Balance to pay", "Interest shares received"]) await expect(page.getByText(label, { exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Add transaction" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Withdraw savings" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Loans" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "History" })).toBeVisible();
+      await expect(page.getByTestId("sf-detail-loan").first()).toBeVisible();
       await noSidewaysScroll(page);
-      // Centered like the Add transaction pop-up: equal space left and right.
-      const box = (await popup.boundingBox())!;
-      expect(Math.abs(box.x - (width - box.x - box.width))).toBeLessThanOrEqual(2);
-      // Every history row stays inside the pop-up.
-      const rows = popup.getByTestId("sf-detail-row");
-      expect(await rows.count()).toBeGreaterThan(0);
-      for (const row of await rows.all()) {
-        const rowBox = (await row.boundingBox())!;
-        expect(rowBox.x + rowBox.width).toBeLessThanOrEqual(box.x + box.width + 1);
-      }
     });
   }
 
-  test("Load more adds history rows inside the pop-up", async ({ page }) => {
-    const popup = await openAna(page, "Ben Cruz");
-    const before = await popup.getByTestId("sf-detail-row").count();
-    await popup.getByRole("button", { name: "Load more" }).click();
-    await expect.poll(() => popup.getByTestId("sf-detail-row").count()).toBeGreaterThan(before);
+  test("History shows ten rows with pages, search, and sort for this participant only", async ({ page }) => {
+    await openParticipant(page, "Ben Cruz");
+    const rows = page.getByTestId("sf-row");
+    await expect(rows).toHaveCount(10);
+    await expect(page.getByRole("navigation", { name: "Pagination" })).toBeVisible();
+    for (const text of await page.getByTestId("sf-detail-history").getByText(/Ben Cruz/).allTextContents()) expect(text).toContain("Ben Cruz");
+    await page.getByRole("link", { name: "Next page" }).click();
+    await expect(page).toHaveURL(/page=2/);
+    await expect(page.getByRole("heading", { name: "Ben Cruz", level: 1 })).toBeVisible();
+    await page.getByLabel("Sort").selectOption({ label: "Amount, highest first" });
+    await expect(page).not.toHaveURL(/page=2/);
+    await expect(page).toHaveURL(/sort=amount-desc/);
+    await noSidewaysScroll(page);
   });
 
-  test("the title and close button stay in view while the body scrolls", async ({ page }) => {
-    await page.setViewportSize({ width: 360, height: 520 });
-    const popup = await openAna(page);
-    const close = popup.getByRole("button", { name: "Close", exact: true });
-    await popup.evaluate((element) => { element.scrollTop = element.scrollHeight; });
-    const popupBox = (await popup.boundingBox())!;
-    const closeBox = (await close.boundingBox())!;
-    expect(closeBox.y).toBeGreaterThanOrEqual(popupBox.y - 1);
-    expect(closeBox.y + closeBox.height).toBeLessThanOrEqual(popupBox.y + popupBox.height + 1);
+  test("Add transaction opens the form for this participant", async ({ page }) => {
+    await openParticipant(page);
+    await page.getByRole("button", { name: "Add transaction" }).click();
+    await expect(page.getByRole("dialog", { name: /Add transaction/i })).toBeVisible();
   });
 
-  test("closing by the button, Escape, or a tap outside leaves the page behind as it was, with no page request", async ({ page }) => {
-    await open(page, "/sinking-fund?view=participants");
-    await page.getByRole("searchbox", { name: "Search participants" }).fill("a");
-    await expect(page).toHaveURL(/q=a/);
-    await page.evaluate(() => { (window as unknown as { __kept: number }).__kept = 7; });
-    const search = page.getByRole("searchbox", { name: "Search participants" });
-    const cards = await page.getByTestId("sf-participant-card").count();
-
-    for (const how of ["button", "escape", "outside"] as const) {
-      await page.getByRole("button", { name: "Options for Ana Reyes" }).click();
-      await page.getByRole("menuitem", { name: "View details" }).click();
-      const popup = page.getByRole("dialog", { name: "Ana Reyes" });
-      await expect(popup).toBeVisible();
-      await expect(popup.getByTestId("sf-detail-loan").first()).toBeVisible();
-      const scrollBefore = await page.evaluate(() => window.scrollY); // where the page was when the pop-up opened
-      const requests: string[] = [];
-      page.on("request", (request) => { if (request.resourceType() === "document" || request.url().includes("_rsc=")) requests.push(request.url()); });
-      if (how === "button") await popup.getByRole("button", { name: "Close", exact: true }).click();
-      else if (how === "escape") await page.keyboard.press("Escape");
-      else await page.mouse.click(2, 2);
-      await expect(popup).toHaveCount(0);
-      await page.waitForTimeout(400);
-      expect(requests, "closing with " + how + " makes no page request").toEqual([]);
-      page.removeAllListeners("request");
-      await expect(page).not.toHaveURL(/detail=/);
-      await expect(page).toHaveURL(/q=a/);
-      await expect(search).toHaveValue("a");
-      expect(await page.getByTestId("sf-participant-card").count()).toBe(cards);
-      expect(await page.evaluate(() => (window as unknown as { __kept?: number }).__kept)).toBe(7); // the page was never reloaded
-      expect(Math.abs((await page.evaluate(() => window.scrollY)) - scrollBefore)).toBeLessThanOrEqual(2);
-    }
+  test("an old ?detail= link lands on the participant page", async ({ page }) => {
+    await openParticipant(page);
+    const id = page.url().match(/participants\/([0-9a-f-]{36})/)![1];
+    await page.goto("/sinking-fund?view=participants&detail=" + id);
+    await expect(page).toHaveURL(new RegExp("/sinking-fund/participants/" + id));
+    await expect(page.getByRole("heading", { name: "Ana Reyes", level: 1 })).toBeVisible();
   });
 
-  test("a refresh keeps the pop-up open through the address, and Add transaction returns to it", async ({ page }) => {
-    const popup = await openAna(page);
-    const address = page.url();
-    await page.reload();
-    await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => undefined);
-    await expect(page.getByRole("dialog", { name: "Ana Reyes" })).toBeVisible();
-    expect(page.url()).toBe(address);
+  test("an unknown participant shows a not-found page with a way back", async ({ page }) => {
+    await page.goto("/sinking-fund/participants/00000000-0000-4000-8000-000000000999");
+    await expect(page.getByRole("heading", { name: "Participant not found" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back to participants" })).toBeVisible();
+  });
 
-    await page.getByRole("dialog", { name: "Ana Reyes" }).getByRole("button", { name: "Add transaction" }).click();
-    const form = page.getByRole("dialog", { name: /Add transaction/i });
-    await expect(form).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(form).toHaveCount(0);
-    await expect(page.getByRole("dialog", { name: "Ana Reyes" })).toBeVisible(); // back to the participant with fresh totals
-    void popup;
+  test("the back control ignores an address outside the Sinking fund", async ({ page }) => {
+    await openParticipant(page);
+    const id = page.url().match(/participants\/([0-9a-f-]{36})/)![1];
+    await page.goto("/sinking-fund/participants/" + id + "?return=" + encodeURIComponent("https://evil.test"));
+    await expect(page.getByRole("link", { name: "Back to Sinking fund" })).toHaveAttribute("href", "/sinking-fund?view=participants");
   });
 });
 

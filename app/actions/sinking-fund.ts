@@ -8,7 +8,7 @@ import { ActionError } from "@/lib/actions/errors";
 import { run } from "@/lib/actions/run";
 import { demoMode } from "@/lib/demo/mode";
 import { loanDueDate } from "@/lib/sinking-fund/rules";
-import { loadDistributionDetail, loadParticipantDetail } from "@/lib/sinking-fund/queries";
+import { loadDistributionDetail } from "@/lib/sinking-fund/queries";
 import { sfMessages } from "@/lib/sinking-fund/messages";
 import { archiveSchema, changeInterestSchema, depositSchema, distributeSchema, loanSchema, loanWithdrawalSchema, participantSchema, paymentSchema, renameSchema, savingsWithdrawalSchema, settingsSchema, voidSchema } from "@/lib/validation/sinking-fund";
 
@@ -40,20 +40,10 @@ async function requireOwner() {
   return profile;
 }
 
-const revalidate = () => revalidatePath("/sinking-fund");
+// The layout scope also refreshes a participant's own page (/sinking-fund/participants/[id], feature 021).
+const revalidate = () => revalidatePath("/sinking-fund", "layout");
 
 // Reads (feature 016). They work in demo mode too (it only refuses writes).
-
-/** One participant's pop-up data, read when the pop-up opens so closing it never needs a page render. Any approved user. */
-export async function getParticipantDetail(input: unknown) {
-  return run("The details could not be loaded. Try again.", async () => {
-    await requireApprovedSession();
-    const value = z.object({ participantId: z.string().uuid(), historyCount: z.number().int().min(1).max(500) }).parse(input);
-    const detail = await loadParticipantDetail(value.participantId, value.historyCount);
-    if (!detail) throw new ActionError("NOT_FOUND", "This participant was not found. Reload the page and try again.");
-    return detail;
-  }, labels);
-}
 
 /** One distribution's table (ended total savings and share per participant). Owner only. */
 export async function getDistributionDetails(input: unknown) {
