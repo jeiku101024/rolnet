@@ -9,7 +9,7 @@ import { demoSfData, demoSfSettings } from "@/lib/sinking-fund/demo-data";
 import { periodRange } from "@/lib/sinking-fund/rankings";
 import { yearChoices } from "@/lib/reports/download-years";
 import type { SfPageParams } from "@/lib/sinking-fund/url-state";
-import type { SfDistribution, SfDistributionDetail, SfDistributionRow, SfFundSummary, SfLedgerRow, SfLoan, SfMonthlyFlow, SfParticipantSummary, SfPrefill, SfRankingRow, SfStandingRow } from "@/lib/sinking-fund/types";
+import type { SfDistribution, SfDistributionDetail, SfDistributionRow, SfFundSummary, SfLedgerRow, SfLoan, SfLoanPayment, SfMonthlyFlow, SfParticipantSummary, SfPrefill, SfRankingRow, SfStandingRow } from "@/lib/sinking-fund/types";
 
 export type SfDriverOption = { id: string; full_name: string };
 
@@ -21,6 +21,8 @@ export type SfParticipantPageData = {
   shared: SfPageData;
   participant: SfParticipantSummary;
   loans: SfLoan[];
+  /** Every non-voided payment against these loans, oldest first (feature 022). */
+  payments: SfLoanPayment[];
   history: SfLedgerPage;
   controls: ListControlsView;
   q: string;
@@ -209,7 +211,11 @@ export async function loadParticipantPage(participantId: string, searchParams: S
     const own = ledgerRows(demoSfData, today).filter((row) => row.participant_id === participantId && (!needle || (row.notes ?? "").toLowerCase().includes(needle)));
     const history = pageDemoLedger(controlRows(own as unknown as Record<string, unknown>[], controls) as unknown as SfLedgerRow[], searchParams);
     const loans = buildLoans(demoSfData, today).filter((loan) => loan.participant_id === participantId).sort((a, b) => b.loan_date.localeCompare(a.loan_date));
-    return { shared: { ...base, ...extras }, participant, loans, history, controls: view, q: request.q };
+    const payments = demoSfData.transactions
+      .filter((row) => row.type === "payment" && row.participant_id === participantId && !row.voided_at && row.loan_id)
+      .sort((a, b) => a.tx_date.localeCompare(b.tx_date) || a.created_at.localeCompare(b.created_at))
+      .map((row): SfLoanPayment => ({ id: row.id, loan_id: row.loan_id!, tx_date: row.tx_date, amount_centavos: row.amount_centavos, interest_part_centavos: row.interest_part_centavos ?? 0, principal_part_centavos: row.principal_part_centavos ?? 0 }));
+    return { shared: { ...base, ...extras }, participant, loans, payments, history, controls: view, q: request.q };
   }
   const base = await baseFromDatabase(isOwner);
   const participant = base.participants.find((item) => item.participant_id === participantId);
@@ -218,11 +224,13 @@ export async function loadParticipantPage(participantId: string, searchParams: S
   let query = supabase.from("sf_ledger_v").select("*", { count: "exact" }).eq("participant_id", participantId) as unknown as LedgerQuery;
   if (request.q) query = query.or(`notes.ilike.${searchPattern(request.q)}`);
   const sorted = applySort(query, controls) as LedgerQuery;
-  const [loans, history] = await Promise.all([
+  const [loans, paymentRows, history] = await Promise.all([
     supabase.from("sf_loans_v").select("*").eq("participant_id", participantId).order("loan_date", { ascending: false }),
+    supabase.from("sf_ledger_v").select("id, loan_id, tx_date, amount_centavos, interest_part_centavos, principal_part_centavos").eq("participant_id", participantId).eq("type", "payment").is("voided_at", null).order("tx_date", { ascending: true }).order("created_at", { ascending: true }),
     fetchListPage(request, (from, to) => sorted.range(from, to)),
   ]);
-  return { shared: { ...base, ...extras }, participant, loans: (loans.data ?? []) as unknown as SfLoan[], history, controls: view, q: request.q };
+  const payments = ((paymentRows.data ?? []) as unknown as Partial<SfLoanPayment>[]).filter((row): row is SfLoanPayment => Boolean(row.loan_id)).map((row) => ({ ...row, interest_part_centavos: row.interest_part_centavos ?? 0, principal_part_centavos: row.principal_part_centavos ?? 0 }));
+  return { shared: { ...base, ...extras }, participant, loans: (loans.data ?? []) as unknown as SfLoan[], payments, history, controls: view, q: request.q };
 }
 
 /** One distribution's table (owner only: the caller checks the role; the database function checks it again). Null when not found. */

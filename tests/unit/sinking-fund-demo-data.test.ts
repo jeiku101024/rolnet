@@ -24,7 +24,7 @@ describe("demo ledger", () => {
     const summary = fundSummary(demoSfData, today);
     const cards = participantSummaries(demoSfData, today);
     expect(cards.reduce((sum, card) => sum + card.savings_centavos, 0)).toBe(summary.total_savings_centavos);
-    expect(summary.interest_available_centavos).toBe(4000); // ₱250.00 collected, ₱150.00 shared at the year-end close, ₱60.00 in the older equal shares
+    expect(summary.interest_available_centavos).toBe(11500); // ₱675.00 collected (₱250.00 plus ₱425.00 from Ana's many loans), the rest shared at the year-end close and in the older equal shares
     expect(summary.participant_count).toBe(7);
     expect(cards.some((card) => card.has_overdue)).toBe(true);
   });
@@ -37,9 +37,9 @@ describe("demo ledger", () => {
     expect(savings("Felix Tan")).toBe(20000);
     const summary = fundSummary(demoSfData, today);
     expect(summary.cycle_start).toBe(close.dist_date);
-    // Payments received count only after the cycle start: Ben's ₱550.00 and Ana's ₱400.00 payments.
-    expect(summary.payments_received_centavos).toBe(55000 + 40000);
-    expect(summary.interest_collected_centavos).toBe(5000 + 5000);
+    // Payments received count only after the cycle start: Ben's ₱550.00, Ana's ₱400.00 and Ana's ₱300.00 part payment.
+    expect(summary.payments_received_centavos).toBe(55000 + 40000 + 30000);
+    expect(summary.interest_collected_centavos).toBe(5000 + 5000 + 7500);
   });
 
   it("keeps the saved table of a closed distribution sorted highest first with a ₱0 participant", () => {
