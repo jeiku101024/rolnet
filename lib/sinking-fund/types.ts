@@ -81,6 +81,16 @@ export type SfLoan = {
   updated_at: string;
 };
 
+/** One non-voided payment against a loan, as the participant page lists it (feature 022). */
+export type SfLoanPayment = {
+  id: string;
+  loan_id: string;
+  tx_date: string;
+  amount_centavos: number;
+  interest_part_centavos: number;
+  principal_part_centavos: number;
+};
+
 export type SfParticipantSummary = {
   participant_id: string;
   name: string;

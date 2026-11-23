@@ -15,7 +15,7 @@ import type { SfLoan, SfParticipantSummary, SfPrefill } from "@/lib/sinking-fund
 import { SavingLabel } from "@/components/forms/form-status";
 
 export type TransactionFormType = "deposit" | "loan" | "payment" | "savings_withdrawal";
-export type TransactionDialogInitial = { participantId?: string; type?: TransactionFormType; loanId?: string };
+export type TransactionDialogInitial = { participantId?: string; type?: TransactionFormType; loanId?: string; amountCentavos?: number };
 
 const quickLoans = [50000, 100000, 200000, 500000];
 
@@ -32,7 +32,7 @@ export function AddTransactionDialog({ participants, openLoans, prefill, isOwner
   const [type, setType] = useState<TransactionFormType>(initial.type === "payment" && loansOf(initial.participantId ?? null).length === 0 ? "deposit" : initial.type ?? "deposit");
   const [loanId, setLoanId] = useState<string | null>(initial.loanId ?? loansOf(initial.participantId ?? null)[0]?.id ?? null);
   const [date, setDate] = useState(today);
-  const [amountText, setAmountText] = useState("");
+  const [amountText, setAmountText] = useState(initial.amountCentavos && initial.amountCentavos > 0 ? pesoText(initial.amountCentavos) : "");
   const [interestText, setInterestText] = useState("");
   const [interestTouched, setInterestTouched] = useState(false);
   const [notes, setNotes] = useState("");

@@ -327,7 +327,7 @@ test.describe("Participant page (feature 021)", () => {
       await expect(page.getByRole("button", { name: "Withdraw savings" })).toBeVisible();
       await expect(page.getByRole("heading", { name: "Loans" })).toBeVisible();
       await expect(page.getByRole("heading", { name: "History" })).toBeVisible();
-      await expect(page.getByTestId("sf-detail-loan").first()).toBeVisible();
+      await expect(page.getByTestId("sf-loans")).toBeVisible();
       await noSidewaysScroll(page);
     });
   }
@@ -372,6 +372,120 @@ test.describe("Participant page (feature 021)", () => {
     const id = page.url().match(/participants\/([0-9a-f-]{36})/)![1];
     await page.goto("/sinking-fund/participants/" + id + "?return=" + encodeURIComponent("https://evil.test"));
     await expect(page.getByRole("link", { name: "Back to Sinking fund" })).toHaveAttribute("href", "/sinking-fund?view=participants");
+  });
+});
+
+// Feature 022: the participant page's compact Loans section (Ana Reyes has many loans in the demo data).
+test.describe("Participant loans (feature 022)", () => {
+  test.describe.configure({ timeout: 90_000 });
+
+  async function openAna(page: Page) {
+    await open(page, "/sinking-fund?view=participants");
+    await page.getByRole("searchbox", { name: "Search participants" }).fill("Ana");
+    await page.getByRole("button", { name: "Options for Ana Reyes" }).click();
+    await page.getByRole("menuitem", { name: "View details" }).click();
+    await expect(page.getByRole("heading", { name: "Ana Reyes", level: 1 })).toBeVisible();
+    await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => undefined);
+  }
+
+  test("shows a summary and compact active rows, overdue first, with every row collapsed", async ({ page }) => {
+    await openAna(page);
+    const summary = page.getByTestId("sf-loans-summary");
+    await expect(summary).toContainText("5 active");
+    await expect(summary).toContainText("1 overdue");
+    const rows = page.getByTestId("sf-loan-row");
+    await expect(rows).toHaveCount(5);
+    await expect(rows.first()).toContainText("Overdue");
+    for (let index = 0; index < 5; index += 1) await expect(rows.nth(index)).toHaveAttribute("aria-expanded", "false");
+    await expect(page.getByTestId("sf-loan-detail")).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: /^Active (5)/ })).toHaveAttribute("aria-selected", "true");
+    await noSidewaysScroll(page);
+  });
+
+  test("opens one loan at a time with its breakdown, payments, and actions", async ({ page }) => {
+    await openAna(page);
+    const rows = page.getByTestId("sf-loan-row");
+    await rows.first().click();
+    await expect(rows.first()).toHaveAttribute("aria-expanded", "true");
+    const detail = page.getByTestId("sf-loan-detail");
+    await expect(detail).toHaveCount(1);
+    await expect(detail).toContainText("principal");
+    await expect(detail).toContainText("interest");
+    await expect(detail).toContainText("Interest paid");
+    await expect(detail).toContainText("Principal paid");
+    await expect(detail).toContainText("No payments yet.");
+    await expect(page.getByTestId("sf-loan-add-payment")).toBeVisible();
+    await expect(page.getByTestId("sf-loan-pay-full")).toBeVisible();
+    await expect(page.getByTestId("sf-loan-withdraw")).toBeVisible();
+    await rows.nth(1).click();
+    await expect(rows.first()).toHaveAttribute("aria-expanded", "false");
+    await expect(rows.nth(1)).toHaveAttribute("aria-expanded", "true");
+    await expect(detail).toHaveCount(1);
+    await expect(page.getByTestId("sf-loan-withdraw")).toHaveCount(0);
+    await noSidewaysScroll(page);
+    await rows.nth(1).click();
+    await expect(detail).toHaveCount(0);
+  });
+
+  test("lists a part-paid loan's payment", async ({ page }) => {
+    await openAna(page);
+    const rows = page.getByTestId("sf-loan-row");
+    await expect(rows).toHaveCount(5);
+    for (let index = 0; index < 5; index += 1) {
+      await rows.nth(index).click();
+      if (await page.getByTestId("sf-loan-payment").count()) break;
+    }
+    await expect(page.getByTestId("sf-loan-payment")).toHaveCount(1);
+    await expect(page.getByTestId("sf-loan-payment")).toContainText("with");
+  });
+
+  test("Add payment and Pay full balance open the form on that loan", async ({ page }) => {
+    await openAna(page);
+    await page.getByTestId("sf-loan-row").first().click();
+    await page.getByTestId("sf-loan-add-payment").click();
+    const dialog = page.getByRole("dialog", { name: /Add transaction/i });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator("#sf-amount")).toHaveValue("");
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await page.getByTestId("sf-loan-pay-full").click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator("#sf-amount")).toHaveValue("1050");
+  });
+
+  test("the Paid and closed tab pages five loans at a time and filters by year", async ({ page }) => {
+    await openAna(page);
+    await page.getByRole("tab", { name: /^Paid and closed (9)/ }).click();
+    const rows = page.getByTestId("sf-loan-row");
+    await expect(rows).toHaveCount(5);
+    const pagination = page.getByTestId("sf-loans").getByRole("navigation", { name: "Pagination" });
+    await expect(pagination).toContainText("Page 1 of 2");
+    const first = await rows.first().innerText();
+    await pagination.getByRole("button", { name: "Next page" }).click();
+    await expect(pagination).toContainText("Page 2 of 2");
+    await expect(rows).toHaveCount(4);
+    expect(await rows.first().innerText()).not.toBe(first);
+    await rows.first().click();
+    await expect(page.getByTestId("sf-loan-detail")).toHaveCount(1);
+    const year = page.getByTestId("sf-loans-year");
+    const options = await year.locator("option").evaluateAll((items) => items.map((item) => (item as HTMLOptionElement).value));
+    expect(options.length).toBeGreaterThanOrEqual(2);
+    await year.selectOption(options.at(-1)!);
+    await expect(page.getByRole("status").filter({ hasText: /repaid/ })).toBeVisible();
+    await expect(pagination.or(page.getByTestId("sf-loans"))).toBeVisible();
+    await expect(page.getByTestId("sf-loan-detail")).toHaveCount(0);
+    if (await pagination.count()) await expect(pagination).toContainText("Page 1 of");
+    await noSidewaysScroll(page);
+  });
+
+  test("a participant with no loans says so and shows no tabs", async ({ page }) => {
+    await open(page, "/sinking-fund?view=participants");
+    await page.getByRole("searchbox", { name: "Search participants" }).fill("Felix");
+    await page.getByRole("button", { name: "Options for Felix Tan" }).click();
+    await page.getByRole("menuitem", { name: "View details" }).click();
+    await expect(page.getByRole("heading", { name: "Felix Tan", level: 1 })).toBeVisible();
+    await expect(page.getByTestId("sf-loans")).toContainText("No loans yet.");
+    await expect(page.getByRole("tab")).toHaveCount(0);
   });
 });
 

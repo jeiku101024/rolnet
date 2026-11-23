@@ -80,6 +80,21 @@ rows.push({ ...blank(elena, "loan_withdrawal", -10, 75000), loan_id: elenaLoan.i
 // A loan taken today with nothing paid yet.
 rows.push(loan(dino, -5, 50000));
 
+// Ana also has a long loan history, so her page shows the compact Loans section (feature 022): five open loans (one
+// overdue, one part-paid, with the one above), eight paid in full, and one closed as a withdrawal. Savings stay above zero.
+const anaOpen: [number, number][] = [[-45, 100000], [-28, 150000], [-10, 100000], [-4, 50000]];
+const anaOpenLoans = anaOpen.map(([day, amount]) => loan(ana, day, amount));
+rows.push(...anaOpenLoans);
+rows.push(payment(ana, anaOpenLoans[1], -20, 30000, loanInterest(150000)));
+const anaPaid: [number, number][] = [[-77, 50000], [-70, 100000], [-63, 50000], [-58, 100000], [-54, 50000], [-50, 100000], [-42, 50000], [-38, 100000]];
+for (const [day, amount] of anaPaid) {
+  const paidLoan = loan(ana, day, amount);
+  rows.push(paidLoan, payment(ana, paidLoan, day + 6, loanAmountDue(amount), loanInterest(amount)));
+}
+const anaWithdrawn = loan(ana, -35, 100000);
+rows.push(anaWithdrawn, payment(ana, anaWithdrawn, -31, 40000, loanInterest(100000)));
+rows.push({ ...blank(ana, "loan_withdrawal", -3, 65000), loan_id: anaWithdrawn.id, interest_waived_centavos: 0 });
+
 // A year-end close, proportional to savings: Dino, Felix, and Hugo (who had no savings) took part. Their ended totals
 // were saved and their savings went back to zero; later rows below start the new cycle.
 const closeDay = -26;
