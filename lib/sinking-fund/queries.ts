@@ -3,7 +3,7 @@ import { demoMode, demoDrivers } from "@/lib/demo/mode";
 import { fleetToday } from "@/lib/dates/fleet-date";
 import { applyFilters, applySort, controlRows, controlsView, parseControls, prepareSpec, type ListControlsView, type ParsedControls } from "@/lib/pagination/list-controls";
 import { listControlSpecs } from "@/lib/pagination/list-control-specs";
-import type { SearchParams } from "@/lib/pagination/list-page";
+import { fetchListPage, finishListPage, parseListPage, rangeFor, pageSize, type ListPageState, type SearchParams } from "@/lib/pagination/list-page";
 import { buildLoans, distributionDetail, distributionTotals, fundSummary, ledgerRows, monthlyFlows, openLoans, participantSummaries, rankingFor, standingsFor } from "@/lib/sinking-fund/aggregate";
 import { demoSfData, demoSfSettings } from "@/lib/sinking-fund/demo-data";
 import { periodRange } from "@/lib/sinking-fund/rankings";
@@ -13,11 +13,17 @@ import type { SfDistribution, SfDistributionDetail, SfDistributionRow, SfFundSum
 
 export type SfDriverOption = { id: string; full_name: string };
 
-export type SfDetail = {
+/** One page of the ledger (feature 021): at most ten rows plus the paging state the Pagination control draws. */
+export type SfLedgerPage = ListPageState & { rows: SfLedgerRow[] };
+
+/** What a participant's own page needs: the shared page data (for the dialogs), their loans, and one page of their history. */
+export type SfParticipantPageData = {
+  shared: SfPageData;
   participant: SfParticipantSummary;
   loans: SfLoan[];
-  history: SfLedgerRow[];
-  historyTotal: number;
+  history: SfLedgerPage;
+  controls: ListControlsView;
+  q: string;
 };
 
 export type SfPageData = {
@@ -31,7 +37,7 @@ export type SfPageData = {
   drivers: SfDriverOption[];
   today: string;
   controls: ListControlsView;
-  ledger?: { rows: SfLedgerRow[]; total: number };
+  ledger?: SfLedgerPage;
   ranking?: SfRankingRow[];
   period?: ReturnType<typeof periodRange>;
   flows?: SfMonthlyFlow[];
@@ -70,11 +76,14 @@ type LedgerQuery = {
   range(from: number, to: number): PromiseLike<{ data: SfLedgerRow[] | null; count: number | null }>;
 };
 
-async function loadFromDatabase(params: SfPageParams, controls: ParsedControls, isOwner: boolean): Promise<Omit<SfPageData, "controls" | "today" | "standingsYears">> {
+type SfBase = Omit<SfPageData, "controls" | "today" | "standingsYears" | "ledger" | "ranking" | "period" | "flows">;
+
+/** The pieces every Sinking fund screen and dialog share, read from the database. */
+async function baseFromDatabase(isOwner: boolean, range: { from?: string; to?: string } = {}): Promise<SfBase> {
   const supabase = await createSupabaseServerClient();
   const [summaries, summaryResult, loansResult, settings, distributions, linked, driverRows] = await Promise.all([
     supabase.rpc("sf_participant_summaries", {}),
-    supabase.rpc("sf_fund_summary", { p_from: controls.active.find((f) => f.def.kind === "range")?.from ?? null, p_to: controls.active.find((f) => f.def.kind === "range")?.to ?? null }),
+    supabase.rpc("sf_fund_summary", { p_from: range.from ?? null, p_to: range.to ?? null }),
     supabase.from("sf_loans_v").select("*").eq("status", "open").order("loan_date", { ascending: true }).order("id", { ascending: true }),
     supabase.from("sf_settings").select("default_interest_prefill").maybeSingle(),
     // The distribution history lists every participant's ended savings: owner only (it raises for anyone else).
@@ -84,7 +93,7 @@ async function loadFromDatabase(params: SfPageParams, controls: ParsedControls, 
   ]);
   const participants = (summaries.data ?? []) as SfParticipantSummary[];
   const linkedIds = new Set((linked.data ?? []).map((row) => row.driver_id));
-  const base = {
+  return {
     participants,
     openLoans: (loansResult.data ?? []) as unknown as SfLoan[],
     summary: one(summaryResult.data as SfFundSummary[] | null) ?? emptySummary,
@@ -92,14 +101,19 @@ async function loadFromDatabase(params: SfPageParams, controls: ParsedControls, 
     distributions: (distributions.data ?? []) as SfDistribution[],
     drivers: (driverRows.data ?? []).filter((driver) => !linkedIds.has(driver.id)) as SfDriverOption[],
   };
+}
 
+async function loadFromDatabase(params: SfPageParams, controls: ParsedControls, searchParams: SearchParams, isOwner: boolean): Promise<Omit<SfPageData, "controls" | "today" | "standingsYears">> {
+  const supabase = await createSupabaseServerClient();
+  const range = controls.active.find((f) => f.def.kind === "range");
+  const base = await baseFromDatabase(isOwner, { from: range?.from, to: range?.to });
   const extra: Partial<SfPageData> = {};
   if (params.view === "transactions") {
     let query = supabase.from("sf_ledger_v").select("*", { count: "exact" }) as unknown as LedgerQuery;
     query = applyFilters(query, controls);
     if (params.q) { const pattern = searchPattern(params.q); query = query.or(`participant_name.ilike.${pattern},notes.ilike.${pattern}`); }
-    const result = await (applySort(query, controls) as LedgerQuery).range(0, params.n - 1);
-    extra.ledger = { rows: result.data ?? [], total: result.count ?? 0 };
+    const sorted = applySort(query, controls) as LedgerQuery;
+    extra.ledger = await fetchListPage(parseListPage(searchParams), (from, to) => sorted.range(from, to));
   } else if (params.view === "top") {
     const period = periodRange(params.period, params.at, fleetToday());
     const ranking = await supabase.rpc("sf_ranking", { p_rank_by: params.rank, p_start: period.start, p_end: period.end });
@@ -118,12 +132,11 @@ const emptySummary: SfFundSummary = {
   interest_collected_centavos: 0, interest_distributed_centavos: 0, interest_available_centavos: 0, interest_expected_centavos: 0, participant_count: 0, cycle_start: null,
 };
 
-function loadFromDemo(params: SfPageParams, controls: ParsedControls, today: string, isOwner: boolean): Omit<SfPageData, "controls" | "today" | "standingsYears"> {
+function baseFromDemo(today: string, isOwner: boolean, range?: { from?: string; to?: string }): SfBase {
   const data = demoSfData;
   const participants = participantSummaries(data, today);
-  const range = controls.active.find((filter) => filter.def.kind === "range");
   const linked = new Set(data.participants.map((participant) => participant.driver_id).filter(Boolean));
-  const base = {
+  return {
     participants,
     openLoans: openLoans(buildLoans(data, today)).sort((a, b) => a.loan_date.localeCompare(b.loan_date)),
     summary: fundSummary(data, today, range?.from, range?.to),
@@ -131,12 +144,18 @@ function loadFromDemo(params: SfPageParams, controls: ParsedControls, today: str
     distributions: isOwner ? [...data.distributions].sort((a, b) => b.dist_date.localeCompare(a.dist_date)) : [],
     drivers: demoDrivers.filter((driver) => !linked.has(driver.id)).map((driver) => ({ id: driver.id, full_name: driver.full_name })),
   };
+}
+
+function loadFromDemo(params: SfPageParams, controls: ParsedControls, searchParams: SearchParams, today: string, isOwner: boolean): Omit<SfPageData, "controls" | "today" | "standingsYears"> {
+  const data = demoSfData;
+  const range = controls.active.find((filter) => filter.def.kind === "range");
+  const base = baseFromDemo(today, isOwner, range);
   const extra: Partial<SfPageData> = {};
   if (params.view === "transactions") {
     const needle = params.q.toLowerCase();
     const matching = controlRows(ledgerRows(data, today) as unknown as Record<string, unknown>[], controls) as unknown as SfLedgerRow[];
     const filtered = matching.filter((row) => !needle || `${row.participant_name} ${row.notes ?? ""}`.toLowerCase().includes(needle));
-    extra.ledger = { rows: filtered.slice(0, params.n), total: filtered.length };
+    extra.ledger = pageDemoLedger(filtered, searchParams);
   } else if (params.view === "top") {
     const period = periodRange(params.period, params.at, today);
     extra.period = period;
@@ -154,33 +173,56 @@ export async function loadSinkingFund(params: SfPageParams, searchParams: Search
   const optionSource = demoMode ? participantSummaries(demoSfData, today) : null;
   let controls = parseControls(searchParams, prepareSpec(listControlSpecs.sinkingFund, { options: { participant: (optionSource ?? []).map((item) => ({ value: item.participant_id, label: item.name })) } }), today);
   const standingsYears = await loadStandingsYears(isOwner);
-  if (demoMode) return { ...loadFromDemo(params, controls, today, isOwner), controls: controlsView(controls), today, standingsYears };
+  if (demoMode) return { ...loadFromDemo(params, controls, searchParams, today, isOwner), controls: controlsView(controls), today, standingsYears };
 
   // A first pass reads the participants so the Participant filter can offer them, then the real pass runs.
   const supabase = await createSupabaseServerClient();
   const { data: names } = await supabase.from("sf_participants").select("id, name").is("archived_at", null).is("deleted_at", null).order("name");
   controls = parseControls(searchParams, prepareSpec(listControlSpecs.sinkingFund, { options: { participant: (names ?? []).map((item) => ({ value: item.id, label: item.name })) } }), today);
-  return { ...(await loadFromDatabase(params, controls, isOwner)), controls: controlsView(controls), today, standingsYears };
+  return { ...(await loadFromDatabase(params, controls, searchParams, isOwner)), controls: controlsView(controls), today, standingsYears };
 }
 
-/** One participant's pop-up data: figures, loans, and the first `historyCount` history rows (feature 016: read on open, not through the page address). */
-export async function loadParticipantDetail(participantId: string, historyCount: number): Promise<SfDetail | null> {
+/** Demo mode: the page of an already filtered and sorted ledger the address asks for (past the end shows the last page). */
+function pageDemoLedger(rows: SfLedgerRow[], searchParams: SearchParams): SfLedgerPage {
+  const state = finishListPage(rows.length, parseListPage(searchParams).page);
+  const { from } = rangeFor(state.page);
+  return { rows: rows.slice(from, from + pageSize), ...state };
+}
+
+const historySpec = () => ({ sorts: listControlSpecs.sinkingFund.sorts, filters: [] });
+
+/**
+ * One participant's own page (feature 021): the shared data the dialogs need, their loans, and one page of their history
+ * with the main list's paging, sorting, and a notes search. Null when the participant is unknown, archived, or deleted.
+ */
+export async function loadParticipantPage(participantId: string, searchParams: SearchParams, isOwner: boolean): Promise<SfParticipantPageData | null> {
   const today = fleetToday();
+  const request = parseListPage(searchParams);
+  const controls = parseControls(searchParams, historySpec(), today);
+  const view = controlsView(controls);
+  const extras = { today, controls: view, standingsYears: [] as number[] };
   if (demoMode) {
-    const participant = participantSummaries(demoSfData, today).find((item) => item.participant_id === participantId);
+    const base = baseFromDemo(today, isOwner);
+    const participant = base.participants.find((item) => item.participant_id === participantId);
     if (!participant) return null;
-    const history = ledgerRows(demoSfData, today).filter((row) => row.participant_id === participantId).sort((a, b) => b.tx_date.localeCompare(a.tx_date) || b.created_at.localeCompare(a.created_at));
-    return { participant, loans: buildLoans(demoSfData, today).filter((loan) => loan.participant_id === participantId), history: history.slice(0, historyCount), historyTotal: history.length };
+    const needle = request.q.toLowerCase();
+    const own = ledgerRows(demoSfData, today).filter((row) => row.participant_id === participantId && (!needle || (row.notes ?? "").toLowerCase().includes(needle)));
+    const history = pageDemoLedger(controlRows(own as unknown as Record<string, unknown>[], controls) as unknown as SfLedgerRow[], searchParams);
+    const loans = buildLoans(demoSfData, today).filter((loan) => loan.participant_id === participantId).sort((a, b) => b.loan_date.localeCompare(a.loan_date));
+    return { shared: { ...base, ...extras }, participant, loans, history, controls: view, q: request.q };
   }
-  const supabase = await createSupabaseServerClient();
-  const summaries = await supabase.rpc("sf_participant_summaries", {});
-  const participant = ((summaries.data ?? []) as SfParticipantSummary[]).find((item) => item.participant_id === participantId);
+  const base = await baseFromDatabase(isOwner);
+  const participant = base.participants.find((item) => item.participant_id === participantId);
   if (!participant) return null;
+  const supabase = await createSupabaseServerClient();
+  let query = supabase.from("sf_ledger_v").select("*", { count: "exact" }).eq("participant_id", participantId) as unknown as LedgerQuery;
+  if (request.q) query = query.or(`notes.ilike.${searchPattern(request.q)}`);
+  const sorted = applySort(query, controls) as LedgerQuery;
   const [loans, history] = await Promise.all([
     supabase.from("sf_loans_v").select("*").eq("participant_id", participantId).order("loan_date", { ascending: false }),
-    supabase.from("sf_ledger_v").select("*", { count: "exact" }).eq("participant_id", participantId).order("tx_date", { ascending: false }).order("created_at", { ascending: false }).range(0, historyCount - 1),
+    fetchListPage(request, (from, to) => sorted.range(from, to)),
   ]);
-  return { participant, loans: (loans.data ?? []) as unknown as SfLoan[], history: (history.data ?? []) as unknown as SfLedgerRow[], historyTotal: history.count ?? 0 };
+  return { shared: { ...base, ...extras }, participant, loans: (loans.data ?? []) as unknown as SfLoan[], history, controls: view, q: request.q };
 }
 
 /** One distribution's table (owner only: the caller checks the role; the database function checks it again). Null when not found. */

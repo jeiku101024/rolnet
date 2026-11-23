@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatPesos } from "@/lib/money/centavos";
 import type { SfFundSummary } from "@/lib/sinking-fund/types";
-import { useSfActions } from "@/components/sinking-fund/sinking-fund-page";
+import { useSfActions } from "@/components/sinking-fund/sinking-fund-shell";
 
 function Stat({ label, value, note, className = "" }: { label: string; value: ReactNode; note?: ReactNode; className?: string }) {
   return <Card size="sm" className={`gap-1 px-4 ${className}`}>

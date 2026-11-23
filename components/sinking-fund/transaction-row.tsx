@@ -3,7 +3,7 @@
 import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DriverTag, LoanStatusTag, TypeTag, VoidedTag } from "@/components/sinking-fund/type-tag";
-import { useSfActions } from "@/components/sinking-fund/sinking-fund-page";
+import { useSfActions } from "@/components/sinking-fund/sinking-fund-shell";
 import { formatPesos } from "@/lib/money/centavos";
 import { formatDayMonth, formatListDate } from "@/lib/sinking-fund/format";
 import type { SfLedgerRow } from "@/lib/sinking-fund/types";

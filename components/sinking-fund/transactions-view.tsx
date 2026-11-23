@@ -1,14 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/feedback";
 import { ListControls, ListSort } from "@/components/ui/list-controls";
 import { ListSearch } from "@/components/ui/list-search";
-import { listHref } from "@/lib/pagination/list-page";
-import { loadMoreStep } from "@/lib/sinking-fund/url-state";
-import { PrimaryActions, useSfActions } from "@/components/sinking-fund/sinking-fund-page";
+import { Pagination } from "@/components/ui/pagination";
+import { PrimaryActions, useSfActions } from "@/components/sinking-fund/sinking-fund-shell";
 import { TransactionsSummary } from "@/components/sinking-fund/summary-strip";
 import { TransactionRow, rowGrid } from "@/components/sinking-fund/transaction-row";
 
@@ -16,7 +14,7 @@ import { TransactionRow, rowGrid } from "@/components/sinking-fund/transaction-r
 export function TransactionsView() {
   const { data, params, searchParams } = useSfActions();
   const pathname = usePathname();
-  const ledger = data.ledger ?? { rows: [], total: 0 };
+  const ledger = data.ledger ?? { rows: [], total: 0, page: 1, lastPage: 1, rangeLabel: "0 records" };
   const filtered = Boolean(params.q) || data.controls.count > 0;
 
   return <div className="grid gap-6">
@@ -33,7 +31,7 @@ export function TransactionsView() {
       {ledger.rows.length === 0 ? <EmptyState
         title={filtered ? "No transactions match these filters." : "No transactions yet. Add a participant, then record their first deposit."} /> : <>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-body-sm text-muted" role="status">Showing {ledger.rows.length} of {ledger.total} transaction{ledger.total === 1 ? "" : "s"}</p>
+          <p className="text-body-sm text-muted" role="status">{ledger.total} transaction{ledger.total === 1 ? "" : "s"}</p>
           <ListSort pathname={pathname} searchParams={searchParams} controls={data.controls} />
         </div>
         <div>
@@ -42,10 +40,7 @@ export function TransactionsView() {
           </div>
           <ul aria-label="Transactions">{ledger.rows.map((row) => <TransactionRow key={row.id} row={row} />)}</ul>
         </div>
-        {ledger.total > ledger.rows.length ? <div className="flex justify-center">
-          <Link className="touch-target inline-flex items-center rounded-md border border-control-border bg-surface px-4 text-body-sm font-semibold text-ink hover:bg-brand-soft" scroll={false}
-            href={listHref(pathname, searchParams, { n: params.n + loadMoreStep })}>Load more</Link>
-        </div> : null}
+        <Pagination pathname={pathname} searchParams={searchParams} state={ledger} />
       </>}
     </CardContent></Card>
   </div>;

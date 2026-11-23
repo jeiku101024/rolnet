@@ -1,7 +1,8 @@
+import { redirect } from "next/navigation";
 import { requireApprovedSession } from "@/lib/auth/guards";
 import type { SearchParams } from "@/lib/pagination/list-page";
 import { loadSinkingFund } from "@/lib/sinking-fund/queries";
-import { parseSfParams } from "@/lib/sinking-fund/url-state";
+import { parseSfParams, participantHref } from "@/lib/sinking-fund/url-state";
 import { SinkingFundPage } from "@/components/sinking-fund/sinking-fund-page";
 
 /**
@@ -14,6 +15,8 @@ export default async function SinkingFundRoute({ searchParams }: { searchParams:
   const profile = await requireApprovedSession();
   const raw = await searchParams;
   const params = parseSfParams(raw);
+  // Feature 016 opened a pop-up through ?detail=<id>; it is now the participant's own page (feature 021).
+  if (params.detail) redirect(participantHref(params.detail, "view=participants"));
   const isOwner = profile.role === "owner";
   const data = await loadSinkingFund(params, raw, isOwner);
   return <SinkingFundPage data={data} params={params} searchParams={raw} isOwner={isOwner} />;
