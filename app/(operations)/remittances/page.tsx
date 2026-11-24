@@ -34,7 +34,7 @@ export default async function RemittancesPage({ searchParams }: { searchParams: 
   // Feature 019: the download overlay replaces the Reports page, for the users who could use it. The year choices run from
   // the earliest recorded remittance, as the old page's did.
   const canExport = hasPermission(profile.role, "export_reports");
-  const reportButton = canExport ? <DownloadReportButton title="Download report"><ReportExportForm years={yearChoices(await earliestServiceDate())} /></DownloadReportButton> : null;
+  const reportButton = canExport ? <DownloadReportButton key="download-report" title="Download report"><ReportExportForm years={yearChoices(await earliestServiceDate())} /></DownloadReportButton> : null;
   const board = view === "daily" ? buildDailyBoard({ date, today, rows: await loadDailyRows(demoMode ? null : await createSupabaseServerClient(), date) }) : null;
   return <UnsavedGuardProvider>
     <section className="workspace">
